@@ -10,131 +10,43 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedAnalizRouteImport } from './routes/_authenticated/analiz'
-import { Route as AuthenticatedBorclarRouteImport } from './routes/_authenticated/borclar'
-import { Route as AuthenticatedHesaplarRouteImport } from './routes/_authenticated/hesaplar'
-import { Route as AuthenticatedIslemlerRouteImport } from './routes/_authenticated/islemler'
-import { Route as AuthenticatedKategorilerRouteImport } from './routes/_authenticated/kategoriler'
-import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
+import { Route as IndexDothtmlRouteImport } from './routes/index[.]html'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const IndexDothtmlRoute = IndexDothtmlRouteImport.update({
+  id: '/index.html',
+  path: '/index.html',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedAnalizRoute = AuthenticatedAnalizRouteImport.update({
-  id: '/analiz',
-  path: '/analiz',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedBorclarRoute = AuthenticatedBorclarRouteImport.update({
-  id: '/borclar',
-  path: '/borclar',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHesaplarRoute = AuthenticatedHesaplarRouteImport.update({
-  id: '/hesaplar',
-  path: '/hesaplar',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedIslemlerRoute = AuthenticatedIslemlerRouteImport.update({
-  id: '/islemler',
-  path: '/islemler',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedKategorilerRoute =
-  AuthenticatedKategorilerRouteImport.update({
-    id: '/kategoriler',
-    path: '/kategoriler',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
-  id: '/panel',
-  path: '/panel',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/analiz': typeof AuthenticatedAnalizRoute
-  '/borclar': typeof AuthenticatedBorclarRoute
-  '/hesaplar': typeof AuthenticatedHesaplarRoute
-  '/islemler': typeof AuthenticatedIslemlerRoute
-  '/kategoriler': typeof AuthenticatedKategorilerRoute
-  '/panel': typeof AuthenticatedPanelRoute
+  '/index.html': typeof IndexDothtmlRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/analiz': typeof AuthenticatedAnalizRoute
-  '/borclar': typeof AuthenticatedBorclarRoute
-  '/hesaplar': typeof AuthenticatedHesaplarRoute
-  '/islemler': typeof AuthenticatedIslemlerRoute
-  '/kategoriler': typeof AuthenticatedKategorilerRoute
-  '/panel': typeof AuthenticatedPanelRoute
+  '/index.html': typeof IndexDothtmlRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
-  '/_authenticated/analiz': typeof AuthenticatedAnalizRoute
-  '/_authenticated/borclar': typeof AuthenticatedBorclarRoute
-  '/_authenticated/hesaplar': typeof AuthenticatedHesaplarRoute
-  '/_authenticated/islemler': typeof AuthenticatedIslemlerRoute
-  '/_authenticated/kategoriler': typeof AuthenticatedKategorilerRoute
-  '/_authenticated/panel': typeof AuthenticatedPanelRoute
+  '/index.html': typeof IndexDothtmlRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/auth'
-    | '/analiz'
-    | '/borclar'
-    | '/hesaplar'
-    | '/islemler'
-    | '/kategoriler'
-    | '/panel'
+  fullPaths: '/' | '/index.html'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/auth'
-    | '/analiz'
-    | '/borclar'
-    | '/hesaplar'
-    | '/islemler'
-    | '/kategoriler'
-    | '/panel'
-  id:
-    | '__root__'
-    | '/'
-    | '/_authenticated'
-    | '/auth'
-    | '/_authenticated/analiz'
-    | '/_authenticated/borclar'
-    | '/_authenticated/hesaplar'
-    | '/_authenticated/islemler'
-    | '/_authenticated/kategoriler'
-    | '/_authenticated/panel'
+  to: '/' | '/index.html'
+  id: '__root__' | '/' | '/index.html'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
+  IndexDothtmlRoute: typeof IndexDothtmlRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -146,90 +58,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+    '/index.html': {
+      id: '/index.html'
+      path: '/index.html'
+      fullPath: '/index.html'
+      preLoaderRoute: typeof IndexDothtmlRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/analiz': {
-      id: '/_authenticated/analiz'
-      path: '/analiz'
-      fullPath: '/analiz'
-      preLoaderRoute: typeof AuthenticatedAnalizRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/borclar': {
-      id: '/_authenticated/borclar'
-      path: '/borclar'
-      fullPath: '/borclar'
-      preLoaderRoute: typeof AuthenticatedBorclarRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/hesaplar': {
-      id: '/_authenticated/hesaplar'
-      path: '/hesaplar'
-      fullPath: '/hesaplar'
-      preLoaderRoute: typeof AuthenticatedHesaplarRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/islemler': {
-      id: '/_authenticated/islemler'
-      path: '/islemler'
-      fullPath: '/islemler'
-      preLoaderRoute: typeof AuthenticatedIslemlerRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/kategoriler': {
-      id: '/_authenticated/kategoriler'
-      path: '/kategoriler'
-      fullPath: '/kategoriler'
-      preLoaderRoute: typeof AuthenticatedKategorilerRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/panel': {
-      id: '/_authenticated/panel'
-      path: '/panel'
-      fullPath: '/panel'
-      preLoaderRoute: typeof AuthenticatedPanelRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAnalizRoute: typeof AuthenticatedAnalizRoute
-  AuthenticatedBorclarRoute: typeof AuthenticatedBorclarRoute
-  AuthenticatedHesaplarRoute: typeof AuthenticatedHesaplarRoute
-  AuthenticatedIslemlerRoute: typeof AuthenticatedIslemlerRoute
-  AuthenticatedKategorilerRoute: typeof AuthenticatedKategorilerRoute
-  AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAnalizRoute: AuthenticatedAnalizRoute,
-  AuthenticatedBorclarRoute: AuthenticatedBorclarRoute,
-  AuthenticatedHesaplarRoute: AuthenticatedHesaplarRoute,
-  AuthenticatedIslemlerRoute: AuthenticatedIslemlerRoute,
-  AuthenticatedKategorilerRoute: AuthenticatedKategorilerRoute,
-  AuthenticatedPanelRoute: AuthenticatedPanelRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
+  IndexDothtmlRoute: IndexDothtmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

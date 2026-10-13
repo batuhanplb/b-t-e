@@ -9,5 +9,4 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- Budget data is read/written from the browser via the Supabase client with per-user RLS (`user_id = auth.uid()`); default accounts/categories are seeded by a trigger on signup. Why: single-user personal data, no server logic needed.
-- Account balances are derived (start_balance + transactions), never stored. Why: avoids drift on edits/deletes.
+- The app is the original Bütçe static site served verbatim: `/` and `/index.html` return src/original-index.html via server handlers; app.js, core.js, sw.js, manifest, icons and `/__/firebase/init.json` live unmodified in public/. Why: user requires 100% parity with the live Firebase site; do not edit those files.
