@@ -878,9 +878,9 @@ function renderSettings() {
       (shUrl ? '<input class="in" readonly id="shurl" value="' + esc(shUrl) + '" style="margin-bottom:10px"><div class="chips"><button class="btn sm" data-act="sh-copy">Bağlantıyı kopyala</button><button class="btn sm ghost" data-act="sh-now">Şimdi güncelle</button><button class="btn sm ghost danger" data-act="sh-off">Paylaşımı kapat</button></div>'
         : '<button class="btn sm" data-act="sh-on">Paylaşım bağlantısı oluştur</button>') + '</div>';
     h += '<div class="sec-h"><h2>Veri</h2></div><div class="card" style="padding:14px">' +
-      '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">Expense IQ yedeği içe aktar<input type="file" id="f-imp" accept=".bak,.txt,.json" hidden></label>' +
+      '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">İçe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
       '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
-      '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler (ör. sadece krediler).</p></div>';
+      '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Başka bütçe uygulamalarının (Money Manager, Spendee, Wallet, YNAB, Monefy, Toshl, Bluecoins, Mint, 1Money, Cashew, Money Lover vb.) ve bankaların CSV, Excel (.xlsx), QIF ve OFX dosyaları mevcut verilere eklenir; aynı işlemler tekrar eklenmez. Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler.</p></div>';
     h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div>';
     h += '</div>';
   } else if (v === "acc") {
@@ -918,8 +918,8 @@ function renderSettings() {
       (c.k !== "inc" ? payList() : '') +
       '<div id="s-err"></div></div><div class="sh-ft">' + (c._new ? '' : '<button class="btn danger" data-act="ci-del">Sil</button>') + '<button class="btn" data-act="ci-save">Kaydet</button></div>';
   } else if (v === "imp") {
-    const p = D.imp;
-    h = head("İçe aktarma", "", "set-back") + '<div class="sh-bd">' + p.summary + '</div><div class="sh-ft"><button class="btn ghost" data-act="set-back">Vazgeç</button><button class="btn" data-act="imp-go">İçe aktar</button></div>';
+    const p = D.imp, body = p.kind === "tab" ? impTabHtml(p) : p.summary, n = p.kind === "tab" ? p.res.add.length : 1;
+    h = head("İçe aktarma", "", "set-back") + '<div class="sh-bd">' + body + '</div><div class="sh-ft"><button class="btn ghost" data-act="set-back">Vazgeç</button><button class="btn" data-act="imp-go"' + (n ? '' : ' disabled') + '>İçe aktar' + (p.kind === "tab" && n ? ' (' + n + ')' : '') + '</button></div>';
   }
   openSheet(h);
 }
@@ -934,10 +934,44 @@ function saveMetaChange(fn) {
   const m = clone(meta()); fn(m); S.meta = m; bump(); S.store.setMeta(m);
 }
 
+function impRun(p) {
+  const r = C.convertTable(p.tab, p.map, { ...p.opt, fmt: p.fmt });
+  p.bad = r.bad.length; p.order = r.order;
+  p.res = C.mergeImport(meta(), S.months, r.recs, { defAcc: p.opt.defAcc });
+  return p;
+}
+function impTabHtml(p) {
+  const col = i => p.tab.body.map(r => r[i]).find(v => v) || "";
+  const sel = (f, l) => '<label class="fld"><span>' + l + '</span><select class="in" data-im="' + f + '"><option value="">—</option>' + p.tab.head.map((hd, i) => '<option value="' + i + '"' + (p.map[f] === i ? " selected" : "") + '>' + esc(hd) + (col(i) ? ' (' + esc(String(col(i)).slice(0, 24)) + ')' : '') + '</option>').join("") + '</select></label>';
+  const opt = (k, l, list) => '<label class="fld"><span>' + l + '</span><select class="in" data-io="' + k + '">' + list.map(([v, t]) => '<option value="' + esc(v) + '"' + (String(p.opt[k]) === String(v) ? " selected" : "") + '>' + esc(t) + '</option>').join("") + '</select></label>';
+  const r = p.res, add = r.add, ds = add.map(t => t.d).sort(), cnt = k => add.filter(t => t.k === k).length;
+  const missing = p.map.date == null || (p.map.amount == null && p.map.out == null && p.map.in == null);
+  let h = '<p>' + esc(p.fmt || p.kind) + ' dosyası okundu: ' + p.tab.body.length + ' satır.</p>';
+  if (missing) h += '<p class="err">Tarih ve tutar sütunlarını aşağıdan seçin.</p>';
+  h += '<details class="card" style="padding:10px 14px;margin-bottom:12px"' + (missing ? " open" : "") + '><summary class="small" style="cursor:pointer">Sütun eşleştirme</summary><div style="margin-top:8px">' + C.IMP_FIELDS.map(([f, l]) => sel(f, l)).join("") + '</div></details>';
+  h += opt("order", "Tarih biçimi", [["auto", "Otomatik (" + (p.order === "mdy" ? "ay/gün/yıl" : "gün/ay/yıl") + ")"], ["dmy", "Gün/ay/yıl"], ["mdy", "Ay/gün/yıl"]]);
+  if (p.map.type == null && p.map.out == null && p.map.in == null) h += opt("sign", "Tutarlar", [["auto", "Eksi gider, artı gelir"], ["e", "Hepsi gider"], ["i", "Hepsi gelir"]]);
+  if (p.map.account == null) h += opt("defAcc", "Hangi hesaba eklensin", visibleAccs().map(a => [a.id, a.name]));
+  if (add.length) {
+    h += '<div class="card" style="padding:12px 14px;margin:12px 0"><div>' + add.length + ' işlem eklenecek' + ' (' + [[cnt("e"), "gider"], [cnt("i"), "gelir"], [cnt("tr"), "transfer"]].filter(x => x[0]).map(x => x[0] + " " + x[1]).join(", ") + ')</div><div class="small muted">' + ds[0] + ' ile ' + ds[ds.length - 1] + ' arası</div>' +
+      (r.dup ? '<div class="small muted">' + r.dup + ' işlem zaten var, atlanacak.</div>' : '') + (p.bad ? '<div class="small muted">' + p.bad + ' satır okunamadı (tarih ya da tutar yok), atlanacak.</div>' : '') +
+      (r.newAccs.length ? '<div class="small" style="margin-top:6px">Yeni hesaplar: ' + esc(r.newAccs.join(", ")) + '</div>' : '') +
+      (r.newCats.length ? '<div class="small" style="margin-top:4px">Yeni kategoriler: ' + esc(r.newCats.slice(0, 12).join(", ")) + (r.newCats.length > 12 ? " ve " + (r.newCats.length - 12) + " tane daha" : "") + '</div>' : '') + '</div>';
+    const am = Object.fromEntries(r.meta.accounts.map(a => [a.id, a.name])), cm = Object.fromEntries(r.meta.categories.map(c => [c.id, c.name]));
+    h += '<div class="card"><ul class="list">' + add.slice(0, 8).map(t => '<li><div class="set-row"><span class="grow"><b>' + esc(t.t || (t.k === "tr" ? am[t.acc] + " → " + am[t.to] : cm[t.cat] || "Kategorisiz")) + '</b><span class="small muted" style="display:block">' + t.d + ' · ' + esc(am[t.acc] || "") + (t.t && t.cat ? ' · ' + esc(cm[t.cat] || "") : '') + '</span></span><span class="' + (t.k === "e" ? "neg" : t.k === "i" ? "pos" : "") + '" style="white-space:nowrap">' + (t.k === "e" ? "-" : t.k === "i" ? "+" : "") + f2(t.a) + '</span></div></li>').join("") + '</ul></div>' + (add.length > 8 ? '<p class="small muted">… ve ' + (add.length - 8) + ' işlem daha.</p>' : '');
+  } else if (!missing) h += '<p class="small muted" style="margin-top:12px">' + (r.dup ? 'Dosyadaki ' + r.dup + ' işlemin hepsi zaten var.' : 'Eklenecek işlem bulunamadı. Sütun eşleştirmesini kontrol edin.') + '</p>';
+  return h;
+}
 async function handleImport(file) {
-  const text = await file.text();
+  const buf = await file.arrayBuffer(), text = C.decodeText(buf);
   try {
-    if (/^\[EASYMONEY_BACKUP/.test(text)) {
+    if (!/^\[EASYMONEY_BACKUP/.test(text) && !/^\s*\{/.test(text)) {
+      const tab = await C.readImportFile(file.name, buf);
+      if (!tab.body.length) throw new Error("Dosyada işlem bulunamadı.");
+      const fmt = C.detectFormat(tab.head);
+      D.imp = impRun({ kind: "tab", tab, fmt: fmt || (tab.kind === "CSV" || tab.kind === "TXT" ? null : tab.kind), map: C.autoMap(tab), opt: { order: "auto", sign: "auto", defAcc: (visibleAccs()[0] || {}).id } });
+      if (!D.imp.fmt) D.imp.fmt = tab.kind;
+    } else if (/^\[EASYMONEY_BACKUP/.test(text)) {
       const conv = C.convertExpenseIQ(C.parseExpenseIQBackup(text));
       const bal = C.accountBalances(conv.accounts, conv.txs);
       const ds = conv.txs.map(t => t.d).sort();
@@ -957,7 +991,12 @@ async function applyImport() {
   const p = D.imp, ops = [];
   const btn = dlgIn.querySelector('[data-act="imp-go"]'); if (btn) { btn.disabled = true; btn.textContent = "Aktarılıyor…"; }
   try {
-    if (p.kind === "eiq") {
+    if (p.kind === "tab") {
+      impRun(p); const touched = {};
+      p.res.add.forEach(t => { const m = t.d.slice(0, 7); (touched[m] = touched[m] || (S.months[m] || []).slice()).push(t); });
+      ops.push({ op: "set", path: ["meta", "main"], data: p.res.meta });
+      Object.entries(touched).forEach(([m, items]) => ops.push({ op: "set", path: ["tx", m], data: { items: items.sort((a, b) => (a.ts || 0) - (b.ts || 0)) } }));
+    } else if (p.kind === "eiq") {
       const months = C.groupByMonth(p.conv.txs);
       ops.push({ op: "set", path: ["meta", "main"], data: { accounts: p.conv.accounts, categories: p.conv.categories, ver: 1 } });
       Object.keys(S.months).forEach(m => { if (!months[m]) ops.push({ op: "del", path: ["tx", m] }); });
@@ -1130,7 +1169,8 @@ document.addEventListener("input", e => {
 document.addEventListener("change", e => {
   const t = e.target;
   if (t.dataset.ch === "accF") { S.accF = t.value; render(); }
-  if (t.id === "f-imp" && t.files[0]) handleImport(t.files[0]);
+  if (t.id === "f-imp" && t.files[0]) { handleImport(t.files[0]); t.value = ""; }
+  if (D && D.imp && D.view === "imp" && (t.dataset.im || t.dataset.io)) { if (t.dataset.im) { if (t.value === "") delete D.imp.map[t.dataset.im]; else D.imp.map[t.dataset.im] = +t.value; } else D.imp.opt[t.dataset.io] = t.value; impRun(D.imp); renderSettings(); }
   if (t.id === "cat-img" && t.files[0] && D && D.cat) { const im = new Image(); im.onload = () => { const cv = document.createElement("canvas"); cv.width = cv.height = 72; const k = Math.min(im.width, im.height); cv.getContext("2d").drawImage(im, (im.width - k) / 2, (im.height - k) / 2, k, k, 0, 0, 72, 72); D.cat.img = cv.toDataURL("image/webp", 0.82); if (!D.cat.img.startsWith("data:image/webp")) D.cat.img = cv.toDataURL("image/png"); URL.revokeObjectURL(im.src); renderSettings(); }; im.src = URL.createObjectURL(t.files[0]); }
   if (D && t.dataset.a && t.type === "checkbox") D.acc[t.dataset.a] = t.checked;
   if (D && "kart" in t.dataset) { D.acc.type = t.checked ? "kart" : (D.acc.type === "kart" ? "banka" : D.acc.type); if (t.checked) { D.acc.exclude = true; D.acc.due = D.acc.due || 15; } renderSettings(); }
