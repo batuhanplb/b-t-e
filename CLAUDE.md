@@ -1,8 +1,25 @@
 # Bütçe — rules for working in this repo
 
+## CURRENT STATE (read this first)
+
+- **Firebase is GONE.** No Firebase SDK, no `firebaseStore()`, no Firestore, no
+  Firebase Auth anywhere in the code path. Do not add any of it back, and do
+  not "fix" anything assuming Firebase is in use.
+- The backend is **Lovable Cloud** (Supabase-based): tables `user_docs` +
+  `shares`, Cloud auth with Google sign-in, RLS per user. Data starts fresh —
+  the old Firebase data was never migrated.
+- `public/__/firebase/init.json` is a leftover artifact from the original app,
+  kept only so the static file set stays identical. It is unused.
+- The bundle `public/cloud-store.js` (from `src/cloud-store/entry.ts`) is the
+  ONLY data layer. If you see Firebase references in docs or comments, they
+  describe the OLD app and are historical.
+
+## Working with this repo
+
 This repo syncs two-way with the user's Lovable project on `main`. Work directly
 on `main`, commit, and push — never leave work uncommitted, and never force-push,
 rebase, amend or squash pushed commits (it breaks Lovable's project history).
+
 
 ## Hard rules
 
