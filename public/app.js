@@ -493,8 +493,9 @@ function tCat() {
   ms.forEach(m => { const fut = m > now, has = tot(m) > 0;
     h += '<tr><td>' + C.TR_M[Number(m.slice(5)) - 1] + '</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + (fut ? " fut" : "") + '">' + (has ? f0(val(m, c)) : "") + '</td>').join("") + '<td class="' + (fut ? "fut" : "") + '">' + (has ? f0(tot(m)) : "") + '</td></tr>'; });
   const sum = (c, set) => set.reduce((s, m) => s + val(m, c), 0);
-  h += '</tbody><tfoot><tr><td>Toplam</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '">' + f0(sum(c, ms)) + '</td>').join("") + '<td>' + f0(ms.reduce((s, m) => s + tot(m), 0)) + '</td></tr>';
-  h += '<tr><td>Ortalama</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '">' + f0(sum(c, done) / n) + '</td>').join("") + '<td>' + f0(done.reduce((s, m) => s + tot(m), 0) / n) + '</td></tr></tfoot></table></div>';
+  const fs = ' style="background:var(--c1)!important;color:var(--ink)!important"', fa = ' style="background:var(--c1)!important;color:var(--ink)!important;font-style:italic"';
+  h += '</tbody><tfoot><tr><td' + fs + '>Toplam</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '"' + fs + '>' + f0(sum(c, ms)) + '</td>').join("") + '<td' + fs + '>' + f0(ms.reduce((s, m) => s + tot(m), 0)) + '</td></tr>';
+  h += '<tr><td' + fa + '>Ortalama</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '"' + fa + '>' + f0(sum(c, done) / n) + '</td>').join("") + '<td' + fa + '>' + f0(done.reduce((s, m) => s + tot(m), 0) / n) + '</td></tr></tfoot></table></div>';
   return h + '<p class="small muted">Her grubun son sütunu o grubun toplamıdır. Ortalama, tamamlanmış ' + done.length + ' ay üzerinden.</p>';
 }
 function cashAmt(it, m) {
