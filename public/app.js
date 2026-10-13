@@ -45,66 +45,15 @@ function toast(msg) {
 }
 
 /* ============ data layer ============ */
-const FALLBACK_CFG = { projectId: "butce-7f8d8", authDomain: "butce-7f8d8.firebaseapp.com", storageBucket: "butce-7f8d8.firebasestorage.app", messagingSenderId: "767105489752", appId: "1:767105489752:web:6782489e8c802d7ab4e32d", apiKey: "AIzaSyCFo_oVcoHunENiNRWp93qimYNXMlnAFsM" };
-const FB = "https://www.gstatic.com/firebasejs/10.14.1/";
-
-async function firebaseStore(onUser) {
-  let cfg = FALLBACK_CFG;
-  try { const r = await fetch("/__/firebase/init.json", { cache: "no-store" }); if (r.ok) cfg = await r.json(); } catch (e) { }
-  if (location.hostname.endsWith(".firebaseapp.com") || location.hostname.endsWith(".web.app")) cfg = { ...cfg, authDomain: location.host };
-  const [{ initializeApp }, A, F] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-auth.js"), import(FB + "firebase-firestore.js")]);
-  const app = initializeApp(cfg);
-  const auth = A.getAuth(app);
-  let db;
-  try { db = F.initializeFirestore(app, { ignoreUndefinedProperties: true, localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }); }
-  catch (e) { db = F.initializeFirestore(app, { ignoreUndefinedProperties: true }); }
-  let uid = null, unsubs = [];
-  const chains = {};
-  const q = (key, fn) => { chains[key] = (chains[key] || Promise.resolve()).then(fn).catch(err => { console.error(err); toast(err && err.code === "permission-denied" ? "Bu hesapla yazma izni yok." : "Kaydedilemedi, bağlantıyı kontrol edin."); }); return chains[key]; };
-  const store = {
-    kind: "firebase", user: null,
-    async signIn() {
-      const p = new A.GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" });
-      const touch = matchMedia("(pointer:coarse)").matches || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-      if (touch) return A.signInWithRedirect(auth, p);
-      try { await A.signInWithPopup(auth, p); }
-      catch (e) { if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") return A.signInWithRedirect(auth, p); throw e; }
-    },
-    signOut() { return A.signOut(auth); },
-    listen(h) {
-      const base = ["users", uid];
-      unsubs.push(F.onSnapshot(F.doc(db, ...base, "meta", "main"), s => h.meta(s.exists() ? s.data() : null), e => h.err(e)));
-      unsubs.push(F.onSnapshot(F.collection(db, ...base, "tx"), s => { const o = {}; s.forEach(d => o[d.id] = d.data().items || []); h.months(o, s.metadata.fromCache); }, e => h.err(e)));
-      unsubs.push(F.onSnapshot(F.collection(db, ...base, "debts"), s => { const o = {}; s.forEach(d => o[d.id] = d.data()); h.debts(o); }, e => h.err(e)));
-    },
-    setMeta(meta) { const b = clone(meta); return q("meta", () => F.setDoc(F.doc(db, "users", uid, "meta", "main"), b)); },
-    setMonth(m, items) { const b = clone(items); return q("tx/" + m, () => b.length ? F.setDoc(F.doc(db, "users", uid, "tx", m), { items: b }) : F.deleteDoc(F.doc(db, "users", uid, "tx", m))); },
-    setDebt(id, d) { const b = clone(d); return q("debt/" + id, () => F.setDoc(F.doc(db, "users", uid, "debts", id), b)); },
-    delDebt(id) { return q("debt/" + id, () => F.deleteDoc(F.doc(db, "users", uid, "debts", id))); },
-    setShare(t, d) { return q("share", () => F.setDoc(F.doc(db, "shares", t), { ...clone(d), owner: uid })); },
-    delShare(t) { return q("share", () => F.deleteDoc(F.doc(db, "shares", t))); },
-    async getShare(t) { const sn = await F.getDoc(F.doc(db, "shares", t)); return sn.exists() ? sn.data() : null; },
-    async bulk(ops) { // [{op:'set'|'del', path:[...], data}]
-      for (let i = 0; i < ops.length; i += 400) {
-        const b = F.writeBatch(db);
-        ops.slice(i, i + 400).forEach(o => { const ref = F.doc(db, "users", uid, ...o.path); o.op === "del" ? b.delete(ref) : b.set(ref, clone(o.data)); });
-        await b.commit();
-      }
-    }
-  };
-  A.getRedirectResult(auth).catch(e => { console.error(e); onUser(null, authMsg(e)); });
-  A.onAuthStateChanged(auth, u => {
-    unsubs.forEach(f => f()); unsubs = [];
-    uid = u ? u.uid : null; store.user = u ? { email: u.email, name: u.displayName } : null;
-    onUser(store.user);
-  });
-  return store;
+// Data layer: Lovable Cloud (auth + database). See src/cloud-store/entry.ts.
+async function loadCloudStore(onUser) {
+  const { cloudStore } = await import("/cloud-store.js");
+  return cloudStore(onUser, toast);
 }
 function authMsg(e) {
   const c = e && e.code || "";
   if (c.includes("popup-closed") || c.includes("cancelled")) return "";
-  if (c.includes("unauthorized-domain")) return "Bu adres Firebase'de yetkili değil.";
-  if (c.includes("network")) return "Bağlantı yok, tekrar deneyin.";
+    if (c.includes("network")) return "Bağlantı yok, tekrar deneyin.";
   return "Giriş yapılamadı (" + c + ").";
 }
 
@@ -178,7 +127,7 @@ async function boot() {
   const shareTok = new URLSearchParams(location.search).get("s");
   if (shareTok) {
     $("#root").innerHTML = '<div class="boot">Yükleniyor…</div>';
-    try { const st = mock ? mockStore(() => { }) : await firebaseStore(() => { }); S.share = await st.getShare(shareTok); S.shTab = "debt"; renderShare(); }
+    try { const st = mock ? mockStore(() => { }) : await loadCloudStore(() => { }); S.share = await st.getShare(shareTok); S.shTab = "debt"; renderShare(); }
     catch (e) { console.error(e); $("#root").innerHTML = '<div class="boot">Paylaşılan sayfa açılamadı.</div>'; }
     return;
   }
@@ -200,7 +149,7 @@ async function boot() {
     }
     render();
   };
-  try { S.store = mock ? mockStore(onUser) : await firebaseStore(onUser); }
+  try { S.store = mock ? mockStore(onUser) : await loadCloudStore(onUser); }
   catch (e) { console.error(e); $("#root").innerHTML = '<div class="boot">Uygulama yüklenemedi. İnternet bağlantınızı kontrol edip sayfayı yenileyin.</div>'; }
 }
 

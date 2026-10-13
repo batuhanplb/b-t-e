@@ -154,6 +154,27 @@ export type Database = {
         }
         Relationships: []
       }
+      shares: {
+        Row: {
+          data: Json
+          owner: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          data?: Json
+          owner?: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          data?: Json
+          owner?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           account_id: string | null
@@ -224,12 +245,36 @@ export type Database = {
           },
         ]
       }
+      user_docs: {
+        Row: {
+          coll: string
+          data: Json
+          doc_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coll: string
+          data?: Json
+          doc_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          coll?: string
+          data?: Json
+          doc_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_share: { Args: { _token: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
