@@ -1,14 +1,16 @@
-# Welcome to your Lovable project
+# bütçe
+
+https://butce-7f8d8.firebaseapp.com/ adresindeki Bütçe uygulamasını buraya aktaralım ve Lovable Cloud veritabanı altyapısıyla kuralım. Harcamalar, gelirler, hesaplar, borçlar/krediler, kategoriler, bütçe takibi ve analiz özelliklerini içeren, mobil öncelikli ve responsive modern bir web uygulaması olarak başlat.
 
 This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/0bc86b81-2f5b-439f-9c07-d41043f1fa29).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +22,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
