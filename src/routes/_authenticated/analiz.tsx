@@ -14,7 +14,7 @@ function Analiz() {
   const { data: cats = [] } = useCategories();
   const [m, setM] = useState(curMonth());
   const months = Array.from({ length: 6 }, (_, i) => addM(m, i - 5));
-  const trend = months.map((x) => { const t = monthTotals(txs, x); return { ay: TR_M[Number(x.slice(5)) - 1].slice(0, 3), Gelir: t.inc, Gider: t.exp }; });
+  const trend = months.map((x) => { const t = monthTotals(txs, x); return { ay: TR_M[Number(x.slice(5)) - 1]!.slice(0, 3), Gelir: t.inc, Gider: t.exp }; });
   const byCat = new Map<string, number>();
   txs.filter((t) => t.type === "gider" && t.date.startsWith(m)).forEach((t) => byCat.set(t.category_id ?? "-", (byCat.get(t.category_id ?? "-") ?? 0) + Number(t.amount)));
   const dist = [...byCat.entries()].map(([id, v]) => { const c = cats.find((x) => x.id === id); return { name: c?.name ?? "Kategorisiz", value: v, color: c?.color ?? "#9a9fa3" }; }).sort((a, b) => b.value - a.value);

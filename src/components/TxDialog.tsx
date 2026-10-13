@@ -39,8 +39,8 @@ export function TxDialog({ open, onOpenChange, edit }: { open: boolean; onOpenCh
 
   async function save() {
     const amt = parseAmt(amount);
-    if (!(amt > 0)) return toast.error("Geçerli bir tutar girin");
-    if (type === "transfer" && (!acc || !toAcc || acc === toAcc)) return toast.error("İki farklı hesap seçin");
+    if (!(amt > 0)) { toast.error("Geçerli bir tutar girin"); return; }
+    if (type === "transfer" && (!acc || !toAcc || acc === toAcc)) { toast.error("İki farklı hesap seçin"); return; }
     setBusy(true);
     const base = {
       type, date, note: note.trim() || null,
@@ -66,7 +66,7 @@ export function TxDialog({ open, onOpenChange, edit }: { open: boolean; onOpenCh
       }
     }
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Kaydedildi");
     refresh();
     onOpenChange(false);

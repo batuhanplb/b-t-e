@@ -28,17 +28,17 @@ function Kategoriler() {
     setBudget(c?.monthly_budget ? String(c.monthly_budget).replace(".", ",") : "");
   }
   async function save() {
-    if (!edit?.name?.trim()) return toast.error("Ad girin");
+    if (!edit?.name?.trim()) { toast.error("Ad girin"); return; }
     const b = budget.trim() ? parseAmt(budget) : null;
     const row = { name: edit.name.trim(), kind: edit.kind!, color: edit.color!, monthly_budget: b && b > 0 ? b : null };
     const r = edit.id ? await supabase.from("categories").update(row).eq("id", edit.id) : await supabase.from("categories").insert(row);
-    if (r.error) return toast.error(r.error.message);
+    if (r.error) { toast.error(r.error.message); return; }
     toast.success("Kaydedildi"); setEdit(null); refresh();
   }
   async function remove() {
     if (!edit?.id || !confirm("Kategori silinsin mi? İşlemler kategorisiz kalır.")) return;
     const r = await supabase.from("categories").delete().eq("id", edit.id);
-    if (r.error) return toast.error(r.error.message);
+    if (r.error) { toast.error(r.error.message); return; }
     toast.success("Silindi"); setEdit(null); refresh();
   }
 

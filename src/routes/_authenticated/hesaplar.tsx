@@ -31,17 +31,17 @@ function Hesaplar() {
     setStart(a ? String(a.start_balance).replace(".", ",") : "0");
   }
   async function save() {
-    if (!edit?.name?.trim()) return toast.error("Ad girin");
+    if (!edit?.name?.trim()) { toast.error("Ad girin"); return; }
     const s = parseAmt(start || "0");
     const row = { name: edit.name.trim(), type: edit.type!, color: edit.color!, exclude_from_total: !!edit.exclude_from_total, start_balance: isNaN(s) ? 0 : s };
     const r = edit.id ? await supabase.from("accounts").update(row).eq("id", edit.id) : await supabase.from("accounts").insert({ ...row, sort: accounts.length });
-    if (r.error) return toast.error(r.error.message);
+    if (r.error) { toast.error(r.error.message); return; }
     toast.success("Kaydedildi"); setEdit(null); refresh();
   }
   async function remove() {
     if (!edit?.id || !confirm("Hesap silinsin mi? İşlemler hesapsız kalır.")) return;
     const r = await supabase.from("accounts").delete().eq("id", edit.id);
-    if (r.error) return toast.error(r.error.message);
+    if (r.error) { toast.error(r.error.message); return; }
     toast.success("Silindi"); setEdit(null); refresh();
   }
 

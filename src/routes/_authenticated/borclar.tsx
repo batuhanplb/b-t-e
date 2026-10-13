@@ -29,26 +29,26 @@ function Borclar() {
   async function save() {
     if (!edit) return;
     const total = parseAmt(edit.total);
-    if (!edit.d.name?.trim() || !(total > 0)) return toast.error("Ad ve toplam tutar gerekli");
+    if (!edit.d.name?.trim() || !(total > 0)) { toast.error("Ad ve toplam tutar gerekli"); return; }
     const mp = edit.monthly.trim() ? parseAmt(edit.monthly) : null;
     const row = { name: edit.d.name.trim(), kind: edit.d.kind!, total, monthly_payment: mp && mp > 0 ? mp : null,
       months: parseInt(edit.months) || null, start_date: edit.d.start_date!, note: edit.d.note || null };
     const r = edit.d.id ? await supabase.from("debts").update(row).eq("id", edit.d.id) : await supabase.from("debts").insert(row);
-    if (r.error) return toast.error(r.error.message);
+    if (r.error) { toast.error(r.error.message); return; }
     toast.success("Kaydedildi"); setEdit(null); refresh();
   }
   async function remove() {
     if (!edit?.d.id || !confirm("Kayıt ve ödemeleri silinsin mi?")) return;
     const r = await supabase.from("debts").delete().eq("id", edit.d.id);
-    if (r.error) return toast.error(r.error.message);
+    if (r.error) { toast.error(r.error.message); return; }
     toast.success("Silindi"); setEdit(null); refresh();
   }
   async function savePay() {
     if (!pay) return;
     const amt = parseAmt(pay.amount);
-    if (!(amt > 0)) return toast.error("Geçerli tutar girin");
+    if (!(amt > 0)) { toast.error("Geçerli tutar girin"); return; }
     const r = await supabase.from("debt_payments").insert({ debt_id: pay.d.id, amount: amt, date: pay.date });
-    if (r.error) return toast.error(r.error.message);
+    if (r.error) { toast.error(r.error.message); return; }
     if (pay.acc) {
       const t = await supabase.from("transactions").insert({
         type: pay.d.kind === "alacak" ? "gelir" : "gider", amount: amt, date: pay.date, account_id: pay.acc, note: `${pay.d.name} ödemesi`,

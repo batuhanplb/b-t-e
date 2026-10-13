@@ -46,7 +46,7 @@ function Islemler() {
     if (scope === "one" || !sel.group_id) r = await supabase.from("transactions").delete().eq("id", sel.id);
     else if (scope === "rest") r = await supabase.from("transactions").delete().eq("group_id", sel.group_id).gte("date", sel.date);
     else r = await supabase.from("transactions").delete().eq("group_id", sel.group_id);
-    if (r.error) return toast.error(r.error.message);
+    if (r.error) { toast.error(r.error.message); return; }
     toast.success("Silindi"); setSel(null); refresh();
   }
 

@@ -17,15 +17,15 @@ export const pad = (n: number) => String(n).padStart(2, "0");
 export const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 export const curMonth = () => ymd(new Date()).slice(0, 7);
 export const addM = (m: string, k: number) => {
-  const [y, mo] = m.split("-").map(Number);
+  const [y, mo] = m.split("-").map(Number) as [number, number, number];
   const t = y * 12 + (mo - 1) + k;
   return `${Math.floor(t / 12)}-${pad((t % 12) + 1)}`;
 };
-export const monthLabel = (m: string) => { const [y, mo] = m.split("-").map(Number); return `${TR_M[mo - 1]} ${y}`; };
+export const monthLabel = (m: string) => { const [y, mo] = m.split("-").map(Number) as [number, number, number]; return `${TR_M[mo - 1]} ${y}`; };
 export const addMonthsToDate = (d: string, k: number) => {
-  const [y, m, day] = d.split("-").map(Number);
+  const [y, m, day] = d.split("-").map(Number) as [number, number, number];
   const nm = addM(`${y}-${pad(m)}`, k);
-  const [ny, nmo] = nm.split("-").map(Number);
+  const [ny, nmo] = nm.split("-").map(Number) as [number, number, number];
   const last = new Date(ny, nmo, 0).getDate();
   return `${nm}-${pad(Math.min(day, last))}`;
 };
