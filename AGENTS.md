@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Budget data is read/written from the browser via the Supabase client with per-user RLS (`user_id = auth.uid()`); default accounts/categories are seeded by a trigger on signup. Why: single-user personal data, no server logic needed.
+- Account balances are derived (start_balance + transactions), never stored. Why: avoids drift on edits/deletes.
