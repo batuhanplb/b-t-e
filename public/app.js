@@ -363,11 +363,12 @@ function vHome() {
     if (unc) tips.push(["info", unc + " işlem kategorisiz", "Kategori atarsanız raporlar daha doğru olur.", "tx"]);
     if (!tips.length) tips.push(["ok", "Her şey yolunda", "Dikkat çeken bir durum görünmüyor.", null]);
     return mod(svgI(CI.bolt), "Öneri ve dikkat", null, '<div class="tips">' + tips.slice(0, 8).map(([k, t, d, go]) => '<' + (go ? 'button data-act="nav" data-v="' + go + '"' : 'div') + ' class="tip ' + k + '"><b>' + esc(t) + '</b><span class="muted small">' + esc(d) + '</span></' + (go ? 'button' : 'div') + '>').join("") + '</div>'); };
-  const cols = debtCols(), hm = [...Array(6)].map((_, i) => C.addM(CUR(), i));
+  const cols = debtCols();
   const cell = (d, mm) => (d.sched || []).filter(x => x.m === mm && !isPaid(d, x)).reduce((s, x) => s + x.a, 0);
-  M.debtcal = () => { const mxv = Math.max(1, ...cols.flatMap(([, d]) => hm.map(mm => cell(d, mm)))), tot6 = hm.map(mm => cols.reduce((s, [, d]) => s + cell(d, mm), 0));
-    return mod(svgI(CI.card), "Borç takvimi", "debt", '<div class="mod-n"><b>' + f0(tot6[0]) + '</b><span class="muted small">bu ay ödenecek</span></div><div class="heat"><div class="hrow hh"><span></span>' + hm.map(mm => '<span>' + C.TR_M[Number(mm.slice(5)) - 1].slice(0, 3) + '</span>').join("") + '</div><div class="hrow hs"><span>Toplam</span>' + tot6.map(v => '<span>' + shortN(v) + '</span>').join("") + '</div>' +
-      cols.map(([id, d]) => '<div class="hrow"><span title="' + esc(d.name) + '">' + esc(d.name) + '</span>' + hm.map(mm => { const all = (d.sched || []).filter(x => x.m === mm).reduce((s, x) => s + x.a, 0), v = cell(d, mm); if (!all) return '<i style="opacity:0"></i>'; const pd = v < 0.005; return '<i class="' + (pd ? "pd" : "up") + '" title="' + esc(d.name) + ' ' + mLabel(mm) + ': ' + f2(all) + (pd ? " (ödendi)" : "") + '"' + (pd ? '' : ' style="opacity:' + (0.22 + 0.33 * v / mxv).toFixed(2) + '"') + '></i>'; }).join("") + '</div>').join("") + '</div>'); };
+  M.debtcal = x => { const nm = desk && x ? Math.max(6, 3 * Math.min(6, x.g.w)) : 6, hm = [...Array(nm)].map((_, i) => C.addM(CUR(), i)), gt = nm > 6 ? ' style="grid-template-columns:minmax(70px,1.3fr) repeat(' + nm + ',1fr)"' : '';
+    const mxv = Math.max(1, ...cols.flatMap(([, d]) => hm.map(mm => cell(d, mm)))), tot6 = hm.map(mm => cols.reduce((s, [, d]) => s + cell(d, mm), 0));
+    return mod(svgI(CI.card), "Borç takvimi", "debt", '<div class="mod-n"><b>' + f0(tot6[0]) + '</b><span class="muted small">bu ay ödenecek</span></div><div class="heat"><div class="hrow hh"' + gt + '><span></span>' + hm.map(mm => '<span>' + C.TR_M[Number(mm.slice(5)) - 1].slice(0, 3) + '</span>').join("") + '</div><div class="hrow hs"' + gt + '><span>Toplam</span>' + tot6.map(v => '<span>' + shortN(v) + '</span>').join("") + '</div>' +
+      cols.map(([id, d]) => '<div class="hrow"' + gt + '><span title="' + esc(d.name) + '">' + esc(d.name) + '</span>' + hm.map(mm => { const all = (d.sched || []).filter(x => x.m === mm).reduce((s, x) => s + x.a, 0), v = cell(d, mm); if (!all) return '<i style="opacity:0"></i>'; const pd = v < 0.005; return '<i class="bhit ' + (pd ? "pd" : "up") + '" data-tip="' + esc(d.name + ' · ' + mLabel(mm) + (pd ? " (ödendi)" : "") + ': ' + f2(all)) + '"' + (pd ? '' : ' style="opacity:' + (0.22 + 0.33 * v / mxv).toFixed(2) + '"') + '></i>'; }).join("") + '</div>').join("") + '</div>'); };
   M.accs = () => mod(svgI(CI.card), "Hesaplar", "acc", '<div class="mod-n"><b class="' + (netT < 0 ? "neg" : "") + '">' + f0(netT) + '</b><span class="muted small">net bakiye</span></div><div class="klist">' + accsT.map(a => '<button class="krow" data-act="acc-tx" data-id="' + esc(a.id) + '"><span><b>' + accIcon(a) + esc(a.name) + '</b></span><span class="r"><b class="' + ((D.bal[a.id] || 0) < 0 ? "neg" : "") + '">' + f2(D.bal[a.id] || 0) + '</b></span></button>').join("") + '</div>');
   M.recent = () => { const recent = D.all.filter(t => t.d <= tdy).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 20);
     return mod(svgI(CI.tag), "Son işlemler", "tx", recent.length ? '<ul class="list">' + recent.map(t => txRow(t)).join("") + '</ul>' : '<div class="empty">Henüz işlem yok.</div>', "mod-flush"); };
@@ -379,7 +380,7 @@ function vHome() {
     let o = out.replace('<section class="mod ', '<section ' + attrs + 'class="mod ' + cls);
     if (edit) o = o.replace(/<\/section>$/, '<button class="ed-x" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button><span class="ed-size">' + pos.w + '×' + pos.h + '</span><i class="rh rh-r" data-rh="r"></i><i class="rh rh-b" data-rh="b"></i><i class="rh rh-c" data-rh="c"></i></section>');
     return o; };
-  const section = list => { const rendered = list.map(x => [x, M[x.id] ? M[x.id]() : ""]).filter(([, o]) => o);
+  const section = list => { const rendered = list.map(x => [x, M[x.id] ? M[x.id](x) : ""]).filter(([, o]) => o);
     const lay = packLayout(rendered.map(([x]) => ({ id: x.id, g: x.g })), 6), rows = lay.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
     let cells = ""; if (edit) for (let r = 1; r <= rows + 2; r++) for (let c = 1; c <= 6; c++) cells += '<i class="dg-cell" style="grid-column:' + c + ';grid-row:' + r + '"></i>';
     return cells + rendered.map(([x, o], i) => wrap(x, o, lay[i])).join(""); };
@@ -1159,9 +1160,9 @@ document.addEventListener("pointermove", e => { if (!dragT) return; const dx = e
 document.addEventListener("pointerup", () => { if (dragT) { dragT.w.classList.remove("grabbing"); if (dragT.on) dragEnd = Date.now(); } dragT = null; });
 let tipEl = null, tipT = null;
 function showTip(r, x, y, sticky) { if (!tipEl) { tipEl = document.createElement("div"); tipEl.className = "ctip"; document.body.appendChild(tipEl); }
-  const t = r.dataset.tip; if (!t) return; const i = t.indexOf(":"); tipEl.innerHTML = '<span>' + esc(t.slice(0, i)) + '</span><b>' + esc(t.slice(i + 1).trim()) + '</b>';
+  const t = r.dataset.tip; if (!t) return; const i = t.lastIndexOf(":"); tipEl.innerHTML = '<span>' + esc(t.slice(0, i)) + '</span><b>' + esc(t.slice(i + 1).trim()) + '</b>';
   tipEl.style.display = "block"; const w = tipEl.offsetWidth, h = tipEl.offsetHeight; tipEl.style.left = Math.max(6, Math.min(innerWidth - w - 6, x - w / 2)) + "px"; tipEl.style.top = Math.max(6, y - h - 12) + "px";
-  document.querySelectorAll(".br.hl").forEach(e => e.classList.remove("hl")); const br = r.nextElementSibling; if (br) br.classList.add("hl");
+  document.querySelectorAll(".br.hl").forEach(e => e.classList.remove("hl")); const br = r.nextElementSibling; if (br && br.classList.contains("br")) br.classList.add("hl");
   clearTimeout(tipT); if (sticky) tipT = setTimeout(hideTip, 2500); }
 function hideTip() { if (tipEl) tipEl.style.display = "none"; document.querySelectorAll(".br.hl").forEach(e => e.classList.remove("hl")); }
 document.addEventListener("mousemove", e => { const r = e.target.closest && e.target.closest(".bhit"); if (r) showTip(r, e.clientX, e.clientY); else if (tipEl && tipEl.style.display === "block" && !tipT) hideTip(); });
