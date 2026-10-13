@@ -35,6 +35,10 @@ export function TxDialog({ open, onOpenChange, edit }: { open: boolean; onOpenCh
     }
   }, [open, edit]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (open && !edit && !acc && accounts[0]) setAcc(accounts[0].id);
+  }, [open, edit, acc, accounts]);
+
   const cats = categories.filter((c) => c.kind === type);
 
   async function save() {
