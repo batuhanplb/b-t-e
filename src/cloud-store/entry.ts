@@ -127,7 +127,8 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     if ((u?.id ?? null) === lastUid) return;
     lastUid = u?.id ?? null;
     h = null; uid = lastUid;
-    store.user = u ? { email: u.email ?? null, name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? null } : null;
+    const meta = u!.user_metadata ?? {};
+    store.user = u ? { email: u.email ?? null, name: meta['full_name'] ?? meta['name'] ?? null } : null;
     onUser(store.user);
   };
   supabase.auth.onAuthStateChange((_e, s) => setTimeout(() => handle(s), 0));
