@@ -14,7 +14,216 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      accounts: {
+        Row: {
+          color: string
+          created_at: string
+          exclude_from_total: boolean
+          id: string
+          name: string
+          sort: number
+          start_balance: number
+          type: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          exclude_from_total?: boolean
+          id?: string
+          name: string
+          sort?: number
+          start_balance?: number
+          type?: string
+          user_id?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          exclude_from_total?: boolean
+          id?: string
+          name?: string
+          sort?: number
+          start_balance?: number
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          kind: string
+          monthly_budget: number | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          monthly_budget?: number | null
+          name: string
+          user_id?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          monthly_budget?: number | null
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      debt_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          debt_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          date?: string
+          debt_id: string
+          id?: string
+          user_id?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          debt_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debt_payments_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      debts: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          monthly_payment: number | null
+          months: number | null
+          name: string
+          note: string | null
+          start_date: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          monthly_payment?: number | null
+          months?: number | null
+          name: string
+          note?: string | null
+          start_date?: string
+          total: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          monthly_payment?: number | null
+          months?: number | null
+          name?: string
+          note?: string | null
+          start_date?: string
+          total?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          account_id: string | null
+          amount: number
+          category_id: string | null
+          created_at: string
+          date: string
+          group_id: string | null
+          id: string
+          inst_no: number | null
+          inst_total: number | null
+          note: string | null
+          to_account_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          date?: string
+          group_id?: string | null
+          id?: string
+          inst_no?: number | null
+          inst_total?: number | null
+          note?: string | null
+          to_account_id?: string | null
+          type: string
+          user_id?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          date?: string
+          group_id?: string | null
+          id?: string
+          inst_no?: number | null
+          inst_total?: number | null
+          note?: string | null
+          to_account_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
