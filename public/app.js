@@ -319,8 +319,14 @@ function packLayout(list, cols) {
     placed.push(q); out[it.id] = q; });
   return list.map(it => out[it.id]);
 }
-const dashCfg = () => { const saved = (meta().dash && meta().dash.items) || []; const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id); return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "recent", "fav"].includes(id), w: normW(f && f.w), g: normG(f && f.g, id, normW(f && f.w)), dyn }; });
-  if (saved.length) out.sort((a, b) => { const i = saved.findIndex(x => x.id === a.id), j = saved.findIndex(x => x.id === b.id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); }); return out; };
+// Herkes için varsayılan yerleşim (meta.dash yokken ve "Varsayılana dön" sonrası kullanılır).
+const DEF_DASH = null;
+const dashCfg = () => { const md = meta().dash || DEF_DASH, saved = (md && md.items) || []; const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id); return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "recent", "fav"].includes(id), w: normW(f && f.w), g: normG(f && f.g, id, normW(f && f.w)), dyn }; });
+  if (saved.length) out.sort((a, b) => { const i = saved.findIndex(x => x.id === a.id), j = saved.findIndex(x => x.id === b.id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
+  if (!md || md.v !== 2) { // eski "aya bağlı / aydan bağımsız" iki ızgarayı, görünüm aynı kalacak şekilde tek ızgarada birleştir
+    const on = out.filter(x => x.on), dl = packLayout(on.filter(x => x.dyn), 6), sl = packLayout(on.filter(x => !x.dyn), 6), off = dl.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
+    dl.concat(sl.map(q => ({ ...q, y: q.y + off }))).forEach(q => { const it = out.find(x => x.id === q.id); it.g = { w: q.w, h: q.h, x: q.x, y: q.y }; }); }
+  return out; };
 const modName = id => (MODS.find(m => m[0] === id) || [, id])[1];
 const mod = (ic, title, go, inner, cls) => '<section class="mod ' + (cls || "") + '"><div class="mod-h"><span class="mod-ic">' + ic + '</span><h3>' + title + '</h3>' + (go ? '<button class="ib mod-go" data-act="nav" data-v="' + go + '" aria-label="Aç">' + ICON.r + '</button>' : '') + '</div>' + inner + '</section>';
 function vHome() {
@@ -378,20 +384,19 @@ function vHome() {
   const wrap = (x, out, pos) => { const cls = (x.w === "w" ? "w2 " : x.w === "s" ? "sm " : "") + (edit ? "editing " : "") + (out.indexOf('class="mod-n"') < 0 ? "nn " : "");
     const attrs = 'data-id="' + x.id + '" data-x="' + pos.x + '" data-y="' + pos.y + '" data-w="' + pos.w + '" data-h="' + pos.h + '" style="--gx:' + pos.x + ';--gy:' + pos.y + ';--gw:' + pos.w + ';--gh:' + pos.h + '" ';
     let o = out.replace('<section class="mod ', '<section ' + attrs + 'class="mod ' + cls);
-    if (edit) o = o.replace(/<\/section>$/, '<button class="ed-x" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button><span class="ed-size">' + pos.w + '×' + pos.h + '</span><i class="rh rh-r" data-rh="r"></i><i class="rh rh-b" data-rh="b"></i><i class="rh rh-c" data-rh="c"></i></section>');
+    if (edit) o = o.replace(/<\/section>$/, '<button class="ed-x" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button><span class="ed-size">' + pos.w + '×' + pos.h + '</span><i class="rh rh-r" data-rh="l" style="left:0;right:auto"></i><i class="rh rh-b" data-rh="t" style="top:0;bottom:auto;right:40px"></i><i class="rh rh-r" data-rh="r"></i><i class="rh rh-b" data-rh="b"></i><i class="rh rh-c" data-rh="c"></i></section>');
     return o; };
   const section = list => { const rendered = list.map(x => [x, M[x.id] ? M[x.id](x) : ""]).filter(([, o]) => o);
     const lay = packLayout(rendered.map(([x]) => ({ id: x.id, g: x.g })), 6), rows = lay.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
     let cells = ""; if (edit) for (let r = 1; r <= rows + 2; r++) for (let c = 1; c <= 6; c++) cells += '<i class="dg-cell" style="grid-column:' + c + ';grid-row:' + r + '"></i>';
     return cells + rendered.map(([x, o], i) => wrap(x, o, lay[i])).join(""); };
-  const dyn = on.filter(x => x.dyn), stat = on.filter(x => !x.dyn), hidden = cfgM.filter(x => !x.on);
+  const hidden = cfgM.filter(x => !x.on);
   h += '<div class="toolbar dash-tb"><div class="pill"><button class="ib" data-act="hprev" aria-label="Önceki ay">' + ICON.l + '</button><span>' + mLabel(m) + '</span><button class="ib" data-act="hnext" aria-label="Sonraki ay">' + ICON.r + '</button></div><span style="flex:1"></span>' +
-    (edit ? '<button class="btn sm ghost" data-act="dg-tray">+ Modül ekle' + (hidden.length ? " (" + hidden.length + ")" : "") + '</button><button class="btn sm ghost" data-act="dg-reset">Sıfırla</button><button class="btn sm" data-act="dash-edit-off">Bitti</button>'
+    (edit ? '<button class="btn sm ghost" data-act="dg-tray">+ Modül ekle' + (hidden.length ? " (" + hidden.length + ")" : "") + '</button><button class="btn sm ghost" data-act="dg-reset">Varsayılana dön</button><button class="btn sm" data-act="dash-edit-off">Bitti</button>'
       : '<button class="ib dash-pencil" data-act="dash-edit-on" aria-label="Modülleri düzenle" title="Modülleri düzenle">' + ICON.pen + '</button>') + '</div>';
   if (edit) { h += '<p class="small muted dg-hint">Modülü tutup istediğiniz boş alana sürükleyin; kenarından ya da köşesinden çekerek boyutlandırın (en fazla 6 sütun × 6 satır).</p>';
     if (S.dashTray) h += '<div class="card dg-tray">' + (hidden.length ? '<div class="chips">' + hidden.map(x => '<button class="chip" data-act="dg-add" data-id="' + x.id + '">+ ' + esc(modName(x.id)) + '</button>').join("") + '</div>' : '<span class="small muted">Tüm modüller açık.</span>') + '</div>'; }
-  if (dyn.length) h += (edit ? '<div class="stath"><span>Aya bağlı modüller</span></div>' : '') + '<div class="mods" data-sec="dyn">' + section(dyn) + '</div>';
-  if (stat.length) h += '<div class="statwrap">' + (edit ? '<div class="stath"><span>Aydan bağımsız modüller</span></div>' : '<hr class="stdiv">') + '<div class="mods" data-sec="stat">' + section(stat) + '</div></div>';
+  if (on.length) h += '<div class="mods">' + section(on) + '</div>';
   return h;
 }
 function vTx() {
@@ -868,8 +873,7 @@ function renderSettings() {
   if (v === "main") {
     h = head("Ayarlar") + '<div class="sh-bd">';
     const shr = meta().share, shUrl = shr && shr.token ? location.origin + "/?s=" + shr.token : "";
-    h += '<div class="sec-h"><h2>Görünüm</h2></div><div class="card" style="padding:4px 0;margin-bottom:16px"><ul class="list"><li><button class="set-row" data-act="dash-edit"><span class="grow">Anasayfa modülleri</span></button></li></ul></div>' +
-      '<div class="sec-h"><h2>Paylaşım</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0 0 10px">Ödemeler, Kalan nakit ve Gider sayfalarınızı bağlantıya sahip kişilerle salt okunur paylaşın. Verileriniz değiştikçe paylaşılan sayfa kendiliğinden güncellenir.</p>' +
+    h += '<div class="sec-h"><h2>Paylaşım</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0 0 10px">Ödemeler, Kalan nakit ve Gider sayfalarınızı bağlantıya sahip kişilerle salt okunur paylaşın. Verileriniz değiştikçe paylaşılan sayfa kendiliğinden güncellenir.</p>' +
       (shUrl ? '<input class="in" readonly id="shurl" value="' + esc(shUrl) + '" style="margin-bottom:10px"><div class="chips"><button class="btn sm" data-act="sh-copy">Bağlantıyı kopyala</button><button class="btn sm ghost" data-act="sh-now">Şimdi güncelle</button><button class="btn sm ghost danger" data-act="sh-off">Paylaşımı kapat</button></div>'
         : '<button class="btn sm" data-act="sh-on">Paylaşım bağlantısı oluştur</button>') + '</div>';
     h += '<div class="sec-h"><h2>Veri</h2></div><div class="card" style="padding:14px">' +
@@ -897,10 +901,6 @@ function renderSettings() {
       '<div class="fld"><span>İkon</span><div class="icgrid">' + ["", ...Object.keys(CI).filter(k => k !== "swap")].map(k => '<button class="icb" data-act="cat-icon" data-v="' + k + '" style="--c:' + c.color + '" aria-pressed="' + (!c.img && (c.icon || "") === k) + '">' + (k ? svgI(CI[k]) : "Oto") + '</button>').join("") + '</div><div style="display:flex;gap:8px;align-items:center;margin-top:10px">' + (c.img ? '<span class="cic" style="--c:' + c.color + '"><img src="' + c.img + '" alt=""></span><button class="btn sm ghost" data-act="cat-img-rm">Görseli kaldır</button>' : '') + '<label class="btn sm ghost" style="display:inline-flex;align-items:center">Kendi görselini yükle<input type="file" accept="image/*" id="cat-img" hidden></label></div></div>' +
       '<label class="fld"><span>Üst kategori</span><select class="in" data-c="parent"><option value="">Yok (ana kategori)</option>' + parents.map(p => '<option value="' + esc(p.id) + '"' + (c.parent === p.id ? " selected" : "") + '>' + esc(p.name) + '</option>').join("") + '</select></label><div id="s-err"></div></div>' +
       '<div class="sh-ft">' + (c._new ? '' : '<button class="btn danger" data-act="cat-del">Sil</button>') + '<button class="btn" data-act="cat-save">Kaydet</button></div>';
-  } else if (v === "dash") {
-    h = head("Modülleri düzenle") + '<div class="sh-bd"><p class="small muted" style="margin-top:0">Açık modüller anasayfada görünür. Geniş, modülü iki sütun kaplatır; Küçük, modülü daha sade ve derli toplu gösterir. Oklarla sırayı değiştirin.</p>' +
-      '<div class="dashlist">' + D.items.map((x, i) => '<div class="dashrow' + (x.on ? '' : ' off') + '"><button class="ib" data-act="dm-mv" data-i="' + i + '" data-d="-1" aria-label="Yukarı"' + (i === 0 ? ' disabled' : '') + '>' + ICON.l + '</button><button class="ib" data-act="dm-mv" data-i="' + i + '" data-d="1" aria-label="Aşağı"' + (i === D.items.length - 1 ? ' disabled' : '') + '>' + ICON.r + '</button><span class="grow">' + esc(modName(x.id)) + '<span class="small muted" style="display:block">' + (x.dyn ? "Aya bağlı" : "Aydan bağımsız") + '</span></span><button class="chip" data-act="dm-w" data-i="' + i + '">' + (x.w === "w" ? "Geniş" : x.w === "s" ? "Küçük" : "Normal") + '</button><button class="ib" data-act="dm-on" data-i="' + i + '" aria-label="Aç/kapat">' + (x.on ? ICON.eye : ICON.eyeoff) + '</button></div>').join("") + '</div></div>' +
-      '<div class="sh-ft"><button class="btn ghost" data-act="dm-reset">Varsayılana dön</button><button class="btn" data-act="dm-save">Kaydet</button></div>';
   } else if (v === "gt") {
     const ex = catTree().filter(({ c }) => c.type === "E");
     const grpH = (g, l) => '<label class="fld"><span>Grup adı</span><input class="in" data-gn="' + g.replace("g", "n") + '" value="' + esc(D[g.replace("g", "n")] || l) + '"></label><div class="chips" style="margin-bottom:8px">' + (D[g].length ? D[g].map((id, i) => '<span class="chip" style="padding:4px 6px 4px 10px"><i style="background:' + (id.startsWith("p:") ? "var(--tr)" : catColor(id)) + '"></i><span' + ((D.hid || []).includes(id) ? ' style="opacity:.45;text-decoration:line-through"' : '') + '>' + esc(id.startsWith("p:") ? id.slice(2) : catLabel(id, true)) + '</span> <button class="ib" style="width:26px;height:26px" data-act="gt-hide" data-id="' + esc(id) + '" aria-label="Gizle">' + ((D.hid || []).includes(id) ? ICON.eyeoff : ICON.eye) + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="-1" aria-label="Sola taşı"' + (i === 0 ? ' disabled' : '') + '>' + ICON.l + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="1" aria-label="Sağa taşı"' + (i === D[g].length - 1 ? ' disabled' : '') + '>' + ICON.r + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-rm" data-g="' + g + '" data-i="' + i + '" aria-label="Kaldır">' + ICON.x + '</button></span>').join("") : '<span class="small muted">Henüz sütun yok.</span>') + '</div><div class="row2" style="margin-bottom:18px"><select class="in" data-gt="' + g + '"><option value="">Kategori ekle…</option>' + ex.map(({ c, depth }) => '<option value="' + esc(c.id) + '">' + (depth ? "— " : "") + esc(c.name) + '</option>').join("") + '</select><select class="in" data-gtp="' + g + '"><option value="">Lehdar ekle…</option>' + derived().payees.filter(p => p.k === "e").slice(0, 300).sort((a, b) => a.t.localeCompare(b.t, "tr")).map(p => '<option value="' + esc(p.t) + '">' + esc(p.t) + '</option>').join("") + '</select></div>';
@@ -1092,18 +1092,12 @@ document.addEventListener("click", e => {
     case "acc-logo-rm": D.acc.logo = null; renderSettings(); break;
     case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (!confirm("Hesap silinsin mi?")) break; saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
     case "cat-del": { const id = D.cat.id; if (derived().all.some(t => t.cat === id) || meta().categories.some(x => x.parent === id)) { $("#s-err").innerHTML = '<p class="err">Bu kategori kullanılıyor veya alt kategorisi var.</p>'; break; } if (!confirm("Kategori silinsin mi?")) break; saveMetaChange(m => { m.categories = m.categories.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
-    case "dash-edit": if (matchMedia("(min-width:900px)").matches) { closeSheet(); S.view = "home"; if (location.hash.slice(1) !== "home") location.hash = "home"; S.dashEdit = true; S.dashTray = false; render(); window.scrollTo(0, 0); break; } D = { view: "dash", items: dashCfg() }; renderSettings(); break;
     case "dash-edit-on": S.dashEdit = true; S.dashTray = false; render(); break;
     case "dash-edit-off": S.dashEdit = false; S.dashTray = false; render(); break;
     case "dg-tray": S.dashTray = !S.dashTray; render(); break;
     case "dg-hide": dgSave(items => { const it = items.find(x => x.id === ds.id); if (it) it.on = false; }); render(); break;
     case "dg-add": dgSave(items => { const k = items.findIndex(x => x.id === ds.id); if (k < 0) return; const it = items.splice(k, 1)[0]; it.on = true; it.g = { w: it.g.w, h: it.g.h }; items.push(it); }); render(); break;
     case "dg-reset": if (!confirm("Modül yerleşimi varsayılana dönsün mü?")) break; saveMetaChange(m => { delete m.dash; }); render(); toast("Varsayılana dönüldü"); break;
-    case "dm-mv": { const i = +ds.i, j = i + Number(ds.d); if (j < 0 || j >= D.items.length) break; [D.items[i], D.items[j]] = [D.items[j], D.items[i]]; renderSettings(); break; }
-    case "dm-w": { const ord = ["n", "w", "s"]; const cur = D.items[+ds.i]; cur.w = ord[(ord.indexOf(cur.w) + 1) % 3]; renderSettings(); break; }
-    case "dm-on": D.items[+ds.i].on = !D.items[+ds.i].on; renderSettings(); break;
-    case "dm-reset": saveMetaChange(m => { delete m.dash; }); closeSheet(); render(); toast("Varsayılana dönüldü"); break;
-    case "dm-save": { const items = D.items.map(x => ({ id: x.id, on: x.on, w: x.w, g: x.g })); saveMetaChange(m => { m.dash = { items }; }); closeSheet(); render(); toast("Kaydedildi"); break; }
     case "gt-edit": D = { view: "gt", hid: [], ...clone(gtCfg()) }; renderSettings(); break;
     case "gt-rm": D[ds.g].splice(+ds.i, 1); renderSettings(); break;
     case "gt-mv": { const g = ds.g, i = +ds.i, j = i + Number(ds.d); if (j >= 0 && j < D[g].length) { [D[g][i], D[g][j]] = [D[g][j], D[g][i]]; } renderSettings(); break; }
@@ -1169,7 +1163,7 @@ document.addEventListener("mousemove", e => { const r = e.target.closest && e.ta
 document.addEventListener("mouseout", e => { if (e.target.closest && e.target.closest(".bhit") && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".bhit"))) { clearTimeout(tipT); tipT = null; hideTip(); } });
 document.addEventListener("click", e => { const r = e.target.closest && e.target.closest(".bhit"); if (r) { tipT = null; showTip(r, e.clientX, e.clientY, true); } });
 addEventListener("scroll", () => { if (tipEl && tipEl.style.display === "block") hideTip(); }, { passive: true });
-function dgSave(mut) { const items = dashCfg(); mut(items); saveMetaChange(m => { m.dash = { items: items.map(x => ({ id: x.id, on: x.on, w: x.w, g: x.g })) }; }); }
+function dgSave(mut) { const items = dashCfg(); mut(items); saveMetaChange(m => { m.dash = { v: 2, items: items.map(x => ({ id: x.id, on: x.on, w: x.w, g: x.g })) }; }); }
 function gridMetrics(grid) { const cs = getComputedStyle(grid), gap = parseFloat(cs.columnGap) || 14, rowH = parseFloat(cs.gridAutoRows) || 150, cols = cs.gridTemplateColumns.split(" ").length; return { gap, rowH, cols, colW: (grid.clientWidth - gap * (cols - 1)) / cols }; }
 const dgMods = grid => Array.from(grid.children).filter(c => c.classList && c.classList.contains("mod"));
 const dgPlaced = grid => dgMods(grid).map(c => ({ id: c.dataset.id, x: +c.dataset.x, y: +c.dataset.y, w: +c.dataset.w, h: +c.dataset.h }));
@@ -1205,10 +1199,12 @@ document.addEventListener("pointerdown", e => {
 document.addEventListener("pointermove", e => {
   const st = DGS; if (!st) return; const dx = e.clientX - st.x, dy = e.clientY - st.y, g = st.g, me = st.base.find(p => p.id === st.mod.dataset.id); if (!me) return;
   if (st.mode !== "move") {
-    let nw = me.w, nh = me.h;
-    if (st.mode !== "b") nw = clampN(me.w + dx / (g.colW + g.gap), 1, g.cols - me.x + 1);
-    if (st.mode !== "r") nh = clampN(me.h + dy / (g.rowH + g.gap), 1, 6);
-    const key = nw + "," + nh; if (key !== st.last) { st.last = key; const lay = st.base.map(p => ({ ...p })), m = lay.find(p => p.id === me.id); m.w = nw; m.h = nh; dgPush(lay, me.id); st.cur = lay; dgApply(st.grid, lay); }
+    let nx = me.x, ny = me.y, nw = me.w, nh = me.h;
+    if (st.mode === "l") { nx = clampN(me.x + dx / (g.colW + g.gap), 1, me.x + me.w - 1); nw = me.x + me.w - nx; }
+    else if (st.mode === "t") { ny = clampN(me.y + dy / (g.rowH + g.gap), Math.max(1, me.y + me.h - 6), me.y + me.h - 1); nh = me.y + me.h - ny; }
+    else { if (st.mode !== "b") nw = clampN(me.w + dx / (g.colW + g.gap), 1, g.cols - me.x + 1);
+      if (st.mode !== "r") nh = clampN(me.h + dy / (g.rowH + g.gap), 1, 6); }
+    const key = nx + "," + ny + "," + nw + "," + nh; if (key !== st.last) { st.last = key; const lay = st.base.map(p => ({ ...p })), m = lay.find(p => p.id === me.id); m.x = nx; m.y = ny; m.w = nw; m.h = nh; dgPush(lay, me.id); st.cur = lay; dgApply(st.grid, lay); }
     return;
   }
   if (!st.started) { if (Math.hypot(dx, dy) < 6) return; st.started = true; const r = st.mod.getBoundingClientRect(), gh = st.mod.cloneNode(true); gh.classList.remove("editing"); gh.classList.add("dg-ghost");
