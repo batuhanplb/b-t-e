@@ -46,7 +46,7 @@ function toast(msg) {
 
 /* ============ data layer ============ */
 // Data layer: Lovable Cloud (auth + database). See src/cloud-store/entry.ts.
-async function firebaseStore(onUser) {
+async function loadCloudStore(onUser) {
   const { cloudStore } = await import("/cloud-store.js");
   return cloudStore(onUser, toast);
 }
@@ -127,7 +127,7 @@ async function boot() {
   const shareTok = new URLSearchParams(location.search).get("s");
   if (shareTok) {
     $("#root").innerHTML = '<div class="boot">Yükleniyor…</div>';
-    try { const st = mock ? mockStore(() => { }) : await firebaseStore(() => { }); S.share = await st.getShare(shareTok); S.shTab = "debt"; renderShare(); }
+    try { const st = mock ? mockStore(() => { }) : await loadCloudStore(() => { }); S.share = await st.getShare(shareTok); S.shTab = "debt"; renderShare(); }
     catch (e) { console.error(e); $("#root").innerHTML = '<div class="boot">Paylaşılan sayfa açılamadı.</div>'; }
     return;
   }
@@ -149,7 +149,7 @@ async function boot() {
     }
     render();
   };
-  try { S.store = mock ? mockStore(onUser) : await firebaseStore(onUser); }
+  try { S.store = mock ? mockStore(onUser) : await loadCloudStore(onUser); }
   catch (e) { console.error(e); $("#root").innerHTML = '<div class="boot">Uygulama yüklenemedi. İnternet bağlantınızı kontrol edip sayfayı yenileyin.</div>'; }
 }
 
