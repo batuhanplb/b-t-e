@@ -6,6 +6,7 @@
 # Mobil modül düzenleme
 - [x] Mobilde elle boyutlandırma, taşıma, ekleme ve çıkarmayı aç.
 - [x] Telefon yerleşimini kayıtlı masaüstü düzenini bozmadan sakla ve doğrula.
+
 # Nakit akışı bölümü
 - [x] "Kalan nakit" adını "Nakit akışı" olarak değiştir (menü, başlık, modül, paylaşım).
 - [x] Bölümü ileriye dönük 12 ay takibi olarak anlatan kısa bir açıklama satırı ekle.
