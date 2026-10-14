@@ -1198,7 +1198,7 @@ document.addEventListener("change", e => {
   if (D && t.dataset.gt && t.value) { if (!D[t.dataset.gt].includes(t.value)) D[t.dataset.gt].push(t.value); renderSettings(); }
   if (D && t.dataset.c) { D.cat[t.dataset.c] = t.value || null; if (t.dataset.c === "type") { D.cat.parent = null; renderSettings(); } }
   if (D && t.dataset.d === "d") { D.d = t.value; renderPlanBox(); }
-  if (D && t.id === "f-t") { D.t = t.value; if (applyPayee()) renderTx(true); }
+  if (D && t.id === "f-t") { D.t = t.value; setTimeout(() => { if (D && applyPayee()) { const a = document.activeElement, id = a && a.id; renderTx(true); id && document.getElementById(id)?.focus(); } }, 180); }
   if (["pFrom", "pTo", "pCat"].includes(t.dataset.ch)) { S[t.dataset.ch] = t.value; render(); }
 });
 document.addEventListener("keydown", e => {
