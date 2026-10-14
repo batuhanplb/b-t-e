@@ -98,3 +98,11 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
  .dg-cell{border-radius:6px}
 }
 @media(max-width:359px){.manual-grid{grid-template-columns:minmax(0,1fr)}}
+/* Nakit akışı chart: 12 bars never fit phone-width numeric labels. */
+@media(max-width:899px){
+ .cashbars{height:150px;gap:2px;padding:10px 4px 6px}
+ .cashbars .cb{min-width:0;flex:1 1 0}
+ .cashbars .cb .cbv{display:none}
+ .cashbars .cb span{font-size:9px}
+ .cashbars .cb i{max-width:16px}
+}
