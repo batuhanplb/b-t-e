@@ -109,6 +109,7 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
 /* Nakit akışı aylık detay: gelir solda, gider sağda. */
 .cash-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
 .cash-cols>div{min-width:0}
-.cash-colh{font-size:10px;font-weight:600;color:var(--muted);padding:2px 0 4px}
-.elde-row{background:var(--sunk);border-radius:6px;padding:5px 6px;margin-bottom:2px}
+.cash-colh{font-size:10px;font-weight:600;color:var(--muted);padding:2px 0 4px 44px}
+.cash-cols .elde-row{background:none;border-radius:0;padding-left:44px;margin-bottom:0}
+.cash-cols .elde-row span:first-child{font-weight:600}
 @media(max-width:899px){.cash-cols{gap:0 8px}}
