@@ -4,5 +4,5 @@
 - [x] Test hesabında telefon ve bilgisayar görünümünü doğrula.
 
 # Mobil modül düzenleme
-- [ ] Mobilde elle boyutlandırma, taşıma, ekleme ve çıkarmayı aç.
-- [ ] Telefon yerleşimini kayıtlı masaüstü düzenini bozmadan sakla ve doğrula.
+- [x] Mobilde elle boyutlandırma, taşıma, ekleme ve çıkarmayı aç.
+- [x] Telefon yerleşimini kayıtlı masaüstü düzenini bozmadan sakla ve doğrula.
