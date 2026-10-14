@@ -127,7 +127,7 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     if ((u?.id ?? null) === lastUid) return;
     lastUid = u?.id ?? null;
     h = null; uid = lastUid;
-    const meta = u!.user_metadata ?? {};
+    const meta = u?.user_metadata ?? {};
     store.user = u ? { email: u.email ?? null, name: meta['full_name'] ?? meta['name'] ?? null } : null;
     onUser(store.user);
   };

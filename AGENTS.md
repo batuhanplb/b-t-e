@@ -9,4 +9,6 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-- The app is the original Bütçe static site: `/` and `/index.html` serve src/original-index.html verbatim; app.js, core.js, sw.js, manifest, icons live in public/. Only the data layer was swapped: app.js `loadCloudStore()` imports `/cloud-store.js`, a bundle of src/cloud-store/entry.ts (same store interface as the old Firebase layer, backed by Cloud auth + `user_docs`/`shares` tables). After editing entry.ts run `bun run build:cloud-store`. Why: user requires the original UI/logic untouched.
+- `/` and `/index.html` serve src/original-index.html verbatim; vanilla app.js/core.js retain existing workflows. Why: the static application remains the functional source of truth.
+- Shared presentation changes belong in public/butce-theme.css, loaded after legacy styles; preserve saved dashboard coordinates. Why: visual refinements must not rewrite budgeting logic or user preferences.
+- app.js imports /cloud-store.js, bundled from src/cloud-store/entry.ts; run `bun run build:cloud-store` after editing its source. Why: the static app executes the committed browser bundle.
