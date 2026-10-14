@@ -693,7 +693,7 @@ function renderTx(keep) {
   if (D._new || true) h += '<div class="seg" style="display:flex;margin-bottom:14px">' + [["e", "Gider"], ["i", "Gelir"], ["tr", "Transfer"]].map(([v, l]) => '<button style="flex:1" data-act="tx-k" data-v="' + v + '" aria-pressed="' + (k === v) + '">' + l + '</button>').join("") + '</div>';
   const accChips = (field, label) => '<div class="fld"><span>' + label + '</span><div class="scroll-x">' + accs.map(a => '<button class="chip" data-act="tx-acc" data-f="' + field + '" data-id="' + esc(a.id) + '" aria-pressed="' + (D[field] === a.id) + '"><i style="background:' + a.color + ';border-radius:2px"></i>' + esc(a.name) + '</button>').join("") + '</div></div>';
   if (k === "tr") { h += accChips("acc", "Kimden"); h += accChips("to", "Kime"); } else h += accChips("acc", "Hesap");
-  h += '<label class="fld"><span>Tutar</span><span class="amtwrap"><span class="cur">₺</span><input id="f-amt" class="in amt" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + esc(D.aStr) + '" data-d="aStr"></span></label><div id="e-amt"></div>';
+  h += '<label class="fld"><span>Tutar</span><span class="amtwrap"><span class="cur">₺</span><input id="f-amt" class="in amt" inputmode="decimal" autocomplete="one-time-code" data-lpignore="true" data-1p-ignore="true" placeholder="0,00" value="' + esc(D.aStr) + '" data-d="aStr"></span></label><div id="e-amt"></div>';
   if (k !== "tr") {
     h += '<div class="fld"><span>Kategori</span><div class="tx-category">';
     if (D.catOpen) h += '<div class="catsel cat-search">' + ICON.search + '<input id="cq" role="combobox" aria-label="Kategori ara" aria-expanded="true" aria-controls="catlist" aria-autocomplete="list" autocomplete="off" placeholder="Kategori ara…" value="' + esc(D.cq || "") + '"><button class="ib" data-act="cat-open" aria-label="Kategori listesini kapat">' + ICON.x + '</button></div>' + catPanel(k);
@@ -704,7 +704,7 @@ function renderTx(keep) {
     h += '</div>';
   }
   const dateF = '<label class="fld tx-date"><span>Tarih</span><input class="in" type="date" value="' + esc(D.d) + '" data-d="d"></label>';
-  if (k !== "tr") h += '<div class="tx-pd"><div class="tx-payee"><label class="fld"><span>Lehdar</span><input id="f-t" class="in" autocomplete="off" placeholder="Boşsa kategori adı" value="' + esc(D.t) + '" data-d="t"></label><div class="sugg" id="sugg"></div></div>' + dateF + '</div>';
+  if (k !== "tr") h += '<div class="tx-pd"><div class="tx-payee"><label class="fld"><span>Lehdar</span><input id="f-t" class="in" autocomplete="one-time-code" data-lpignore="true" data-1p-ignore="true" placeholder="Boşsa kategori adı" value="' + esc(D.t) + '" data-d="t"></label><div class="sugg" id="sugg"></div></div>' + dateF + '</div>';
   else h += dateF;
   h += '<label class="fld"><span>Not</span><input class="in" maxlength="120" value="' + esc(D.n) + '" data-d="n" placeholder="İsteğe bağlı"></label>';
   if (D._new) {
