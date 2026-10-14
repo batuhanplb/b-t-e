@@ -780,11 +780,12 @@ function genTxs() {
   }
   return out;
 }
+const nz = v => String(v || "").toLocaleLowerCase("tr").replace(/[\s:›>\/-]+/g, "");
 function applyPayee() {
   if (!D || D.k === "tr") return false;
   const q = (D.t || "").trim().toLocaleLowerCase("tr"); if (!q) return false;
   const p = derived().payees.find(x => x.k === D.k && x.t.toLocaleLowerCase("tr") === q);
-  const cat = p && p.cat ? p.cat : (meta().categories.find(c => c.type === (D.k === "i" ? "I" : "E") && catLabel(c.id).toLocaleLowerCase("tr") === q) || {}).id;
+  const cat = p && p.cat ? p.cat : (meta().categories.find(c => c.type === (D.k === "i" ? "I" : "E") && nz(catLabel(c.id)) === nz(q)) || {}).id;
   let ch = false;
   if (cat && cat !== D.cat && !(D.sp && D.sp.length)) { D.cat = cat; ch = true; }
   if (p && p.acc && !D.accTouched && p.acc !== D.acc) { D.acc = p.acc; ch = true; }
