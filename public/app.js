@@ -321,11 +321,15 @@ function packLayout(list, cols) {
 }
 // Herkes için varsayılan yerleşim (meta.dash yokken ve "Varsayılana dön" sonrası kullanılır).
 const DEF_DASH = {"v":2,"items":[{"id":"exp","on":true,"w":"n","g":{"w":2,"h":2,"x":1,"y":1}},{"id":"inc","on":true,"w":"n","g":{"w":2,"h":2,"x":3,"y":1}},{"id":"daily","on":true,"w":"n","g":{"w":2,"h":2,"x":5,"y":1}},{"id":"debtcal","on":true,"w":"w","g":{"w":4,"h":2,"x":1,"y":3}},{"id":"cash","on":true,"w":"n","g":{"w":2,"h":2,"x":5,"y":3}},{"id":"recent","on":true,"w":"n","g":{"w":2,"h":3,"x":1,"y":5}},{"id":"top","on":true,"w":"n","g":{"w":2,"h":3,"x":3,"y":5}},{"id":"cats","on":true,"w":"n","g":{"w":2,"h":3,"x":5,"y":5}},{"id":"ratio","on":true,"w":"n","g":{"w":2,"h":2,"x":1,"y":8}},{"id":"sub","on":true,"w":"n","g":{"w":2,"h":2,"x":3,"y":8}},{"id":"tips","on":true,"w":"n","g":{"w":2,"h":2,"x":5,"y":8}},{"id":"fav","on":true,"w":"n","g":{"w":2,"h":1,"x":1,"y":10}}]};
-const dashCfg = () => { const md = meta().dash || DEF_DASH, saved = (md && md.items) || []; const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id); return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "recent", "fav"].includes(id), w: normW(f && f.w), g: normG(f && f.g, id, normW(f && f.w)), dyn }; });
+const dashMobile = () => !matchMedia("(min-width:900px)").matches;
+const dashCols = () => dashMobile() ? (matchMedia("(max-width:359px)").matches ? 1 : 2) : 6;
+const dashKey = () => dashMobile() ? "dashMobile" : "dash";
+const dashCfg = () => { const mobile = dashMobile(), own = meta()[dashKey()], md = own || meta().dash || DEF_DASH, saved = (md && md.items) || []; const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id); return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "recent", "fav"].includes(id), w: normW(f && f.w), g: normG(f && f.g, id, normW(f && f.w)), dyn }; });
   if (saved.length) out.sort((a, b) => { const i = saved.findIndex(x => x.id === a.id), j = saved.findIndex(x => x.id === b.id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
   if (!md || md.v !== 2) { // eski "aya bağlı / aydan bağımsız" iki ızgarayı, görünüm aynı kalacak şekilde tek ızgarada birleştir
     const on = out.filter(x => x.on), dl = packLayout(on.filter(x => x.dyn), 6), sl = packLayout(on.filter(x => !x.dyn), 6), off = dl.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
     dl.concat(sl.map(q => ({ ...q, y: q.y + off }))).forEach(q => { const it = out.find(x => x.id === q.id); it.g = { w: q.w, h: q.h, x: q.x, y: q.y }; }); }
+  if (mobile && !own) out.forEach(it => { it.g = { w: ["debtcal", "recent", "tips"].includes(it.id) || it.w === "w" ? 2 : 1, h: it.g.h }; });
   return out; };
 const modName = id => (MODS.find(m => m[0] === id) || [, id])[1];
 const mod = (ic, title, go, inner, cls) => '<section class="mod ' + (cls || "") + '"><div class="mod-h"><span class="mod-ic">' + ic + '</span><h3>' + title + '</h3>' + (go ? '<button class="ib mod-go" data-act="nav" data-v="' + go + '" aria-label="Aç">' + ICON.r + '</button>' : '') + '</div>' + inner + '</section>';
@@ -380,23 +384,23 @@ function vHome() {
     return mod(svgI(CI.tag), "Son işlemler", "tx", recent.length ? '<ul class="list">' + recent.map(t => txRow(t)).join("") + '</ul>' : '<div class="empty">Henüz işlem yok.</div>', "mod-flush"); };
   M.fav = () => D.favs.length ? mod(svgI(CI.bolt), "Hızlı ekle", null, '<div class="chips" style="margin-top:6px">' + D.favs.map((f, i) => '<button class="chip" data-act="fav" data-i="' + i + '"><i style="background:' + catColor(f.cat) + '"></i>' + esc(f.t || catLabel(f.cat, true)) + '</button>').join("") + '</div>') : "";
   let h = '<section class="card accstrip"><div class="net"><span class="muted small">Net bakiye</span><b class="' + (netT < 0 ? "neg" : "") + '">' + f2(netT) + '</b></div><div class="accs">' + accsT.map(a => '<button class="acc" data-act="acc-tx" data-id="' + esc(a.id) + '"><div class="n">' + (a.logo ? '<img class="alogo sm" style="margin:0" src="' + esc(a.logo) + '" alt="" onerror="this.style.display=\'none\'">' : '<i style="background:' + a.color + '"></i>') + esc(a.name) + '</div><div class="v ' + ((D.bal[a.id] || 0) < 0 ? "neg" : "") + '">' + f2(D.bal[a.id] || 0) + '</div></button>').join("") + '</div></section>';
-  const desk = matchMedia("(min-width:900px)").matches, edit = desk && !!S.dashEdit;
+  const cols = dashCols(), edit = !!S.dashEdit;
   const wrap = (x, out, pos) => { const cls = (x.w === "w" ? "w2 " : x.w === "s" ? "sm " : "") + (edit ? "editing " : "") + (out.indexOf('class="mod-n"') < 0 ? "nn " : "");
     const attrs = 'data-id="' + x.id + '" data-x="' + pos.x + '" data-y="' + pos.y + '" data-w="' + pos.w + '" data-h="' + pos.h + '" style="--gx:' + pos.x + ';--gy:' + pos.y + ';--gw:' + pos.w + ';--gh:' + pos.h + '" ';
     let o = out.replace('<section class="mod ', '<section ' + attrs + 'class="mod ' + cls);
     if (edit) o = o.replace(/<\/section>$/, '<button class="ed-x" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button><span class="ed-size">' + pos.w + '×' + pos.h + '</span><i class="rh rh-r" data-rh="l" style="left:0;right:auto"></i><i class="rh rh-b" data-rh="t" style="top:0;bottom:auto;right:40px"></i><i class="rh rh-r" data-rh="r"></i><i class="rh rh-b" data-rh="b"></i><i class="rh rh-c" data-rh="c"></i></section>');
     return o; };
   const section = list => { const rendered = list.map(x => [x, M[x.id] ? M[x.id](x) : ""]).filter(([, o]) => o);
-    const lay = packLayout(rendered.map(([x]) => ({ id: x.id, g: x.g })), 6), rows = lay.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
-    let cells = ""; if (edit) for (let r = 1; r <= rows + 2; r++) for (let c = 1; c <= 6; c++) cells += '<i class="dg-cell" style="grid-column:' + c + ';grid-row:' + r + '"></i>';
+    const lay = packLayout(rendered.map(([x]) => ({ id: x.id, g: x.g })), cols), rows = lay.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
+    let cells = ""; if (edit) for (let r = 1; r <= rows + 2; r++) for (let c = 1; c <= cols; c++) cells += '<i class="dg-cell" style="grid-column:' + c + ';grid-row:' + r + '"></i>';
     return cells + rendered.map(([x, o], i) => wrap(x, o, lay[i])).join(""); };
   const hidden = cfgM.filter(x => !x.on);
   h += '<div class="toolbar dash-tb"><div class="pill"><button class="ib" data-act="hprev" aria-label="Önceki ay">' + ICON.l + '</button><span>' + mLabel(m) + '</span><button class="ib" data-act="hnext" aria-label="Sonraki ay">' + ICON.r + '</button></div><span style="flex:1"></span>' +
     (edit ? '<button class="btn sm ghost" data-act="dg-tray">+ Modül ekle' + (hidden.length ? " (" + hidden.length + ")" : "") + '</button><button class="btn sm ghost" data-act="dg-reset">Varsayılana dön</button><button class="btn sm" data-act="dash-edit-off">Bitti</button>'
       : '<button class="ib dash-pencil" data-act="dash-edit-on" aria-label="Modülleri düzenle" title="Modülleri düzenle">' + ICON.pen + '</button>') + '</div>';
-  if (edit) { h += '<p class="small muted dg-hint">Modülü tutup istediğiniz boş alana sürükleyin; kenarından ya da köşesinden çekerek boyutlandırın (en fazla 6 sütun × 6 satır).</p>';
+  if (edit) {
     if (S.dashTray) h += '<div class="card dg-tray">' + (hidden.length ? '<div class="chips">' + hidden.map(x => '<button class="chip" data-act="dg-add" data-id="' + x.id + '">+ ' + esc(modName(x.id)) + '</button>').join("") + '</div>' : '<span class="small muted">Tüm modüller açık.</span>') + '</div>'; }
-  if (on.length) h += '<div class="mods">' + section(on) + '</div>';
+  if (on.length) h += '<div class="mods manual-grid">' + section(on) + '</div>';
   return h;
 }
 function vTx() {
@@ -1137,7 +1141,7 @@ document.addEventListener("click", e => {
     case "dg-tray": S.dashTray = !S.dashTray; render(); break;
     case "dg-hide": dgSave(items => { const it = items.find(x => x.id === ds.id); if (it) it.on = false; }); render(); break;
     case "dg-add": dgSave(items => { const k = items.findIndex(x => x.id === ds.id); if (k < 0) return; const it = items.splice(k, 1)[0]; it.on = true; it.g = { w: it.g.w, h: it.g.h }; items.push(it); }); render(); break;
-    case "dg-reset": if (!confirm("Modül yerleşimi varsayılana dönsün mü?")) break; saveMetaChange(m => { delete m.dash; }); render(); toast("Varsayılana dönüldü"); break;
+    case "dg-reset": if (!confirm("Modül yerleşimi varsayılana dönsün mü?")) break; saveMetaChange(m => { delete m[dashKey()]; }); render(); toast("Varsayılana dönüldü"); break;
     case "gt-edit": D = { view: "gt", hid: [], ...clone(gtCfg()) }; renderSettings(); break;
     case "gt-rm": D[ds.g].splice(+ds.i, 1); renderSettings(); break;
     case "gt-mv": { const g = ds.g, i = +ds.i, j = i + Number(ds.d); if (j >= 0 && j < D[g].length) { [D[g][i], D[g][j]] = [D[g][j], D[g][i]]; } renderSettings(); break; }
@@ -1204,7 +1208,7 @@ document.addEventListener("mousemove", e => { const r = e.target.closest && e.ta
 document.addEventListener("mouseout", e => { if (e.target.closest && e.target.closest(".bhit") && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".bhit"))) { clearTimeout(tipT); tipT = null; hideTip(); } });
 document.addEventListener("click", e => { const r = e.target.closest && e.target.closest(".bhit"); if (r) { tipT = null; showTip(r, e.clientX, e.clientY, true); } });
 addEventListener("scroll", () => { if (tipEl && tipEl.style.display === "block") hideTip(); }, { passive: true });
-function dgSave(mut) { const items = dashCfg(); mut(items); saveMetaChange(m => { m.dash = { v: 2, items: items.map(x => ({ id: x.id, on: x.on, w: x.w, g: x.g })) }; }); }
+function dgSave(mut) { const items = dashCfg(); mut(items); saveMetaChange(m => { m[dashKey()] = { v: 2, items: items.map(x => ({ id: x.id, on: x.on, w: x.w, g: x.g })) }; }); }
 function gridMetrics(grid) { const cs = getComputedStyle(grid), gap = parseFloat(cs.columnGap) || 14, rowH = parseFloat(cs.gridAutoRows) || 150, cols = cs.gridTemplateColumns.split(" ").length; return { gap, rowH, cols, colW: (grid.clientWidth - gap * (cols - 1)) / cols }; }
 const dgMods = grid => Array.from(grid.children).filter(c => c.classList && c.classList.contains("mod"));
 const dgPlaced = grid => dgMods(grid).map(c => ({ id: c.dataset.id, x: +c.dataset.x, y: +c.dataset.y, w: +c.dataset.w, h: +c.dataset.h }));
@@ -1233,6 +1237,8 @@ function dgEnd(cancel) {
 document.addEventListener("pointerdown", e => {
   if (!S.dashEdit || (e.button && e.button > 0)) return;
   const mod = e.target.closest && e.target.closest(".mod.editing"); if (!mod || e.target.closest(".ed-x")) return;
+  if (dashMobile() && !e.target.closest(".mod-h, .rh")) return;
+  mod.setPointerCapture(e.pointerId);
   e.preventDefault(); const rh = e.target.closest(".rh"), grid = mod.parentElement;
   DGS = { mod, grid, g: gridMetrics(grid), base: dgPlaced(grid), x: e.clientX, y: e.clientY, mode: rh ? rh.dataset.rh : "move", started: !!rh, ghost: null, cur: null, last: "" };
   document.body.classList.add("dg-busy");
@@ -1257,8 +1263,8 @@ document.addEventListener("pointermove", e => {
 });
 document.addEventListener("pointerup", () => dgEnd(false));
 document.addEventListener("pointercancel", () => dgEnd(true));
-let wasDesk = matchMedia("(min-width:900px)").matches;
-addEventListener("resize", () => { const d = matchMedia("(min-width:900px)").matches; if (d !== wasDesk) { wasDesk = d; if (S.store && S.view === "home") render(); } });
+let wasCols = dashCols();
+addEventListener("resize", () => { const cols = dashCols(); if (cols !== wasCols) { wasCols = cols; if (DGS) dgEnd(true); else if (S.store && S.view === "home") render(); } });
 addEventListener("online", render); addEventListener("offline", render);
 
 boot();
