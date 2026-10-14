@@ -1,4 +1,5 @@
 # Tasarım düzenlemesi
+- [x] İşlem formunu sadeleştir: tek alanda kategori araması, kaydırılabilir liste ve yazarken binlik ayırıcı; gerçek test hesabında doğrula.
 - [x] Ortak yazı, renk, boşluk ve kontrol düzenini sadeleştir.
 - [x] Tabloları ve küçük modülleri taşmadan okunabilir yap.
 - [x] Test hesabında telefon ve bilgisayar görünümünü doğrula.

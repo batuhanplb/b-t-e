@@ -1,4 +1,5 @@
 import * as C from "./core.js";
+import { formatAmountField } from "./transaction-input.js";
 
 /* ============ utilities ============ */
 const $ = s => document.querySelector(s);
@@ -688,16 +689,17 @@ function renderTx(keep) {
   const k = D.k, accs = visibleAccs();
   const title = (D._new ? "Yeni " : "") + { e: "gider", i: "gelir", tr: "transfer" }[k];
   let h = head(title.charAt(0).toUpperCase() + title.slice(1), k);
-  h += '<div class="sh-bd">';
+  h += '<div class="sh-bd tx-form">';
   if (D._new || true) h += '<div class="seg" style="display:flex;margin-bottom:14px">' + [["e", "Gider"], ["i", "Gelir"], ["tr", "Transfer"]].map(([v, l]) => '<button style="flex:1" data-act="tx-k" data-v="' + v + '" aria-pressed="' + (k === v) + '">' + l + '</button>').join("") + '</div>';
   h += '<label class="fld"><span>Tutar</span><span class="amtwrap"><span class="cur">₺</span><input id="f-amt" class="in amt" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + esc(D.aStr) + '" data-d="aStr"></span></label><div id="e-amt"></div>';
   const accChips = (field, label) => '<div class="fld"><span>' + label + '</span><div class="scroll-x">' + accs.map(a => '<button class="chip" data-act="tx-acc" data-f="' + field + '" data-id="' + esc(a.id) + '" aria-pressed="' + (D[field] === a.id) + '"><i style="background:' + a.color + ';border-radius:2px"></i>' + esc(a.name) + '</button>').join("") + '</div></div>';
   if (k === "tr") { h += accChips("acc", "Kimden"); h += accChips("to", "Kime"); }
   else {
     h += '<label class="fld"><span>Açıklama / lehdar</span><input id="f-t" class="in" autocomplete="off" placeholder="Örn. Migros, kira, maaş" value="' + esc(D.t) + '" data-d="t"></label><div class="sugg" id="sugg"></div>';
-    h += '<div class="fld"><span>Kategori</span><button class="catsel" data-act="cat-open"><i style="background:' + catColor(D.cat) + '"></i><span>' + esc(D.cat ? catLabel(D.cat) : "Kategori seç") + '</span>' + (D.catOpen ? "Kapat" : "Değiştir") + '</button>';
-    if (!D.catOpen) { const rc = recentCats(k).filter(c => c !== D.cat).slice(0, 8); if (rc.length) h += '<div class="scroll-x" style="margin-top:8px">' + rc.map(c => '<button class="chip" data-act="tx-cat" data-id="' + esc(c) + '"><i style="background:' + catColor(c) + '"></i>' + esc(catLabel(c, true)) + '</button>').join("") + '</div>'; }
-    else h += catPanel(k);
+    h += '<div class="fld"><span>Kategori</span><div class="tx-category">';
+    if (D.catOpen) h += '<div class="catsel cat-search">' + ICON.search + '<input id="cq" role="combobox" aria-label="Kategori ara" aria-expanded="true" aria-controls="catlist" aria-autocomplete="list" autocomplete="off" placeholder="Kategori ara…" value="' + esc(D.cq || "") + '"><button class="ib" data-act="cat-open" aria-label="Kategori listesini kapat">' + ICON.x + '</button></div>' + catPanel(k);
+    else h += '<button class="catsel" data-act="cat-open" aria-expanded="false" aria-haspopup="listbox"><i style="background:' + catColor(D.cat) + '"></i><span>' + esc(D.cat ? catLabel(D.cat) : "Kategori seç") + '</span><span class="cat-chevron">' + ICON.r + '</span></button>';
+    h += '</div>';
     h += '<div style="margin-top:8px"><button class="btn sm ghost" data-act="sp-toggle">' + (D.sp && D.sp.length ? "Bölmeyi kaldır" : "Birden fazla kategoriye böl") + '</button></div>';
     h += '<div id="spbox">' + spBox() + '</div>';
     h += '</div>';
@@ -720,15 +722,14 @@ function renderTx(keep) {
   if (k !== "tr") renderSugg();
   renderPlanBox();
 }
-function catPanel(k) { return '<div class="catpanel"><input class="in" id="cq" placeholder="Kategori ara…" autocomplete="off" value="' + esc(D.cq || "") + '" style="margin-bottom:10px"><div id="catlist">' + catList(k, D.cq) + '</div></div>'; }
+function catPanel(k) { return '<div class="catpanel tx-catpanel"><div id="catlist" class="tx-catlist" role="listbox" aria-label="Kategoriler">' + catList(k, D.cq) + '</div></div>'; }
 function catList(k, q) {
   const cats = meta().categories.filter(c => c.type === (k === "i" ? "I" : "E"));
-  const chip = (c, l) => '<button class="chip" data-act="tx-cat" data-id="' + esc(c.id) + '" aria-pressed="' + (D.cat === c.id) + '"><i style="background:' + c.color + '"></i>' + esc(l) + '</button>';
+  const selected = D.spPick != null ? D.sp[D.spPick].cat : D.cat;
+  const row = c => '<button class="tx-catoption" role="option" data-act="tx-cat" data-id="' + esc(c.id) + '" aria-selected="' + (selected === c.id) + '"><i style="background:' + c.color + '"></i><span>' + esc(catLabel(c.id)) + '</span>' + (selected === c.id ? '<span class="cat-check">✓</span>' : '') + '</button>';
   q = (q || "").trim().toLocaleLowerCase("tr");
-  if (q) { const m = cats.filter(c => (c.name + " " + (c.parent && catOf(c.parent) ? catOf(c.parent).name : "")).toLocaleLowerCase("tr").includes(q)); return m.length ? '<div class="chips">' + m.map(c => chip(c, catLabel(c.id))).join("") + '</div>' : '<p class="small muted">Eşleşen kategori yok.</p>'; }
-  const parents = cats.filter(c => !c.parent).sort((a, b) => a.name.localeCompare(b.name, "tr"));
-  return parents.map(p => { const kids = cats.filter(c => c.parent === p.id).sort((a, b) => a.name.localeCompare(b.name, "tr"));
-    return '<div class="grp"><div>' + esc(p.name) + '</div><div class="chips">' + chip(p, kids.length ? "Genel" : p.name) + kids.map(c => chip(c, c.name)).join("") + '</div></div>'; }).join("");
+  const matches = cats.filter(c => !q || catLabel(c.id).toLocaleLowerCase("tr").includes(q)).sort((a, b) => catLabel(a.id).localeCompare(catLabel(b.id), "tr"));
+  return matches.length ? matches.map(row).join("") : '<p class="small muted cat-noresults">' + (q ? 'Eşleşen kategori yok.' : 'Henüz kategori yok.') + '</p>';
 }
 function buildPlan() {
   const a = C.parseAmt(D.aStr), n = D.rep === "mon" && D.open ? 12 : Math.max(2, Math.min(60, parseInt(D.cnt) || 2));
@@ -748,7 +749,7 @@ function spBox() {
   const a = C.parseAmt(D.aStr) || 0, sum = D.sp.reduce((s, x) => s + (C.parseAmt(x.a) || 0), 0), diff = C.r2(a - sum);
   return '<div class="spwrap">' + D.sp.map((x, i) => '<div class="sprow"><button class="spcat" data-act="sp-cat" data-i="' + i + '"><i style="background:' + catColor(x.cat) + '"></i>' + esc(x.cat ? catLabel(x.cat, true) : "Kategori seç") + '</button><input class="in" inputmode="decimal" data-sa="' + i + '" value="' + esc(x.a) + '" placeholder="0,00"><button class="ib" data-act="sp-rm" data-i="' + i + '" aria-label="Sil">' + ICON.x + '</button></div>').join("") +
     '<div class="sprow spf"><button class="btn sm ghost" data-act="sp-add">Satır ekle</button><span class="small ' + (Math.abs(diff) < 0.005 ? "muted" : "neg") + '">' + (Math.abs(diff) < 0.005 ? "Dağıtım tam" : (diff > 0 ? "Kalan " + f2(diff) : "Fazla " + f2(-diff))) + '</span></div></div>' +
-    (D.spPick != null ? '<div class="card" style="padding:10px 12px;margin-top:8px">' + catList(D.k, "") + '</div>' : '');
+    (D.spPick != null ? '<div class="tx-catlist" role="listbox" aria-label="Bölme kategorileri">' + catList(D.k, "") + '</div>' : '');
 }
 function renderSpBox() { const b = $("#spbox"); if (b) b.innerHTML = spBox(); }
 function renderSugg() {
@@ -1042,12 +1043,12 @@ document.addEventListener("click", e => {
     case "close": closeSheet(); break;
     case "tx-k": { const k = ds.v; if (k === D.k) break; D.k = k; D.cat = null; D.catOpen = false; if (k === "tr") { D.to = visibleAccs().find(x => x.id !== D.acc)?.id || null; } else if (!D.accTouched) D.acc = lastAccFor(k); renderTx(true); break; }
     case "tx-acc": D[ds.f] = ds.id; if (ds.f === "acc") D.accTouched = true; dlgIn.querySelectorAll('[data-act="tx-acc"][data-f="' + ds.f + '"]').forEach(b => b.setAttribute("aria-pressed", b.dataset.id === ds.id)); break;
-    case "cat-open": D.catOpen = !D.catOpen; renderTx(true); if (D.catOpen) setTimeout(() => $("#cq") && $("#cq").focus(), 50); break;
-    case "tx-cat": if (D.spPick != null) { D.sp[D.spPick].cat = ds.id; D.spPick = null; renderTx(true); break; } D.cat = ds.id; D.catOpen = false; renderTx(true); break;
+    case "cat-open": D.catOpen = !D.catOpen; D.cq = ""; D.spPick = null; renderTx(true); if (D.catOpen) $("#cq")?.focus(); break;
+    case "tx-cat": if (D.spPick != null) { D.sp[D.spPick].cat = ds.id; D.spPick = null; renderTx(true); break; } D.cat = ds.id; D.catOpen = false; D.cq = ""; renderTx(true); dlgIn.querySelector('[data-act="cat-open"]')?.focus(); break;
     case "sp-toggle": if (D.sp && D.sp.length) D.sp = null; else { const a = C.parseAmt(D.aStr) || 0; D.sp = [{ cat: D.cat, a: a ? amtIn(a) : "" }, { cat: null, a: "" }]; } D.spPick = null; renderTx(true); break;
     case "sp-add": D.sp.push({ cat: null, a: "" }); renderSpBox(); break;
     case "sp-rm": D.sp.splice(+ds.i, 1); if (!D.sp.length) D.sp = null; renderTx(true); break;
-    case "sp-cat": D.spPick = +ds.i; D.catOpen = true; renderTx(true); break;
+    case "sp-cat": D.spPick = +ds.i; D.catOpen = false; renderTx(true); break;
     case "tx-day": D.d = C.ymd(new Date(Date.now() + Number(ds.v) * 864e5)); renderTx(true); break;
     case "tx-rep": D.rep = ds.v; D.plan = null; D.planEdited = false; if (ds.v !== "one" && D.cnt < 2) D.cnt = 2; renderTx(true); break;
     case "sugg": { const p = derived().payees.find(x => x.t === ds.t); if (p) { D.t = p.t; if (p.cat) D.cat = p.cat; if (p.acc && !D.accTouched) D.acc = p.acc; } renderTx(true); setTimeout(() => $("#f-amt") && !$("#f-amt").value && $("#f-amt").focus(), 30); break; }
@@ -1159,6 +1160,7 @@ document.addEventListener("input", e => {
   const t = e.target;
   if (t.dataset.in === "q") { S.q = t.value; const pos = t.selectionStart; render(); const n = document.querySelector('[data-in="q"]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } return; }
   if (!D) return;
+  if (t.dataset.d === "aStr" || t.dataset.sa != null || t.dataset.pa != null) formatAmountField(t);
   if (t.dataset.d) { D[t.dataset.d] = t.dataset.d === "cnt" ? parseInt(t.value) || 0 : t.value; if (t.dataset.d === "t") renderSugg(); if (["aStr", "cnt"].includes(t.dataset.d)) renderPlanBox(); if (t.dataset.d === "cnt" || (t.dataset.d === "aStr" && D.rep !== "one")) { /* preview updates on next render */ } }
   if (t.dataset.f) { const k = t.dataset.num; let v = t.value; if (k === "amt") { v = v.trim() === "" ? null : C.parseAmt(v); if (v !== null && isNaN(v)) return; } else if (k === "int") v = v === "" ? null : parseInt(v); D[t.dataset.f] = v; }
   if (t.id === "cq") { D.cq = t.value; $("#catlist").innerHTML = catList(D.k, D.cq); return; }
@@ -1188,6 +1190,13 @@ document.addEventListener("change", e => {
   if (["pFrom", "pTo", "pCat"].includes(t.dataset.ch)) { S[t.dataset.ch] = t.value; render(); }
 });
 document.addEventListener("keydown", e => {
+  if (D && (e.target.id === "cq" || e.target.closest(".tx-catlist"))) {
+    if (e.key === "Escape" && D.catOpen) { e.preventDefault(); D.catOpen = false; D.cq = ""; renderTx(true); dlgIn.querySelector('[data-act="cat-open"]')?.focus(); return; }
+    const list = e.target.id === "cq" ? $("#catlist") : e.target.closest(".tx-catlist");
+    const options = Array.from(list?.querySelectorAll('[role="option"]') || []);
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const current = options.indexOf(e.target); const next = e.key === "ArrowDown" ? Math.min(current + 1, options.length - 1) : (current < 0 ? options.length - 1 : Math.max(0, current - 1)); options[next]?.focus(); return; }
+    if (e.key === "Enter") { e.preventDefault(); if (e.target.id === "cq") options[0]?.click(); else e.target.click(); return; }
+  }
   if (e.key === "Enter" && dlg.open && e.target.tagName === "INPUT" && D && D.k) { e.preventDefault(); saveTx(false); }
 });
 let dragT = null;
