@@ -384,15 +384,15 @@ function vHome() {
     return mod(svgI(CI.tag), "Son işlemler", "tx", recent.length ? '<ul class="list">' + recent.map(t => txRow(t)).join("") + '</ul>' : '<div class="empty">Henüz işlem yok.</div>', "mod-flush"); };
   M.fav = () => D.favs.length ? mod(svgI(CI.bolt), "Hızlı ekle", null, '<div class="chips" style="margin-top:6px">' + D.favs.map((f, i) => '<button class="chip" data-act="fav" data-i="' + i + '"><i style="background:' + catColor(f.cat) + '"></i>' + esc(f.t || catLabel(f.cat, true)) + '</button>').join("") + '</div>') : "";
   let h = '<section class="card accstrip"><div class="net"><span class="muted small">Net bakiye</span><b class="' + (netT < 0 ? "neg" : "") + '">' + f2(netT) + '</b></div><div class="accs">' + accsT.map(a => '<button class="acc" data-act="acc-tx" data-id="' + esc(a.id) + '"><div class="n">' + (a.logo ? '<img class="alogo sm" style="margin:0" src="' + esc(a.logo) + '" alt="" onerror="this.style.display=\'none\'">' : '<i style="background:' + a.color + '"></i>') + esc(a.name) + '</div><div class="v ' + ((D.bal[a.id] || 0) < 0 ? "neg" : "") + '">' + f2(D.bal[a.id] || 0) + '</div></button>').join("") + '</div></section>';
-  const cols = dashCols(), edit = !!S.dashEdit;
+  const desk = !dashMobile(), gridCols = dashCols(), edit = !!S.dashEdit;
   const wrap = (x, out, pos) => { const cls = (x.w === "w" ? "w2 " : x.w === "s" ? "sm " : "") + (edit ? "editing " : "") + (out.indexOf('class="mod-n"') < 0 ? "nn " : "");
     const attrs = 'data-id="' + x.id + '" data-x="' + pos.x + '" data-y="' + pos.y + '" data-w="' + pos.w + '" data-h="' + pos.h + '" style="--gx:' + pos.x + ';--gy:' + pos.y + ';--gw:' + pos.w + ';--gh:' + pos.h + '" ';
     let o = out.replace('<section class="mod ', '<section ' + attrs + 'class="mod ' + cls);
     if (edit) o = o.replace(/<\/section>$/, '<button class="ed-x" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button><span class="ed-size">' + pos.w + '×' + pos.h + '</span><i class="rh rh-r" data-rh="l" style="left:0;right:auto"></i><i class="rh rh-b" data-rh="t" style="top:0;bottom:auto;right:40px"></i><i class="rh rh-r" data-rh="r"></i><i class="rh rh-b" data-rh="b"></i><i class="rh rh-c" data-rh="c"></i></section>');
     return o; };
   const section = list => { const rendered = list.map(x => [x, M[x.id] ? M[x.id](x) : ""]).filter(([, o]) => o);
-    const lay = packLayout(rendered.map(([x]) => ({ id: x.id, g: x.g })), cols), rows = lay.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
-    let cells = ""; if (edit) for (let r = 1; r <= rows + 2; r++) for (let c = 1; c <= cols; c++) cells += '<i class="dg-cell" style="grid-column:' + c + ';grid-row:' + r + '"></i>';
+    const lay = packLayout(rendered.map(([x]) => ({ id: x.id, g: x.g })), gridCols), rows = lay.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
+    let cells = ""; if (edit) for (let r = 1; r <= rows + 2; r++) for (let c = 1; c <= gridCols; c++) cells += '<i class="dg-cell" style="grid-column:' + c + ';grid-row:' + r + '"></i>';
     return cells + rendered.map(([x, o], i) => wrap(x, o, lay[i])).join(""); };
   const hidden = cfgM.filter(x => !x.on);
   h += '<div class="toolbar dash-tb"><div class="pill"><button class="ib" data-act="hprev" aria-label="Önceki ay">' + ICON.l + '</button><span>' + mLabel(m) + '</span><button class="ib" data-act="hnext" aria-label="Sonraki ay">' + ICON.r + '</button></div><span style="flex:1"></span>' +
