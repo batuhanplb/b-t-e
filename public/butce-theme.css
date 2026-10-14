@@ -3,18 +3,18 @@
  --font:"Segoe UI",-apple-system,BlinkMacSystemFont,Arial,sans-serif;
  --bg:oklch(.975 .003 180);--surface:oklch(1 0 0);--card:var(--surface);--sunk:oklch(.952 .005 180);--line:oklch(.902 .008 180);
  --ink:oklch(.26 .014 180);--muted:oklch(.51 .012 180);--faint:oklch(.62 .008 180);
- --primary:oklch(.46 .08 180);--on-primary:oklch(1 0 0);--hero:var(--primary);--g1:var(--primary);--g2:var(--primary);
+ --primary:oklch(.48 .12 262);--on-primary:oklch(1 0 0);--hero:var(--primary);--g1:var(--primary);--g2:var(--primary);
  --inc:oklch(.47 .12 150);--exp:oklch(.54 .16 25);--tr:oklch(.52 .13 250);--focus:var(--tr);
- --c1:oklch(.95 .015 240);--c1i:oklch(.43 .085 240);--c2:var(--sunk);--c2i:var(--ink);--c3:oklch(.95 .023 160);--c3i:var(--primary);
+ --c1:oklch(.95 .015 240);--c1i:oklch(.43 .085 240);--c2:var(--sunk);--c2i:var(--ink);--c3:oklch(.95 .028 262);--c3i:var(--primary);
  --c4:oklch(.96 .03 85);--c4i:oklch(.47 .085 65);--c5:oklch(.96 .018 25);--c5i:var(--exp);
  --paid:var(--c3);--paid-ink:var(--inc);--due-bg:var(--c4);--due:var(--c4i);--sub:var(--c3);
  --shadow-float:0 4px 16px color-mix(in oklab,var(--ink) 14%,transparent);color-scheme:light;
 }
 @media(prefers-color-scheme:dark){:root{
  --bg:oklch(.17 .007 180);--surface:oklch(.215 .009 180);--sunk:oklch(.25 .009 180);--line:oklch(.32 .01 180);
- --ink:oklch(.93 .005 180);--muted:oklch(.73 .008 180);--faint:oklch(.6 .008 180);--primary:oklch(.75 .105 175);--on-primary:oklch(.19 .02 180);
- --inc:oklch(.75 .13 150);--exp:oklch(.75 .135 25);--tr:oklch(.76 .1 250);
- --c1:oklch(.26 .03 240);--c1i:var(--tr);--c3:oklch(.265 .035 170);--c4:oklch(.28 .035 80);--c4i:oklch(.79 .105 80);--c5:oklch(.27 .03 25);color-scheme:dark;
+  --ink:oklch(.93 .005 180);--muted:oklch(.73 .008 180);--faint:oklch(.6 .008 180);--primary:oklch(.76 .11 262);--on-primary:oklch(.19 .02 180);
+  --inc:oklch(.75 .13 150);--exp:oklch(.75 .135 25);--tr:oklch(.76 .1 250);
+  --c1:oklch(.26 .03 240);--c1i:var(--tr);--c3:oklch(.27 .045 262);--c4:oklch(.28 .035 80);--c4i:oklch(.79 .105 80);--c5:oklch(.27 .03 25);color-scheme:dark;
 }}
 body{font-size:13px;line-height:1.45;background:var(--bg)}
 *,*::before,*::after{letter-spacing:0}
@@ -106,3 +106,9 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
  .cashbars .cb span{font-size:9px}
  .cashbars .cb i{max-width:16px}
 }
+/* Nakit akışı aylık detay: gelir solda, gider sağda. */
+.cash-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
+.cash-cols>div{min-width:0}
+.cash-colh{font-size:10px;font-weight:600;color:var(--muted);padding:2px 0 4px}
+.elde-row{background:var(--sunk);border-radius:6px;padding:5px 6px;margin-bottom:2px}
+@media(max-width:899px){.cash-cols{gap:0 8px}}
