@@ -23,9 +23,10 @@ rebase, amend or squash pushed commits (it breaks Lovable's project history).
 
 ## Hard rules
 
-- The UI, styles, icons and page structure are a byte-for-byte copy of the
-  original app (butce-7f8d8.firebaseapp.com). NEVER redesign, restyle, or
-  restructure pages. Turkish UI, TRY currency (tr-TR formatting).
+- The user has authorized a visual refresh, superseding the prior original-UI
+  restriction. Keep Turkish UI, TRY currency (tr-TR formatting), existing
+  workflows and saved module layouts. Shared styling is in `public/butce-theme.css`;
+  prioritize compact readable text and tables that do not overflow the page.
 - `/` and `/index.html` serve `src/original-index.html` verbatim. `app.js`,
   `core.js`, `sw.js`, manifest and icons live in `public/`.
 - The only swapped layer is data: `app.js` calls `loadCloudStore()`, which

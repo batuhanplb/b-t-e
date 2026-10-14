@@ -1,0 +1,80 @@
+/* Shared visual layer; budgeting workflows and saved module positions stay intact. */
+:root{
+ --font:"Segoe UI",-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+ --bg:oklch(.975 .003 180);--surface:oklch(1 0 0);--card:var(--surface);--sunk:oklch(.952 .005 180);--line:oklch(.902 .008 180);
+ --ink:oklch(.26 .014 180);--muted:oklch(.51 .012 180);--faint:oklch(.62 .008 180);
+ --primary:oklch(.46 .08 180);--on-primary:oklch(1 0 0);--hero:var(--primary);--g1:var(--primary);--g2:var(--primary);
+ --inc:oklch(.47 .12 150);--exp:oklch(.54 .16 25);--tr:oklch(.52 .13 250);--focus:var(--tr);
+ --c1:oklch(.95 .015 240);--c1i:oklch(.43 .085 240);--c2:var(--sunk);--c2i:var(--ink);--c3:oklch(.95 .023 160);--c3i:var(--primary);
+ --c4:oklch(.96 .03 85);--c4i:oklch(.47 .085 65);--c5:oklch(.96 .018 25);--c5i:var(--exp);
+ --paid:var(--c3);--paid-ink:var(--inc);--due-bg:var(--c4);--due:var(--c4i);--sub:var(--c3);
+ --shadow-float:0 4px 16px color-mix(in oklab,var(--ink) 14%,transparent);color-scheme:light;
+}
+@media(prefers-color-scheme:dark){:root{
+ --bg:oklch(.17 .007 180);--surface:oklch(.215 .009 180);--sunk:oklch(.25 .009 180);--line:oklch(.32 .01 180);
+ --ink:oklch(.93 .005 180);--muted:oklch(.73 .008 180);--faint:oklch(.6 .008 180);--primary:oklch(.75 .105 175);--on-primary:oklch(.19 .02 180);
+ --inc:oklch(.75 .13 150);--exp:oklch(.75 .135 25);--tr:oklch(.76 .1 250);
+ --c1:oklch(.26 .03 240);--c1i:var(--tr);--c3:oklch(.265 .035 170);--c4:oklch(.28 .035 80);--c4i:oklch(.79 .105 80);--c5:oklch(.27 .03 25);color-scheme:dark;
+}}
+body{font-size:13px;line-height:1.45;background:var(--bg)}
+*,*::before,*::after{letter-spacing:0}
+button,input,select,textarea{font-family:var(--font)}
+.top{border-bottom:1px solid var(--line);background:var(--bg)}.top-in{min-height:58px}.top h1{font-size:22px;line-height:1.25;font-weight:650}.crumb{font-size:11px;margin-bottom:5px}
+main{min-width:0;padding-top:18px}
+.card,.mod{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.mod{padding:14px;animation:none}.mod-h{gap:7px;align-items:flex-start;min-width:0}
+.mod-h h3,.mod.sm .mod-h h3{font-size:13px;line-height:1.4;font-weight:600;white-space:normal;overflow:visible;overflow-wrap:anywhere}
+.mod-ic{width:18px;height:18px;flex:none;color:var(--muted)}.mod-ic svg{width:17px;height:17px}.mod-go{width:26px;height:26px;margin-top:-4px;flex:none}
+.mod-n{gap:6px;flex-wrap:wrap;margin:10px 0 4px}.mod-n b,.mod.sm .mod-n b{font-size:22px;font-weight:650;line-height:1.25;white-space:normal;overflow-wrap:anywhere;max-width:100%}
+.dl,.mod.sm .dl{font-size:12px;font-weight:500}.mod-s,.mod.sm .mod-s{font-size:11px;font-weight:400;text-decoration:none;color:var(--muted);margin:3px 0 8px;white-space:normal}
+.small{font-size:12px}.mod-n .small{font-size:11px}
+.krow{gap:8px;border-bottom:1px solid var(--line);padding:8px 0;align-items:flex-start}.krow:last-child{border-bottom:0}.krow>span{min-width:0;flex:1}
+.krow b,.mod.sm .krow b{font-size:12px;overflow-wrap:anywhere}.krow .r{flex:0 1 auto;max-width:52%;flex-wrap:wrap;justify-content:flex-end;text-align:right}.krow .small{font-size:11px}
+.mod-flush .list{margin:8px -14px 0}.mod-flush .tx{padding:9px 14px}.mod .empty{font-size:12px;padding:22px 8px;display:grid;place-content:center}
+.mod .tip{border-radius:6px;background:var(--sunk)}.tip b{font-size:12px}.tip .small{font-size:11px}
+.legend{font-size:10px;gap:10px;flex-wrap:wrap;line-height:1.4}.chart .ln2{stroke:var(--tr)}.chart .br{fill:var(--inc)}.legend i.l2{border-color:var(--tr)}.chartbox{height:138px}
+.legend>span{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.accstrip{margin-bottom:14px;background:var(--surface)}.accstrip .net{padding:11px 14px 5px}.accstrip .net b,.net b{font-size:19px;overflow-wrap:anywhere}
+.accstrip .acc{min-width:112px;max-width:200px;padding:3px 12px}.accstrip .acc .n{font-size:11px;overflow:hidden;text-overflow:ellipsis}.accstrip .acc .v{font-size:13px}
+.dash-tb{margin:0 0 14px}.pill,.seg,.chip,.btn,.ib,.sel,.search{border-radius:6px}.pill{height:34px;font-size:12px}.chip{font-size:12px;padding:6px 10px}
+.chip[aria-pressed="true"]{color:var(--on-primary)}.btn{font-size:13px;height:42px;color:var(--on-primary)}.btn.sm{font-size:12px;height:34px}.btn.ghost{color:var(--ink)}.btn.danger{color:var(--exp)}
+.seg button{font-size:12px;border-radius:4px}.search,.sel{font-size:13px;min-width:0;max-width:100%}.toolbar{gap:8px}.monthbar .l{font-size:13px}.sec-h h2{font-size:12px;color:var(--muted)}
+.kpis .kpi:nth-child(1),.kpis .kpi:nth-child(2){background:var(--surface);border-color:var(--line)}.kpi b{font-size:20px;overflow-wrap:anywhere}.sum{grid-template-columns:repeat(3,minmax(0,1fr))}.sum b{font-size:15px;overflow-wrap:anywhere}
+.tw{max-width:100%;min-width:0;border-radius:8px;scrollbar-width:thin;overscroll-behavior-x:contain;background:var(--surface)}
+table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9px 10px;font-size:12px;line-height:1.4}
+.sh thead th,.sh thead th:first-child{font-size:11px;color:var(--muted);background:var(--sunk);vertical-align:bottom}
+.sh thead th{white-space:normal;overflow-wrap:anywhere;min-width:94px;max-width:154px}.sh th:first-child,.sh td:first-child{min-width:86px}.sh th .hs{font-size:10px;margin-top:3px}
+.sh .st{border-right:1px solid var(--line)!important}.sh thead th.st,.sh tfoot td.st{background:var(--sunk)!important;color:var(--ink)}.sh tfoot td,.sh tfoot td:first-child{background:var(--sunk);color:var(--ink)}
+.sh tr.cur td,.sh tr.cur td.st{background:var(--c3)!important}
+.sh .g1,.sh td.st.g1,.sh tbody td.st.g1,.sh tfoot td.st.g1{background:color-mix(in oklab,var(--c1) 45%,var(--surface))!important}
+.sh .g2,.sh td.st.g2,.sh tbody td.st.g2,.sh tfoot td.st.g2{background:color-mix(in oklab,var(--c4) 45%,var(--surface))!important}
+.sh thead th.g1,.sh thead th.st.g1{background:var(--c1)!important;color:var(--c1i)}.sh thead th.g2,.sh thead th.st.g2{background:var(--c4)!important;color:var(--c4i)}
+.heat{overflow-x:auto!important;scrollbar-width:thin}.hrow{min-width:330px;gap:5px}.heat .hrow{grid-template-columns:minmax(78px,1.3fr) repeat(6,minmax(32px,1fr))}.hrow span{font-size:10px}.hrow i{height:20px;border-radius:3px}
+.tx{gap:10px;padding:10px 14px}.tx .t,.catrow .grow{font-size:13px}.tx .a{font-size:13px;max-width:48%;white-space:normal;text-align:right;overflow-wrap:anywhere}.tx .s{font-size:11px}
+.set-row .grow,.debt .nm{min-width:0;overflow-wrap:anywhere}.cic{width:32px;height:32px;border-radius:7px}.cic svg{width:17px;height:17px}.day{font-size:11px}
+.debt{padding:14px}.debt .kv{grid-template-columns:repeat(2,minmax(0,1fr))}.debt .kv b{overflow-wrap:anywhere}.crow,.payrow .grow{font-size:12px}.crow .cl{flex-wrap:wrap}.crow .cl>span{min-width:0;overflow-wrap:anywhere}
+.sh-hd{background:var(--surface)}.sh-hd h3{font-size:16px}.in{border-radius:6px}.in.amt{font-size:26px}.amtwrap .cur{font-size:22px}.catsel{font-size:14px;border-radius:6px}
+.fab{background:var(--primary);color:var(--on-primary);width:48px;height:48px;border-radius:12px;box-shadow:var(--shadow-float)}
+.netcard{background:var(--hero);color:var(--on-primary)}.netcard .muted,.netcard .acc .n{color:color-mix(in oklab,var(--on-primary) 80%,transparent)}
+.nav-brand .logo,.avatar{background:var(--primary);color:var(--on-primary)}.lgt{font-size:18px}.login h1{font-size:28px}.login .btn{height:46px}
+@media(min-width:900px){
+ nav.tabs{width:202px;padding:20px 12px 0;border-right:1px solid var(--line)}.top,main{padding-left:226px;padding-right:24px}.top-in{padding:16px 0 12px}
+ nav.tabs button,.nav-foot button{font-size:12px;color:var(--muted);height:38px;border-radius:6px}nav.tabs button[aria-current="page"]{color:var(--primary);background:var(--c3)}
+ nav.tabs .nav-sec{font-size:10px;padding:20px 12px 8px;letter-spacing:0}.nav-new,.nav-foot .nav-new{background:var(--primary)!important;color:var(--on-primary)!important}
+ .mods{gap:12px;grid-auto-rows:124px}.mod{padding:14px}.mod[data-w="1"]{padding:10px}.mod[data-w="1"] .mod-h h3{font-size:11px}.mod[data-w="1"] .mod-n b{font-size:16px}
+ .mod[data-w="1"] .mod-h{gap:4px}.mod[data-w="1"] .mod-ic{display:none}.mod[data-w="1"] .krow{flex-direction:column}.mod[data-w="1"] .krow .r{max-width:100%}
+}
+@media(max-width:899px){
+ .top{padding-left:14px;padding-right:14px}.top-in{height:54px;min-height:54px}.top h1{font-size:18px}main{padding:14px 12px calc(130px + env(safe-area-inset-bottom,0px))}
+ .mods{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:stretch}.mod,.mod.sm{padding:12px 10px;border-radius:8px}
+ .mod .mod-h h3,.mod.sm .mod-h h3{font-size:12px}.mod .mod-go{display:none}.mod .mod-n b,.mod.sm .mod-n b{font-size:19px}.mod .mod-n{flex-direction:column;align-items:flex-start;gap:3px}
+ .mod .mod-s,.mod.sm .mod-s{display:block;font-size:10px}.mod .chartbox,.mod.sm .chartbox{height:112px}.mod .legend{display:flex;font-size:9px;gap:4px}.mod .legend i{width:10px;margin-right:3px}
+ .mod .krow{flex-wrap:wrap}.mod .krow>span:first-child{flex-basis:100%}.mod .krow .r{max-width:100%;justify-content:flex-start;text-align:left}.mod .klist,.mod ul.list{max-height:260px}
+ .mod[data-id="debtcal"],.mod[data-id="recent"],.mod[data-id="tips"]{grid-column:1 / -1}.mod .tip .muted{display:block}.mod-flush .list{margin-left:-10px;margin-right:-10px}
+ .sh th,.sh td{font-size:11px;padding:8px}.sh thead th{min-width:82px;max-width:130px;font-size:10px}.sh th:first-child,.sh td:first-child{min-width:76px}.sh tr>.st:last-child{position:static;box-shadow:none}
+ .mnav{background:var(--surface)}.mnav button{font-size:10px;height:58px}.mnav button svg{width:20px;height:20px}.mnav button[aria-current="page"]{color:var(--primary)}
+ .mnav .mx.on svg,.bub[aria-current="page"] .bi{color:var(--on-primary)}.bub .bi{color:var(--muted);box-shadow:var(--shadow-float)}.bub .bl{box-shadow:var(--shadow-float);font-size:12px}
+ .accstrip .net b{font-size:17px}.accstrip .acc{min-width:104px}.sum b{font-size:13px}.row2{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar>.seg{max-width:100%;flex-wrap:wrap}.sprow .in{flex-basis:96px}
+ .dashrow{flex-wrap:wrap!important}.dashrow .grow{flex-basis:100%}
+}
+@media(max-width:359px){.mods{grid-template-columns:minmax(0,1fr)}.mod,.mod.w2{grid-column:1 / -1}}
