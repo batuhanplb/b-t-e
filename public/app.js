@@ -190,11 +190,12 @@ const TAN = [["acc", "Hesaplar", ICON.wallet], ["cat", "Kategoriler", ICON.tag]]
 function mbar() {
   const inA = ANA.some(([v]) => v === S.view), inP = PAY.some(([v]) => v === S.view), inT = TAN.some(([v]) => v === S.view), op = S.bub;
   const bub = (list, cls) => '<div class="bubs ' + cls + '">' + list.map(([v, l, i], k) => '<button class="bub" data-act="nav" data-v="' + v + '" style="--k:' + k + '"' + (S.view === v ? ' aria-current="page"' : '') + '><span class="bi">' + i + '</span><span class="bl">' + l + '</span></button>').join("") + '</div>';
-  return '<div class="mbar' + (op ? " open" : "") + '">' + (op ? '<button class="scrim" data-act="bub" data-v="" aria-label="Kapat"></button>' + bub(op === "ana" ? ANA : TAN, op) : '') +
+  return '<div class="mbar' + (op ? " open" : "") + '">' + (op ? '<button class="scrim" data-act="bub" data-v="" aria-label="Kapat"></button>' + bub(op === "ana" ? ANA : op === "pay" ? PAY : TAN, op) : '') +
     '<nav class="mnav" aria-label="Bölümler">' +
     '<button data-act="nav" data-v="home" aria-current="' + (S.view === "home" ? "page" : "false") + '">' + ICON.home + 'Anasayfa</button>' +
     '<button data-act="nav" data-v="tx" aria-current="' + (S.view === "tx" ? "page" : "false") + '">' + ICON.list + 'İşlemler</button>' +
     '<button class="mx ' + (op === "ana" ? "on" : "") + '" data-act="bub" data-v="ana" aria-current="' + (inA ? "page" : "false") + '">' + (op === "ana" ? ICON.x : ICON.pie) + 'Analiz</button>' +
+    '<button class="mx ' + (op === "pay" ? "on" : "") + '" data-act="bub" data-v="pay" aria-current="' + (inP ? "page" : "false") + '">' + (op === "pay" ? ICON.x : ICON.card) + 'Ödeme</button>' +
     '<button class="mx ' + (op === "tan" ? "on" : "") + '" data-act="bub" data-v="tan" aria-current="' + (inT ? "page" : "false") + '">' + (op === "tan" ? ICON.x : ICON.tag) + 'Tanımlar</button>' +
     '</nav></div>';
 }
