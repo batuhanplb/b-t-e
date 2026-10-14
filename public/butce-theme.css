@@ -113,3 +113,28 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
 .cash-cols .elde-row{background:none;border-radius:0;padding-left:44px;margin-bottom:0}
 .cash-cols .elde-row span:first-child{font-weight:600}
 @media(max-width:899px){.cash-cols{gap:0 8px}}
+/* Compact transaction form with a single searchable category control. */
+.tx-form{background:var(--surface)}
+.tx-form .fld{margin-bottom:12px}
+.tx-form .fld>span{font-size:11px;font-weight:500}
+.tx-form .in:not(.amt){padding:10px 12px}
+.tx-form .in.amt{font-size:26px;font-weight:600;background:var(--sunk);border-color:transparent}
+.tx-form .amtwrap .cur{font-size:20px}
+.tx-form .seg{width:100%}
+.tx-form .catsel{min-height:42px;padding:8px 12px;gap:8px;font-size:13px}
+.tx-form .catsel:focus-visible,.tx-form .cat-search:focus-within{outline:2px solid var(--focus);outline-offset:2px}
+.catsel .cat-chevron{flex:0 0 16px;display:flex;transform:rotate(90deg);color:var(--muted)}
+.cat-chevron svg,.cat-search>svg{width:16px;height:16px;flex:none;color:var(--muted)}
+.cat-search input{flex:1;min-width:0;width:100%;border:0;background:transparent;color:var(--ink);outline:0;font:inherit;padding:0}
+.cat-search .ib{width:26px;height:26px;flex:none;color:var(--muted)}
+.tx-catpanel{margin-top:6px}
+.tx-catlist{max-height:210px;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.tx-catoption{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;text-align:left;padding:9px 12px;font-size:12px;line-height:1.4;color:var(--ink);border-bottom:1px solid var(--line);background:var(--surface)}
+.tx-catoption:last-child{border-bottom:0}
+.tx-catoption>i{width:9px;height:9px;flex:none;border-radius:2px}
+.tx-catoption>span{min-width:0;overflow-wrap:anywhere}
+.tx-catoption:hover,.tx-catoption:focus-visible,.tx-catoption[aria-selected="true"]{background:var(--c3);color:var(--primary)}
+.tx-catoption:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.tx-catoption .cat-check{margin-left:auto;flex:none}
+.cat-noresults{padding:14px 12px;margin:0}
+.tx-form #spbox>.tx-catlist{margin-top:8px}
