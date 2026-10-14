@@ -663,7 +663,7 @@ function vPie() {
 /* ============ sheet ============ */
 const dlg = $("#sheet"), dlgIn = $("#sheet-in");
 let D = null; // draft
-function openSheet(html, keepScroll) { const bd = dlgIn.querySelector(".sh-bd"); const st = bd ? bd.scrollTop : 0; dlgIn.innerHTML = html; if (!dlg.open) dlg.showModal(); const nb = dlgIn.querySelector(".sh-bd"); if (nb) nb.scrollTop = keepScroll ? st : 0; }
+function openSheet(html, keepScroll) { dlgIn.classList.toggle("rr", !!keepScroll && dlg.open); const bd = dlgIn.querySelector(".sh-bd"); const st = bd ? bd.scrollTop : 0; dlgIn.innerHTML = html; if (!dlg.open) dlg.showModal(); const nb = dlgIn.querySelector(".sh-bd"); if (nb) nb.scrollTop = keepScroll ? st : 0; }
 function closeSheet() { if (dlg.open) dlg.close(); D = null; }
 dlg.addEventListener("close", () => { D = null; });
 dlg.addEventListener("click", e => { if (e.target === dlg) closeSheet(); });
@@ -691,11 +691,10 @@ function renderTx(keep) {
   let h = head(title.charAt(0).toUpperCase() + title.slice(1), k);
   h += '<div class="sh-bd tx-form">';
   if (D._new || true) h += '<div class="seg" style="display:flex;margin-bottom:14px">' + [["e", "Gider"], ["i", "Gelir"], ["tr", "Transfer"]].map(([v, l]) => '<button style="flex:1" data-act="tx-k" data-v="' + v + '" aria-pressed="' + (k === v) + '">' + l + '</button>').join("") + '</div>';
-  h += '<label class="fld"><span>Tutar</span><span class="amtwrap"><span class="cur">₺</span><input id="f-amt" class="in amt" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + esc(D.aStr) + '" data-d="aStr"></span></label><div id="e-amt"></div>';
   const accChips = (field, label) => '<div class="fld"><span>' + label + '</span><div class="scroll-x">' + accs.map(a => '<button class="chip" data-act="tx-acc" data-f="' + field + '" data-id="' + esc(a.id) + '" aria-pressed="' + (D[field] === a.id) + '"><i style="background:' + a.color + ';border-radius:2px"></i>' + esc(a.name) + '</button>').join("") + '</div></div>';
-  if (k === "tr") { h += accChips("acc", "Kimden"); h += accChips("to", "Kime"); }
-  else {
-    h += '<label class="fld"><span>Açıklama / lehdar</span><input id="f-t" class="in" autocomplete="off" placeholder="Örn. Migros, kira, maaş" value="' + esc(D.t) + '" data-d="t"></label><div class="sugg" id="sugg"></div>';
+  if (k === "tr") { h += accChips("acc", "Kimden"); h += accChips("to", "Kime"); } else h += accChips("acc", "Hesap");
+  h += '<label class="fld"><span>Tutar</span><span class="amtwrap"><span class="cur">₺</span><input id="f-amt" class="in amt" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + esc(D.aStr) + '" data-d="aStr"></span></label><div id="e-amt"></div>';
+  if (k !== "tr") {
     h += '<div class="fld"><span>Kategori</span><div class="tx-category">';
     if (D.catOpen) h += '<div class="catsel cat-search">' + ICON.search + '<input id="cq" role="combobox" aria-label="Kategori ara" aria-expanded="true" aria-controls="catlist" aria-autocomplete="list" autocomplete="off" placeholder="Kategori ara…" value="' + esc(D.cq || "") + '"><button class="ib" data-act="cat-open" aria-label="Kategori listesini kapat">' + ICON.x + '</button></div>' + catPanel(k);
     else h += '<button class="catsel" data-act="cat-open" aria-expanded="false" aria-haspopup="listbox"><i style="background:' + catColor(D.cat) + '"></i><span>' + esc(D.cat ? catLabel(D.cat) : "Kategori seç") + '</span><span class="cat-chevron">' + ICON.r + '</span></button>';
@@ -703,9 +702,10 @@ function renderTx(keep) {
     h += '<div style="margin-top:8px"><button class="btn sm ghost" data-act="sp-toggle">' + (D.sp && D.sp.length ? "Bölmeyi kaldır" : "Birden fazla kategoriye böl") + '</button></div>';
     h += '<div id="spbox">' + spBox() + '</div>';
     h += '</div>';
-    h += accChips("acc", "Hesap");
   }
-  h += '<div class="row2"><label class="fld"><span>Tarih</span><input class="in" type="date" value="' + esc(D.d) + '" data-d="d"></label><div class="fld"><span>&nbsp;</span><div class="chips"><button class="chip" data-act="tx-day" data-v="0" aria-pressed="' + (D.d === today()) + '">Bugün</button><button class="chip" data-act="tx-day" data-v="-1" aria-pressed="' + (D.d === C.ymd(new Date(Date.now() - 864e5))) + '">Dün</button></div></div></div>';
+  const dateF = '<label class="fld tx-date"><span>Tarih</span><input class="in" type="date" value="' + esc(D.d) + '" data-d="d"></label>';
+  if (k !== "tr") h += '<div class="tx-pd"><div class="tx-payee"><label class="fld"><span>Lehdar</span><input id="f-t" class="in" autocomplete="off" placeholder="Boşsa kategori adı" value="' + esc(D.t) + '" data-d="t"></label><div class="sugg" id="sugg"></div></div>' + dateF + '</div>';
+  else h += dateF;
   h += '<label class="fld"><span>Not</span><input class="in" maxlength="120" value="' + esc(D.n) + '" data-d="n" placeholder="İsteğe bağlı"></label>';
   if (D._new) {
     h += '<div class="fld"><span>Tekrar</span><div class="seg" style="display:flex">' + [["one", "Tek sefer"], ["inst", "Taksit"], ["mon", "Her ay"]].map(([v, l]) => '<button style="flex:1" data-act="tx-rep" data-v="' + v + '" aria-pressed="' + (D.rep === v) + '">' + l + '</button>').join("") + '</div></div>';
@@ -780,7 +780,19 @@ function genTxs() {
   }
   return out;
 }
+const nz = v => String(v || "").toLocaleLowerCase("tr").replace(/[\s:›>\/-]+/g, "");
+function applyPayee() {
+  if (!D || D.k === "tr") return false;
+  const q = (D.t || "").trim().toLocaleLowerCase("tr"); if (!q) return false;
+  const p = derived().payees.find(x => x.k === D.k && x.t.toLocaleLowerCase("tr") === q);
+  const cat = p && p.cat ? p.cat : (meta().categories.find(c => c.type === (D.k === "i" ? "I" : "E") && nz(catLabel(c.id)) === nz(q)) || {}).id;
+  let ch = false;
+  if (cat && cat !== D.cat && !(D.sp && D.sp.length)) { D.cat = cat; ch = true; }
+  if (p && p.acc && !D.accTouched && p.acc !== D.acc) { D.acc = p.acc; ch = true; }
+  return ch;
+}
 function saveTx(more) {
+  if (D && D.k !== "tr") { applyPayee(); if (!(D.t || "").trim() && D.cat) D.t = catLabel(D.cat); }
   const a = C.parseAmt(D.aStr);
   const err = (id, msg) => { const e = $(id); if (e) e.innerHTML = '<p class="err">' + msg + '</p>'; };
   if (!(a > 0)) return err("#e-amt", "Tutar girin, örneğin 1.250,50");
@@ -1187,6 +1199,7 @@ document.addEventListener("change", e => {
   if (D && t.dataset.gt && t.value) { if (!D[t.dataset.gt].includes(t.value)) D[t.dataset.gt].push(t.value); renderSettings(); }
   if (D && t.dataset.c) { D.cat[t.dataset.c] = t.value || null; if (t.dataset.c === "type") { D.cat.parent = null; renderSettings(); } }
   if (D && t.dataset.d === "d") { D.d = t.value; renderPlanBox(); }
+  if (D && t.id === "f-t") { D.t = t.value; setTimeout(() => { if (D && applyPayee()) { const a = document.activeElement, id = a && a.id; renderTx(true); id && document.getElementById(id)?.focus(); } }, 180); }
   if (["pFrom", "pTo", "pCat"].includes(t.dataset.ch)) { S[t.dataset.ch] = t.value; render(); }
 });
 document.addEventListener("keydown", e => {
