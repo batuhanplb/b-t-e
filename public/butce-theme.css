@@ -89,7 +89,7 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
  .manual-grid .mod[data-h="1"] .mod-s,.manual-grid .mod[data-h="1"] .chartbox,.manual-grid .mod[data-h="1"] .legend{display:none}
  .manual-grid .mod[data-h="1"]:not(.nn) .klist,.manual-grid .mod[data-h="1"]:not(.nn) .empty{display:none}
  .manual-grid .mod.editing{touch-action:pan-y;cursor:default}
- .manual-grid .mod.editing>.mod-h{pointer-events:auto;touch-action:none;cursor:grab;padding-right:30px;min-height:40px}
+ .manual-grid .mod.editing>.mod-h:not(.ed-x):not(.ed-size):not(.rh){pointer-events:auto;touch-action:none;cursor:grab;padding-right:30px;min-height:40px}
  .manual-grid .mod.editing>.mod-h>*{pointer-events:none}
  .mod.editing .ed-x{width:36px;height:36px;top:4px;right:4px;color:var(--ink);box-shadow:var(--shadow-float)}
  .mod.editing .ed-size{color:var(--on-primary)}
