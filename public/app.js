@@ -174,7 +174,7 @@ function render() {
     '<header class="top"><div class="top-in"><div class="ttl"><div class="crumb">Bütçe <span>›</span> ' + titles[S.view] + '</div><h1>' + titles[S.view] + '</h1></div>' + ctl + '<button class="ib topset" data-act="settings" aria-label="Ayarlar">' + ICON.gear + '</button></div></header>' +
     '<main>' + (["cash", "tx", "pie"].includes(S.view) ? '<div class="narrow wide">' + body + '</div>' : body) + '</main>' +
     '<nav class="tabs" aria-label="Bölümler"><div class="nav-brand">' + LOGO + '</div>' +
-    [["MENÜ"], ["home", "Anasayfa", ICON.home], ["tx", "İşlemler", ICON.list], ["ANALİZ"], ["debt", "Ödemeler", ICON.card], ["cash", "Kalan nakit", ICON.trend], ["table", "Gider", ICON.table], ["pie", "Dağılım", ICON.pie], ["inv", "Yatırımlar", ICON.trend, 1], ["TANIMLAR"], ["acc", "Hesaplar", ICON.wallet], ["cat", "Kategoriler", ICON.tag]].map(([v, l, i, lk]) => l ? '<button data-act="nav" data-v="' + v + '" aria-current="' + (S.view === v ? "page" : "false") + '">' + i + l + (lk ? '<span class="lockb">' + ICON.lock + '</span>' : '') + '</button>' : '<div class="nav-sec">' + v + '</div>').join("") +
+    [["MENÜ"], ["home", "Anasayfa", ICON.home], ["tx", "İşlemler", ICON.list], ["ANALİZ"], ["table", "Gider", ICON.table], ["pie", "Dağılım", ICON.pie], ["inv", "Yatırımlar", ICON.trend, 1], ["ÖDEME"], ["debt", "Ödemeler", ICON.card], ["cash", "Kalan nakit", ICON.trend], ["TANIMLAR"], ["acc", "Hesaplar", ICON.wallet], ["cat", "Kategoriler", ICON.tag]].map(([v, l, i, lk]) => l ? '<button data-act="nav" data-v="' + v + '" aria-current="' + (S.view === v ? "page" : "false") + '">' + i + l + (lk ? '<span class="lockb">' + ICON.lock + '</span>' : '') + '</button>' : '<div class="nav-sec">' + v + '</div>').join("") +
     '<div class="nav-foot"><button class="nav-new" data-act="add">' + ICON.plus + 'Yeni işlem</button><button data-act="nav" data-v="tx">' + ICON.search + 'Ara</button><button data-act="acct">' + ICON.user + '<span class="nfn">' + esc((S.user && (S.user.name || S.user.email)) || "Hesabım") + '</span></button><button data-act="settings">' + ICON.gear + 'Ayarlar</button></div>' +
     '</nav>' +
     mbar() +
@@ -184,10 +184,11 @@ function render() {
   if (S._toCur || (!keep && (S.view === "table" || S.view === "debt"))) { S._toCur = false; const t2 = document.querySelector(".tw"); const r = t2 && t2.querySelector("tr.cur"); if (r) t2.scrollTop = Math.max(0, r.offsetTop - t2.clientHeight / 2); }
   afterRender();
 }
-const ANA = [["debt", "Ödemeler", ICON.card], ["cash", "Kalan nakit", ICON.trend], ["table", "Gider", ICON.table], ["pie", "Dağılım", ICON.pie]];
+const ANA = [["table", "Gider", ICON.table], ["pie", "Dağılım", ICON.pie], ["inv", "Yatırımlar", ICON.trend, 1]];
+const PAY = [["debt", "Ödemeler", ICON.card], ["cash", "Kalan nakit", ICON.trend]];
 const TAN = [["acc", "Hesaplar", ICON.wallet], ["cat", "Kategoriler", ICON.tag]];
 function mbar() {
-  const inA = ANA.some(([v]) => v === S.view), inT = TAN.some(([v]) => v === S.view), op = S.bub;
+  const inA = ANA.some(([v]) => v === S.view), inP = PAY.some(([v]) => v === S.view), inT = TAN.some(([v]) => v === S.view), op = S.bub;
   const bub = (list, cls) => '<div class="bubs ' + cls + '">' + list.map(([v, l, i], k) => '<button class="bub" data-act="nav" data-v="' + v + '" style="--k:' + k + '"' + (S.view === v ? ' aria-current="page"' : '') + '><span class="bi">' + i + '</span><span class="bl">' + l + '</span></button>').join("") + '</div>';
   return '<div class="mbar' + (op ? " open" : "") + '">' + (op ? '<button class="scrim" data-act="bub" data-v="" aria-label="Kapat"></button>' + bub(op === "ana" ? ANA : TAN, op) : '') +
     '<nav class="mnav" aria-label="Bölümler">' +
