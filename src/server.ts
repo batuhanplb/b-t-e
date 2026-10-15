@@ -47,8 +47,21 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const isOta = new URL(request.url).pathname.startsWith("/ota/");
+      const cors = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Headers": "Cache-Control, Content-Type",
+      };
+      if (isOta && request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
+      if (isOta) {
+        const h = new Headers(response.headers);
+        for (const [k, v] of Object.entries(cors)) h.set(k, v);
+        h.set("Cache-Control", "no-cache");
+        return new Response(response.body, { status: response.status, headers: h });
+      }
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
