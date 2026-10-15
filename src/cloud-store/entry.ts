@@ -163,11 +163,21 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
   // the app via the custom-scheme deep link; otherwise kick off Google sign-in
   // that redirects back here after completion.
   if (new URLSearchParams(location.search).has("native_auth")) {
-    if (data.session) {
-      const s = data.session;
+    const toApp = (s: { access_token: string; refresh_token: string }) => {
       location.href = "app.lovable.butce://auth#access_token=" + encodeURIComponent(s.access_token) + "&refresh_token=" + encodeURIComponent(s.refresh_token);
-    } else {
-      lovableAuth.signInWithOAuth("google", { redirect_uri: location.origin + "/?native_auth=1", extraParams: { prompt: "select_account" } }).catch(() => {});
+    };
+    if (data.session) toApp(data.session);
+    else {
+      // The managed OAuth return may still be processing the URL; give the
+      // session a moment to appear before starting a fresh sign-in.
+      let done = false;
+      const sub = supabase.auth.onAuthStateChange((_e, s) => { if (s && !done) { done = true; sub.data.subscription.unsubscribe(); toApp(s); } });
+      setTimeout(() => {
+        if (done) return;
+        done = true;
+        sub.data.subscription.unsubscribe();
+        lovableAuth.signInWithOAuth("google", { redirect_uri: location.origin + "/?native_auth=1", extraParams: { prompt: "select_account" } }).catch(() => {});
+      }, 2000);
     }
   }
   return store;
