@@ -1,6 +1,10 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 
+// Android uygulaması (Capacitor) içinde çalışırken: paylaşım bağlantıları canlı siteye gider, tarayıcı hissi kapatılır.
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const SITE = NATIVE ? "https://butceapp.lovable.app" : location.origin;
+if (NATIVE) document.documentElement.classList.add("native");
 /* ============ utilities ============ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -902,7 +906,7 @@ function renderSettings() {
   let h;
   if (v === "main") {
     h = head("Ayarlar") + '<div class="sh-bd">';
-    const shr = meta().share, shUrl = shr && shr.token ? location.origin + "/?s=" + shr.token : "";
+    const shr = meta().share, shUrl = shr && shr.token ? SITE + "/?s=" + shr.token : "";
     h += '<div class="sec-h"><h2>Paylaşım</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0 0 10px">Ödemeler, Nakit akışı ve Gider sayfalarınızı bağlantıya sahip kişilerle salt okunur paylaşın. Verileriniz değiştikçe paylaşılan sayfa kendiliğinden güncellenir.</p>' +
       (shUrl ? '<input class="in" readonly id="shurl" value="' + esc(shUrl) + '" style="margin-bottom:10px"><div class="chips"><button class="btn sm" data-act="sh-copy">Bağlantıyı kopyala</button><button class="btn sm ghost" data-act="sh-now">Şimdi güncelle</button><button class="btn sm ghost danger" data-act="sh-off">Paylaşımı kapat</button></div>'
         : '<button class="btn sm" data-act="sh-on">Paylaşım bağlantısı oluştur</button>') + '</div>';
