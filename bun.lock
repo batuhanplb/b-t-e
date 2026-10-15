@@ -11,6 +11,7 @@
         "@capacitor/core": "^7",
         "@capacitor/splash-screen": "^7",
         "@capacitor/status-bar": "^7",
+        "@capgo/capacitor-updater": "^7",
         "@hookform/resolvers": "^5.2.2",
         "@lovable.dev/cloud-auth-js": "^1.1.2",
         "@radix-ui/react-accordion": "^1.2.12",
@@ -83,6 +84,7 @@
         "eslint-plugin-prettier": "^5.2.6",
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.20",
+        "fflate": "^0.8.3",
         "globals": "^15.15.0",
         "jsdom": "^20.0.3",
         "nitro": "3.0.260603-beta",
@@ -154,6 +156,8 @@
     "@capacitor/splash-screen": ["@capacitor/splash-screen@7.0.5", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-bPG2SamFL7VT5I3XsgsGgJhkiyxq3OXCOVKEDupSieVdtEiG7j2vLbSD0xL+91zteF/qLuxsjbugGy5LD8mS2A=="],
 
     "@capacitor/status-bar": ["@capacitor/status-bar@7.0.6", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-7AVqj46b26QikImQzWfsJmzG8NUJZBGkrVSuoeTo+SX/YH3hXH0MqwwFgMqMGHfa/BICDgSvTjM9miVFlq0+RQ=="],
+
+    "@capgo/capacitor-updater": ["@capgo/capacitor-updater@7.51.23", "", { "peerDependencies": { "@capacitor/core": "^7.0.0" } }, "sha512-jxSV45vQ6q5+5gI9zGHot6aZFT4KD5X8wNZuEWd/pt8LbOSjjDNoeu9HWSimpzGmTgmlHRwElX7cNETquoaHzA=="],
 
     "@date-fns/tz": ["@date-fns/tz@1.5.0", "", {}, "sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg=="],
 
@@ -928,6 +932,8 @@
     "fdir": ["fdir@6.5.0", "", { "peerDependencies": { "picomatch": "^3 || ^4" }, "optionalPeers": ["picomatch"] }, "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg=="],
 
     "fetchdts": ["fetchdts@0.1.7", "", {}, "sha512-YoZjBdafyLIop9lSxXVI33oLD5kN31q4Td+CasofLLYeLXRFeOsuOw0Uo+XNRi9PZlbfdlN2GmRtm4tCEQ9/KA=="],
+
+    "fflate": ["fflate@0.8.3", "", {}, "sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA=="],
 
     "file-entry-cache": ["file-entry-cache@8.0.0", "", { "dependencies": { "flat-cache": "^4.0.0" } }, "sha512-XXTUwCvisa5oacNGRP9SfNtYBNAMi+RPwBFmblZEF7N7swHYQS6/Zfk7SRwx4D5j3CH211YNRco1DEMNVfZCnQ=="],
 
