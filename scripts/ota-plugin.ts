@@ -21,7 +21,7 @@ export function buildOta(root = process.cwd()) {
   collect(pub, pub, files);
   files["index.html"] = new Uint8Array(readFileSync(join(root, "src/original-index.html")));
   const h = createHash("sha256");
-  for (const k of Object.keys(files).sort()) h.update(k).update(files[k]);
+  for (const k of Object.keys(files).sort()) h.update(k).update(files[k]!);
   const version = "w-" + h.digest("hex").slice(0, 12);
   const outDir = join(pub, "ota");
   mkdirSync(outDir, { recursive: true });
