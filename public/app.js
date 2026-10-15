@@ -944,6 +944,7 @@ function renderSettings() {
       '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">İçe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
       '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
       '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Başka bütçe uygulamalarının (Money Manager, Spendee, Wallet, YNAB, Monefy, Toshl, Bluecoins, Mint, 1Money, Cashew, Money Lover vb.) ve bankaların CSV, Excel (.xlsx), QIF ve OFX dosyaları mevcut verilere eklenir; aynı işlemler tekrar eklenmez. Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler.</p></div>';
+    if (NATIVE) h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">Sürüm: ' + esc(OTA.cur || "…") + '</span><button class="btn sm ghost" data-act="ota-check">Güncellemeleri kontrol et</button></div>';
     h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div>';
     h += '</div>';
   } else if (v === "acc") {
@@ -1134,6 +1135,7 @@ document.addEventListener("click", e => {
     case "expand": S.expanded.has(ds.k) ? S.expanded.delete(ds.k) : S.expanded.add(ds.k); render(); break;
     case "onlymine": S.onlyMine = ds.v === "1"; render(); break;
     case "settings": openSettings(); break;
+    case "ota-check": { toast("Kontrol ediliyor…"); otaCheck(true).then(r => { toast(r.s === "ok" ? "Uygulama güncel" : r.s === "upd" ? "Güncelleniyor…" : "Sunucuya ulaşılamadı"); if (D && D.view === "main") renderSettings(); }); break; }
     case "acct": openSettings(); break;
     case "set-back": D.view = "main"; renderSettings(); break;
     case "acc-new": D = { view: "acc" }; D.acc = { _new: true, id: "a-" + C.rid(), name: "", type: "banka", color: "#3166c9", start: 0, exclude: false, hidden: false, order: meta().accounts.length }; renderSettings(); break;
