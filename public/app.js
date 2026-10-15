@@ -10,22 +10,27 @@ const OTA = { cur: null };
 async function otaCheck(manual) {
   const U = NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater;
   if (!U) return { s: "na" };
+  let step = "sürüm";
   try {
-    const cur = await U.current();
-    OTA.cur = (cur.bundle && cur.bundle.version) || "builtin";
+    try { const cur = await U.current(); OTA.cur = (cur.bundle && cur.bundle.version) || "builtin"; } catch (e) { OTA.cur = OTA.cur || "builtin"; }
+    step = "bilgi";
+    const u = SITE + "/ota/latest.json?t=" + Date.now();
     const H = window.Capacitor.Plugins.CapacitorHttp;
-    let latest;
-    if (H && H.get) { const r = await H.get({ url: SITE + "/ota/latest.json?t=" + Date.now(), headers: { "Cache-Control": "no-cache" } });
-      if (r.status !== 200) return { s: "err" }; latest = typeof r.data === "string" ? JSON.parse(r.data) : r.data; }
-    else { const r = await fetch(SITE + "/ota/latest.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) return { s: "err" }; latest = await r.json(); }
+    let latest = null, why = "";
+    if (H && H.get) { try { const r = await H.get({ url: u, headers: { "Cache-Control": "no-cache" } });
+      if (r.status === 200) latest = typeof r.data === "string" ? JSON.parse(r.data) : r.data; else why = "HTTP " + r.status; } catch (e) { why = String(e && e.message || e); } }
+    if (!latest) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) latest = await r.json(); else why = "HTTP " + r.status; } catch (e) { why = why || String(e && e.message || e); } }
+    if (!latest) return { s: "err", d: why };
     if (!latest.version || OTA.cur === latest.version) return { s: "ok" };
     if (manual) toast("Yeni sürüm indiriliyor…");
+    step = "indirme";
     const list = await U.list();
     let b = (list.bundles || []).find(x => x.version === latest.version && x.status !== "error");
     if (!b) b = await U.download({ url: SITE + latest.url, version: latest.version });
+    step = "kurulum";
     await U.set({ id: b.id }); // uygulamayı yeni sürümle hemen yeniden yükler
     return { s: "upd" };
-  } catch (e) { console.warn("OTA", e); return { s: "err" }; }
+  } catch (e) { console.warn("OTA", e); return { s: "err", d: step + ": " + String(e && e.message || e) }; }
 }
 if (NATIVE) (async () => {
   const U = window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater;
