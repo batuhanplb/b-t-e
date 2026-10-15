@@ -5,22 +5,34 @@ import { formatAmountField } from "./transaction-input.js";
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 const SITE = NATIVE ? "https://butceapp.lovable.app" : location.origin;
 if (NATIVE) document.documentElement.classList.add("native");
-// Havadan güncelleme: canlı sitede yeni paket varsa arka planda indir, bir sonraki açılışta uygula.
-if (NATIVE) (async () => {
-  const U = window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater;
-  if (!U) return;
+// Havadan güncelleme: açılışta ve Ayarlar'dan elle; yeni paket varsa indirip hemen uygular (uygulama yenilenir).
+const OTA = { cur: null };
+async function otaCheck(manual) {
+  const U = NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater;
+  if (!U) return { s: "na" };
   try {
-    await U.notifyAppReady();
-    const r = await fetch(SITE + "/ota/latest.json?t=" + Date.now(), { cache: "no-store" });
-    if (!r.ok) return;
-    const latest = await r.json();
     const cur = await U.current();
-    if (!latest.version || (cur.bundle && cur.bundle.version === latest.version)) return;
+    OTA.cur = (cur.bundle && cur.bundle.version) || "builtin";
+    const r = await fetch(SITE + "/ota/latest.json?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return { s: "err" };
+    const latest = await r.json();
+    if (!latest.version || OTA.cur === latest.version) return { s: "ok" };
+    if (manual) toast("Yeni sürüm indiriliyor…");
     const list = await U.list();
     let b = (list.bundles || []).find(x => x.version === latest.version && x.status !== "error");
     if (!b) b = await U.download({ url: SITE + latest.url, version: latest.version });
-    await U.next({ id: b.id });
-  } catch (e) { console.warn("OTA", e); }
+    await U.set({ id: b.id }); // uygulamayı yeni sürümle hemen yeniden yükler
+    return { s: "upd" };
+  } catch (e) { console.warn("OTA", e); return { s: "err" }; }
+}
+if (NATIVE) (async () => {
+  const U = window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater;
+  if (!U) return;
+  try { await U.notifyAppReady(); } catch (e) {}
+  otaCheck(false);
+  // Uygulama arka plandan öne gelince de kontrol et
+  const A = window.Capacitor.Plugins.App;
+  if (A && A.addListener) A.addListener("appStateChange", st => { if (st && st.isActive) otaCheck(false); });
 })();
 /* ============ utilities ============ */
 const $ = s => document.querySelector(s);
@@ -932,6 +944,7 @@ function renderSettings() {
       '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">İçe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
       '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
       '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Başka bütçe uygulamalarının (Money Manager, Spendee, Wallet, YNAB, Monefy, Toshl, Bluecoins, Mint, 1Money, Cashew, Money Lover vb.) ve bankaların CSV, Excel (.xlsx), QIF ve OFX dosyaları mevcut verilere eklenir; aynı işlemler tekrar eklenmez. Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler.</p></div>';
+    if (NATIVE) h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">Sürüm: ' + esc(OTA.cur || "…") + '</span><button class="btn sm ghost" data-act="ota-check">Güncellemeleri kontrol et</button></div>';
     h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div>';
     h += '</div>';
   } else if (v === "acc") {
@@ -1122,6 +1135,7 @@ document.addEventListener("click", e => {
     case "expand": S.expanded.has(ds.k) ? S.expanded.delete(ds.k) : S.expanded.add(ds.k); render(); break;
     case "onlymine": S.onlyMine = ds.v === "1"; render(); break;
     case "settings": openSettings(); break;
+    case "ota-check": { toast("Kontrol ediliyor…"); otaCheck(true).then(r => { toast(r.s === "ok" ? "Uygulama güncel" : r.s === "upd" ? "Güncelleniyor…" : "Sunucuya ulaşılamadı"); if (D && D.view === "main") renderSettings(); }); break; }
     case "acct": openSettings(); break;
     case "set-back": D.view = "main"; renderSettings(); break;
     case "acc-new": D = { view: "acc" }; D.acc = { _new: true, id: "a-" + C.rid(), name: "", type: "banka", color: "#3166c9", start: 0, exclude: false, hidden: false, order: meta().accounts.length }; renderSettings(); break;
