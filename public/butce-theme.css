@@ -182,3 +182,11 @@ input,textarea,[contenteditable],.sel-ok{-webkit-user-select:text;user-select:te
 button,a,[data-act]{touch-action:manipulation}
 img{-webkit-user-drag:none}
 @media (display-mode:standalone){.top{padding-top:env(safe-area-inset-top,0px)}}
+/* Kompakt ızgara: tutar sağ üstte / yüzde yanında / kategori simgesi başta */
+.mod{position:relative}
+.mod .mod-n.tr{position:absolute;top:10px;right:12px;margin:0;flex-direction:row!important;align-items:baseline!important;gap:4px;flex-wrap:nowrap;max-width:60%}
+.mod .mod-n.tr b{font-size:14px!important;white-space:nowrap}.mod .mod-n.tr .small{white-space:nowrap}
+.mod .mod-n.inl{flex-direction:row!important;align-items:baseline!important;flex-wrap:wrap;gap:5px}
+.mod .krow:has(>.kcic){flex-direction:row!important;flex-wrap:nowrap!important;align-items:center}
+.mod .krow>.kcic:first-child{flex-basis:auto!important}
+.mod .krow:has(>.kcic)>span:nth-child(2){flex:1 1 auto;min-width:0}
