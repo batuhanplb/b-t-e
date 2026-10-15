@@ -161,3 +161,7 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
 .dg-seg{display:flex;flex:none}.dg-seg button{padding:6px 9px;font-size:11px}.dg-fixed{flex:none;font-size:11px}
 .dg-b{width:34px;height:34px;flex:none;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center}.dg-b svg{width:16px;height:16px}.dg-b[disabled]{opacity:.3}.dg-rm{color:var(--exp)}
 .dg-sub{margin:12px 0 6px}
+/* Android uygulaması: tarayıcı izlerini kapat */
+html.native,html.native body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+html.native body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html.native input,html.native textarea,html.native [contenteditable]{-webkit-user-select:text;user-select:text}
