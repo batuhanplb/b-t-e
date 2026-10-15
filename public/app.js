@@ -5,22 +5,34 @@ import { formatAmountField } from "./transaction-input.js";
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 const SITE = NATIVE ? "https://butceapp.lovable.app" : location.origin;
 if (NATIVE) document.documentElement.classList.add("native");
-// Havadan güncelleme: canlı sitede yeni paket varsa arka planda indir, bir sonraki açılışta uygula.
-if (NATIVE) (async () => {
-  const U = window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater;
-  if (!U) return;
+// Havadan güncelleme: açılışta ve Ayarlar'dan elle; yeni paket varsa indirip hemen uygular (uygulama yenilenir).
+const OTA = { cur: null };
+async function otaCheck(manual) {
+  const U = NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater;
+  if (!U) return { s: "na" };
   try {
-    await U.notifyAppReady();
-    const r = await fetch(SITE + "/ota/latest.json?t=" + Date.now(), { cache: "no-store" });
-    if (!r.ok) return;
-    const latest = await r.json();
     const cur = await U.current();
-    if (!latest.version || (cur.bundle && cur.bundle.version === latest.version)) return;
+    OTA.cur = (cur.bundle && cur.bundle.version) || "builtin";
+    const r = await fetch(SITE + "/ota/latest.json?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return { s: "err" };
+    const latest = await r.json();
+    if (!latest.version || OTA.cur === latest.version) return { s: "ok" };
+    if (manual) toast("Yeni sürüm indiriliyor…");
     const list = await U.list();
     let b = (list.bundles || []).find(x => x.version === latest.version && x.status !== "error");
     if (!b) b = await U.download({ url: SITE + latest.url, version: latest.version });
-    await U.next({ id: b.id });
-  } catch (e) { console.warn("OTA", e); }
+    await U.set({ id: b.id }); // uygulamayı yeni sürümle hemen yeniden yükler
+    return { s: "upd" };
+  } catch (e) { console.warn("OTA", e); return { s: "err" }; }
+}
+if (NATIVE) (async () => {
+  const U = window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater;
+  if (!U) return;
+  try { await U.notifyAppReady(); } catch (e) {}
+  otaCheck(false);
+  // Uygulama arka plandan öne gelince de kontrol et
+  const A = window.Capacitor.Plugins.App;
+  if (A && A.addListener) A.addListener("appStateChange", st => { if (st && st.isActive) otaCheck(false); });
 })();
 /* ============ utilities ============ */
 const $ = s => document.querySelector(s);
