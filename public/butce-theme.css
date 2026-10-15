@@ -175,3 +175,10 @@ html.native input,html.native textarea,html.native [contenteditable]{-webkit-use
 .acc-li{touch-action:pan-y}
 .acc-li.dragging{transition:box-shadow .2s;background:var(--c3);box-shadow:var(--shadow-float);position:relative;z-index:2;border-radius:6px}
 body.no-sel{user-select:none;-webkit-user-select:none}
+/* App-like touch behaviour (PWA) */
+html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable],.sel-ok{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+button,a,[data-act]{touch-action:manipulation}
+img{-webkit-user-drag:none}
+@media (display-mode:standalone){.top{padding-top:env(safe-area-inset-top,0px)}}
