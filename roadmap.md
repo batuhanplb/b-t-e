@@ -14,4 +14,6 @@
 - [x] Telefon görünümünde ay grafik rakamlarının üst üste binmesini gider.
 
 - [x] Modül düzenleme: boy seçenekleri + oklar (web), liste görünümü (telefon)
-- [ ] Capacitor ile Android uygulaması (sırada)
+- [x] Capacitor kabuğu + GitHub ile otomatik APK
+- [ ] Uygulama içinde Google girişi (uygulamaya geri dönüş bağlantısı gerekiyor)
+- [ ] Yeni APK kurmadan anında güncelleme (OTA)
