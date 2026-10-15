@@ -12,3 +12,6 @@
 - [x] "Kalan nakit" adını "Nakit akışı" olarak değiştir (menü, başlık, modül, paylaşım).
 - [x] Bölümü ileriye dönük 12 ay takibi olarak anlatan kısa bir açıklama satırı ekle.
 - [x] Telefon görünümünde ay grafik rakamlarının üst üste binmesini gider.
+
+- [x] Modül düzenleme: boy seçenekleri + oklar (web), liste görünümü (telefon)
+- [ ] Capacitor ile Android uygulaması (sırada)

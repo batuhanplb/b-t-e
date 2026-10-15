@@ -13,5 +13,5 @@
 - Shared presentation changes belong in public/butce-theme.css, loaded after legacy styles; preserve saved dashboard coordinates. Why: visual refinements must not rewrite budgeting logic or user preferences.
 - app.js imports /cloud-store.js, bundled from src/cloud-store/entry.ts; run `bun run build:cloud-store` after editing its source. Why: the static app executes the committed browser bundle.
 
-- Mobile module edits use `meta.dashMobile` and the shared pointer/grid engine; desktop edits remain in `meta.dash`. Why: phone sizing must not overwrite saved desktop coordinates.
+- Dashboard layout is order + size preset only (`SZ` table in app.js, saved as v3 `{id,on,sz}`); mobile uses `meta.dashMobile`, desktop `meta.dash`, no drag/resize. Why: preset sizes keep modules stable on touch and desktop.
 - Transaction amount display formatting lives in the browser-safe `public/transaction-input.js`; persistence still uses `core.js` numeric parsing. Why: live grouping stays independently testable without changing financial calculations.

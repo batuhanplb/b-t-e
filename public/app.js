@@ -322,17 +322,20 @@ function packLayout(list, cols) {
     placed.push(q); out[it.id] = q; });
   return list.map(it => out[it.id]);
 }
-// Herkes için varsayılan yerleşim (meta.dash yokken ve "Varsayılana dön" sonrası kullanılır).
-const DEF_DASH = {"v":2,"items":[{"id":"exp","on":true,"w":"n","g":{"w":2,"h":2,"x":1,"y":1}},{"id":"inc","on":true,"w":"n","g":{"w":2,"h":2,"x":3,"y":1}},{"id":"daily","on":true,"w":"n","g":{"w":2,"h":2,"x":5,"y":1}},{"id":"debtcal","on":true,"w":"w","g":{"w":4,"h":2,"x":1,"y":3}},{"id":"cash","on":true,"w":"n","g":{"w":2,"h":2,"x":5,"y":3}},{"id":"recent","on":true,"w":"n","g":{"w":2,"h":3,"x":1,"y":5}},{"id":"top","on":true,"w":"n","g":{"w":2,"h":3,"x":3,"y":5}},{"id":"cats","on":true,"w":"n","g":{"w":2,"h":3,"x":5,"y":5}},{"id":"ratio","on":true,"w":"n","g":{"w":2,"h":2,"x":1,"y":8}},{"id":"sub","on":true,"w":"n","g":{"w":2,"h":2,"x":3,"y":8}},{"id":"tips","on":true,"w":"n","g":{"w":2,"h":2,"x":5,"y":8}},{"id":"fav","on":true,"w":"n","g":{"w":2,"h":1,"x":1,"y":10}}]};
+// Modül boy seçenekleri: [genişlik, yükseklik]; genişlik 2 = tüm satır (telefon), küçükten büyüğe.
+const SZ = { debtcal: [[2, 1], [2, 2]], exp: [[1, 1]], inc: [[1, 1]], daily: [[1, 1], [2, 1]], top: [[1, 1], [1, 2]], cash: [[1, 1], [2, 1]], ratio: [[1, 1]], recent: [[1, 2], [2, 2]], cats: [[1, 1], [1, 2]], sub: [[1, 1], [1, 2]], tips: [[1, 1], [1, 2]], fav: [[2, 1]] };
+const szNames = id => { const n = (SZ[id] || [[1, 1]]).length; return n === 1 ? ["Tek boy"] : n === 2 ? ["Küçük", "Büyük"] : ["Küçük", "Orta", "Büyük"]; };
+// Herkes için varsayılan sıra (kayıt yokken ve "Varsayılana dön" sonrası kullanılır).
+const DEF_DASH = { v: 3, items: ["exp", "inc", "daily", "debtcal", "cash", "recent", "top", "cats", "ratio", "sub", "tips", "fav"].map(id => ({ id, on: true, sz: 0 })) };
 const dashMobile = () => !matchMedia("(min-width:900px)").matches;
 const dashCols = () => dashMobile() ? (matchMedia("(max-width:359px)").matches ? 1 : 2) : 6;
 const dashKey = () => dashMobile() ? "dashMobile" : "dash";
-const dashCfg = () => { const mobile = dashMobile(), own = meta()[dashKey()], md = own || meta().dash || DEF_DASH, saved = (md && md.items) || []; const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id); return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "recent", "fav"].includes(id), w: normW(f && f.w), g: normG(f && f.g, id, normW(f && f.w)), dyn }; });
+const dashCfg = () => { const mobile = dashMobile(), own = meta()[dashKey()], md = own || meta().dash || DEF_DASH;
+  let saved = (md && md.items) || [];
+  if (md.v !== 3) saved = saved.slice().sort((a, b) => ((a.g && a.g.y) || 99) - ((b.g && b.g.y) || 99) || ((a.g && a.g.x) || 0) - ((b.g && b.g.x) || 0));
+  const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id), opts = SZ[id] || [[1, 1]], sz = f && Number.isInteger(f.sz) ? clampN(f.sz, 0, opts.length - 1) : 0, [w, hh] = opts[sz];
+    return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "recent", "fav"].includes(id), sz, dyn, g: { w: mobile ? w : w * 2, h: id === "fav" ? 1 : hh === 1 ? 2 : (mobile ? 4 : 3) } }; });
   if (saved.length) out.sort((a, b) => { const i = saved.findIndex(x => x.id === a.id), j = saved.findIndex(x => x.id === b.id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
-  if (!md || md.v !== 2) { // eski "aya bağlı / aydan bağımsız" iki ızgarayı, görünüm aynı kalacak şekilde tek ızgarada birleştir
-    const on = out.filter(x => x.on), dl = packLayout(on.filter(x => x.dyn), 6), sl = packLayout(on.filter(x => !x.dyn), 6), off = dl.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
-    dl.concat(sl.map(q => ({ ...q, y: q.y + off }))).forEach(q => { const it = out.find(x => x.id === q.id); it.g = { w: q.w, h: q.h, x: q.x, y: q.y }; }); }
-  if (mobile && !own) out.forEach(it => { it.g = { w: ["debtcal", "recent", "tips"].includes(it.id) || it.w === "w" ? 2 : 1, h: it.g.h }; });
   return out; };
 const modName = id => (MODS.find(m => m[0] === id) || [, id])[1];
 const mod = (ic, title, go, inner, cls) => '<section class="mod ' + (cls || "") + '"><div class="mod-h"><span class="mod-ic">' + ic + '</span><h3>' + title + '</h3>' + (go ? '<button class="ib mod-go" data-act="nav" data-v="' + go + '" aria-label="Aç">' + ICON.r + '</button>' : '') + '</div>' + inner + '</section>';
@@ -345,7 +348,7 @@ function vHome() {
   const prevSame = prev.filter(t => Number(t.d.slice(8, 10)) <= lastDay);
   const te = sum(cur, "e"), ti = sum(cur, "i"), pe = sum(prevSame, "e"), pi = sum(prevSame, "i");
   const cum = (arr, k, days, upto) => { let c = 0; const out = []; for (let d = 1; d <= days; d++) { c += arr.filter(t => t.k === k && Number(t.d.slice(8, 10)) === d).reduce((s, t) => s + t.a, 0); out.push(d <= upto ? c : null); } return out; };
-  const n = Math.max(dm, dp), lbl = [[0, "1"], [Math.round(n / 4), String(Math.round(n / 4) + 1)], [Math.round(n / 2), String(Math.round(n / 2) + 1)], [Math.round(3 * n / 4), String(Math.round(3 * n / 4) + 1)], [n - 1, String(n)]];
+  const n = Math.max(dm, dp), lbl = [[0, "1"], [7, "8"], [14, "15"], [21, "22"], [n - 1, String(n)]];
   const leg = '<div class="legend"><span><i class="l1"></i>' + mLabel(m) + '</span><span><i class="l2"></i>' + mLabel(pm) + '</span></div>';
   const accsT = visibleAccs(), netT = accsT.filter(a => !a.exclude).reduce((s, a) => s + (D.bal[a.id] || 0), 0);
   const cfgM = dashCfg(), on = cfgM.filter(x => x.on);
@@ -388,19 +391,25 @@ function vHome() {
   M.fav = () => D.favs.length ? mod(svgI(CI.bolt), "Hızlı ekle", null, '<div class="chips" style="margin-top:6px">' + D.favs.map((f, i) => '<button class="chip" data-act="fav" data-i="' + i + '"><i style="background:' + catColor(f.cat) + '"></i>' + esc(f.t || catLabel(f.cat, true)) + '</button>').join("") + '</div>') : "";
   let h = '<section class="card accstrip"><div class="net"><span class="muted small">Net bakiye</span><b class="' + (netT < 0 ? "neg" : "") + '">' + f2(netT) + '</b></div><div class="accs">' + accsT.map(a => '<button class="acc" data-act="acc-tx" data-id="' + esc(a.id) + '"><div class="n">' + (a.logo ? '<img class="alogo sm" style="margin:0" src="' + esc(a.logo) + '" alt="" onerror="this.style.display=\'none\'">' : '<i style="background:' + a.color + '"></i>') + esc(a.name) + '</div><div class="v ' + ((D.bal[a.id] || 0) < 0 ? "neg" : "") + '">' + f2(D.bal[a.id] || 0) + '</div></button>').join("") + '</div></section>';
   const desk = !dashMobile(), gridCols = dashCols(), edit = !!S.dashEdit;
-  const wrap = (x, out, pos) => { const cls = (x.w === "w" ? "w2 " : x.w === "s" ? "sm " : "") + (edit ? "editing " : "") + (out.indexOf('class="mod-n"') < 0 ? "nn " : "");
+  const wrap = (x, out, pos) => { const cls = (edit ? "editing " : "") + (out.indexOf('class="mod-n"') < 0 ? "nn " : "");
     const attrs = 'data-id="' + x.id + '" data-x="' + pos.x + '" data-y="' + pos.y + '" data-w="' + pos.w + '" data-h="' + pos.h + '" style="--gx:' + pos.x + ';--gy:' + pos.y + ';--gw:' + pos.w + ';--gh:' + pos.h + '" ';
     let o = out.replace('<section class="mod ', '<section ' + attrs + 'class="mod ' + cls);
-    if (edit) o = o.replace(/<\/section>$/, '<button class="ed-x" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button><span class="ed-size">' + pos.w + '×' + pos.h + '</span><i class="rh rh-r" data-rh="l" style="left:0;right:auto"></i><i class="rh rh-b" data-rh="t" style="top:0;bottom:auto;right:40px"></i><i class="rh rh-r" data-rh="r"></i><i class="rh rh-b" data-rh="b"></i><i class="rh rh-c" data-rh="c"></i></section>');
+    if (edit) { const names = szNames(x.id); o = o.replace(/<\/section>$/, '<div class="ed-bar"><button class="ed-b" data-act="dg-mv" data-id="' + x.id + '" data-d="-1" aria-label="Öne al">' + ICON.l + '</button>' + (names.length > 1 ? '<button class="ed-b ed-sz" data-act="dg-sz" data-id="' + x.id + '">' + names[x.sz] + '</button>' : '') + '<button class="ed-b" data-act="dg-mv" data-id="' + x.id + '" data-d="1" aria-label="Arkaya al">' + ICON.r + '</button><button class="ed-b ed-rm" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button></div></section>'); }
     return o; };
   const section = list => { const rendered = list.map(x => [x, M[x.id] ? M[x.id](x) : ""]).filter(([, o]) => o);
-    const lay = packLayout(rendered.map(([x]) => ({ id: x.id, g: x.g })), gridCols), rows = lay.reduce((mx, q) => Math.max(mx, q.y + q.h - 1), 0);
-    let cells = ""; if (edit) for (let r = 1; r <= rows + 2; r++) for (let c = 1; c <= gridCols; c++) cells += '<i class="dg-cell" style="grid-column:' + c + ';grid-row:' + r + '"></i>';
-    return cells + rendered.map(([x, o], i) => wrap(x, o, lay[i])).join(""); };
+    const lay = packLayout(rendered.map(([x]) => ({ id: x.id, g: { w: x.g.w, h: x.g.h } })), gridCols);
+    return rendered.map(([x, o], i) => wrap(x, o, lay[i])).join(""); };
   const hidden = cfgM.filter(x => !x.on);
   h += '<div class="toolbar dash-tb"><div class="pill"><button class="ib" data-act="hprev" aria-label="Önceki ay">' + ICON.l + '</button><span>' + mLabel(m) + '</span><button class="ib" data-act="hnext" aria-label="Sonraki ay">' + ICON.r + '</button></div><span style="flex:1"></span>' +
-    (edit ? '<button class="btn sm ghost" data-act="dg-tray">+ Modül ekle' + (hidden.length ? " (" + hidden.length + ")" : "") + '</button><button class="btn sm ghost" data-act="dg-reset">Varsayılana dön</button><button class="btn sm" data-act="dash-edit-off">Bitti</button>'
+    (edit ? (desk ? '<button class="btn sm ghost" data-act="dg-tray">+ Modül ekle' + (hidden.length ? " (" + hidden.length + ")" : "") + '</button>' : '') + '<button class="btn sm ghost" data-act="dg-reset">Varsayılana dön</button><button class="btn sm" data-act="dash-edit-off">Bitti</button>'
       : '<button class="ib dash-pencil" data-act="dash-edit-on" aria-label="Modülleri düzenle" title="Modülleri düzenle">' + ICON.pen + '</button>') + '</div>';
+  if (edit && !desk) { // telefonda kartların yerine sade bir liste
+    const shown = on, up = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>', dn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    h += '<div class="card dg-list">' + shown.map((x, i) => { const names = szNames(x.id);
+      return '<div class="dg-row"><span class="dg-name">' + esc(modName(x.id)) + '</span>' + (names.length > 1 ? '<div class="seg dg-seg">' + names.map((nm, k) => '<button aria-pressed="' + (k === x.sz) + '" data-act="dg-sz" data-id="' + x.id + '" data-s="' + k + '">' + nm + '</button>').join("") + '</div>' : '<span class="dg-fixed muted small">Tek boy</span>') +
+        '<button class="ib dg-b" data-act="dg-mv" data-id="' + x.id + '" data-d="-1" aria-label="Yukarı"' + (i ? '' : ' disabled') + '>' + up + '</button><button class="ib dg-b" data-act="dg-mv" data-id="' + x.id + '" data-d="1" aria-label="Aşağı"' + (i < shown.length - 1 ? '' : ' disabled') + '>' + dn + '</button><button class="ib dg-b dg-rm" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button></div>'; }).join("") +
+      (hidden.length ? '<div class="dg-sub small muted">Gizli modüller</div><div class="chips">' + hidden.map(x => '<button class="chip" data-act="dg-add" data-id="' + x.id + '">+ ' + esc(modName(x.id)) + '</button>').join("") + '</div>' : '') + '</div>';
+    return h; }
   if (edit) {
     if (S.dashTray) h += '<div class="card dg-tray">' + (hidden.length ? '<div class="chips">' + hidden.map(x => '<button class="chip" data-act="dg-add" data-id="' + x.id + '">+ ' + esc(modName(x.id)) + '</button>').join("") + '</div>' : '<span class="small muted">Tüm modüller açık.</span>') + '</div>'; }
   if (on.length) h += '<div class="mods manual-grid">' + section(on) + '</div>';
@@ -1156,7 +1165,9 @@ document.addEventListener("click", e => {
     case "dash-edit-off": S.dashEdit = false; S.dashTray = false; render(); break;
     case "dg-tray": S.dashTray = !S.dashTray; render(); break;
     case "dg-hide": dgSave(items => { const it = items.find(x => x.id === ds.id); if (it) it.on = false; }); render(); break;
-    case "dg-add": dgSave(items => { const k = items.findIndex(x => x.id === ds.id); if (k < 0) return; const it = items.splice(k, 1)[0]; it.on = true; it.g = { w: it.g.w, h: it.g.h }; items.push(it); }); render(); break;
+    case "dg-add": dgSave(items => { const k = items.findIndex(x => x.id === ds.id); if (k < 0) return; const it = items.splice(k, 1)[0]; it.on = true; items.push(it); }); render(); break;
+    case "dg-mv": dgSave(items => { const i = items.findIndex(x => x.id === ds.id), dir = Number(ds.d); if (i < 0) return; let j = i + dir; while (j >= 0 && j < items.length && !items[j].on) j += dir; if (j < 0 || j >= items.length) return; [items[i], items[j]] = [items[j], items[i]]; }); render(); break;
+    case "dg-sz": dgSave(items => { const it = items.find(x => x.id === ds.id); if (!it) return; const n = (SZ[it.id] || [[1, 1]]).length; it.sz = ds.s != null ? clampN(+ds.s, 0, n - 1) : (it.sz + 1) % n; }); render(); break;
     case "dg-reset": if (!confirm("Modül yerleşimi varsayılana dönsün mü?")) break; saveMetaChange(m => { delete m[dashKey()]; }); render(); toast("Varsayılana dönüldü"); break;
     case "gt-edit": D = { view: "gt", hid: [], ...clone(gtCfg()) }; renderSettings(); break;
     case "gt-rm": D[ds.g].splice(+ds.i, 1); renderSettings(); break;
@@ -1233,63 +1244,9 @@ document.addEventListener("mousemove", e => { const r = e.target.closest && e.ta
 document.addEventListener("mouseout", e => { if (e.target.closest && e.target.closest(".bhit") && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".bhit"))) { clearTimeout(tipT); tipT = null; hideTip(); } });
 document.addEventListener("click", e => { const r = e.target.closest && e.target.closest(".bhit"); if (r) { tipT = null; showTip(r, e.clientX, e.clientY, true); } });
 addEventListener("scroll", () => { if (tipEl && tipEl.style.display === "block") hideTip(); }, { passive: true });
-function dgSave(mut) { const items = dashCfg(); mut(items); saveMetaChange(m => { m[dashKey()] = { v: 2, items: items.map(x => ({ id: x.id, on: x.on, w: x.w, g: x.g })) }; }); }
-function gridMetrics(grid) { const cs = getComputedStyle(grid), gap = parseFloat(cs.columnGap) || 14, rowH = parseFloat(cs.gridAutoRows) || 150, cols = cs.gridTemplateColumns.split(" ").length; return { gap, rowH, cols, colW: (grid.clientWidth - gap * (cols - 1)) / cols }; }
-const dgMods = grid => Array.from(grid.children).filter(c => c.classList && c.classList.contains("mod"));
-const dgPlaced = grid => dgMods(grid).map(c => ({ id: c.dataset.id, x: +c.dataset.x, y: +c.dataset.y, w: +c.dataset.w, h: +c.dataset.h }));
-function dgPush(placed, fixedId) {
-  const fx = placed.find(p => p.id === fixedId), done = [fx], hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-  placed.filter(p => p.id !== fixedId).sort((a, b) => a.y - b.y || a.x - b.x).forEach(o => { let again = true; while (again) { again = false; for (const d of done) if (hit(o, d)) { o.y = d.y + d.h; again = true; } } done.push(o); });
-}
-function dgApply(grid, placed) {
-  placed.forEach(p => { const el = grid.querySelector('.mod[data-id="' + p.id + '"]'); if (!el) return;
-    el.style.setProperty("--gx", p.x); el.style.setProperty("--gy", p.y); el.style.setProperty("--gw", p.w); el.style.setProperty("--gh", p.h);
-    el.dataset.x = p.x; el.dataset.y = p.y; el.dataset.w = p.w; el.dataset.h = p.h; const sz = el.querySelector(".ed-size"); if (sz) sz.textContent = p.w + "×" + p.h; });
-}
-let DGS = null;
-function dgEnd(cancel) {
-  const st = DGS; if (!st) return; DGS = null; document.body.classList.remove("dg-busy"); st.mod.classList.remove("ghosted"); if (st.ghost) st.ghost.remove();
-  if (cancel) { render(); return; }
-  if (!st.cur) return;
-  const lay = st.cur.map(p => ({ ...p })), minY = Math.min(...lay.map(p => p.y)); lay.forEach(p => { p.y -= minY - 1; });
-  dgSave(items => {
-    lay.forEach(p => { const it = items.find(x => x.id === p.id); if (it) it.g = { w: p.w, h: p.h, x: p.x, y: p.y }; });
-    const ids = lay.slice().sort((a, b) => a.y - b.y || a.x - b.x).map(p => p.id), pos = [], by = {};
-    items.forEach((x, i) => { by[x.id] = x; if (x.on && ids.includes(x.id)) pos.push(i); }); pos.forEach((q, k) => { items[q] = by[ids[k]]; });
-  });
-  render();
-}
-document.addEventListener("pointerdown", e => {
-  if (!S.dashEdit || (e.button && e.button > 0)) return;
-  const mod = e.target.closest && e.target.closest(".mod.editing"); if (!mod || e.target.closest(".ed-x")) return;
-  if (dashMobile() && !e.target.closest(".mod-h, .rh")) return;
-  mod.setPointerCapture(e.pointerId);
-  e.preventDefault(); const rh = e.target.closest(".rh"), grid = mod.parentElement;
-  DGS = { mod, grid, g: gridMetrics(grid), base: dgPlaced(grid), x: e.clientX, y: e.clientY, mode: rh ? rh.dataset.rh : "move", started: !!rh, ghost: null, cur: null, last: "" };
-  document.body.classList.add("dg-busy");
-});
-document.addEventListener("pointermove", e => {
-  const st = DGS; if (!st) return; const dx = e.clientX - st.x, dy = e.clientY - st.y, g = st.g, me = st.base.find(p => p.id === st.mod.dataset.id); if (!me) return;
-  if (st.mode !== "move") {
-    let nx = me.x, ny = me.y, nw = me.w, nh = me.h;
-    if (st.mode === "l") { nx = clampN(me.x + dx / (g.colW + g.gap), 1, me.x + me.w - 1); nw = me.x + me.w - nx; }
-    else if (st.mode === "t") { ny = clampN(me.y + dy / (g.rowH + g.gap), Math.max(1, me.y + me.h - 6), me.y + me.h - 1); nh = me.y + me.h - ny; }
-    else { if (st.mode !== "b") nw = clampN(me.w + dx / (g.colW + g.gap), 1, g.cols - me.x + 1);
-      if (st.mode !== "r") nh = clampN(me.h + dy / (g.rowH + g.gap), 1, 6); }
-    const key = nx + "," + ny + "," + nw + "," + nh; if (key !== st.last) { st.last = key; const lay = st.base.map(p => ({ ...p })), m = lay.find(p => p.id === me.id); m.x = nx; m.y = ny; m.w = nw; m.h = nh; dgPush(lay, me.id); st.cur = lay; dgApply(st.grid, lay); }
-    return;
-  }
-  if (!st.started) { if (Math.hypot(dx, dy) < 6) return; st.started = true; const r = st.mod.getBoundingClientRect(), gh = st.mod.cloneNode(true); gh.classList.remove("editing"); gh.classList.add("dg-ghost");
-    gh.style.cssText = "position:fixed;left:" + r.left + "px;top:" + r.top + "px;width:" + r.width + "px;height:" + r.height + "px;margin:0"; document.body.appendChild(gh); st.ghost = gh; st.mod.classList.add("ghosted"); }
-  st.ghost.style.transform = "translate(" + dx + "px," + dy + "px)";
-  const nx = clampN(me.x + dx / (g.colW + g.gap), 1, g.cols - me.w + 1), ny = Math.max(1, Math.round(me.y + dy / (g.rowH + g.gap))), key = nx + "," + ny;
-  if (key !== st.last) { st.last = key; const lay = st.base.map(p => ({ ...p })), m = lay.find(p => p.id === me.id); m.x = nx; m.y = ny; dgPush(lay, me.id); st.cur = lay; dgApply(st.grid, lay); }
-  if (e.clientY < 70) window.scrollBy(0, -16); else if (e.clientY > innerHeight - 70) window.scrollBy(0, 16);
-});
-document.addEventListener("pointerup", () => dgEnd(false));
-document.addEventListener("pointercancel", () => dgEnd(true));
+function dgSave(mut) { const items = dashCfg(); mut(items); saveMetaChange(m => { m[dashKey()] = { v: 3, items: items.map(x => ({ id: x.id, on: x.on, sz: x.sz })) }; }); }
 let wasCols = dashCols();
-addEventListener("resize", () => { const cols = dashCols(); if (cols !== wasCols) { wasCols = cols; if (DGS) dgEnd(true); else if (S.store && S.view === "home") render(); } });
+addEventListener("resize", () => { const cols = dashCols(); if (cols !== wasCols) { wasCols = cols; if (S.store && S.view === "home") render(); } });
 addEventListener("online", render); addEventListener("offline", render);
 
 boot();
