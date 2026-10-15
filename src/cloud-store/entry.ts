@@ -154,9 +154,23 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     store.user = u ? { email: u.email ?? null, name: meta['full_name'] ?? meta['name'] ?? null } : null;
     onUser(store.user);
   };
-  supabase.auth.onAuthStateChange((_e, s) => setTimeout(() => handle(s), 0));
+  // Never drop the user on a transient null session (offline token refresh,
+  // phone waking from sleep). Only an explicit SIGNED_OUT logs the user out.
+  supabase.auth.onAuthStateChange((e, s) => {
+    if (!s && e !== "SIGNED_OUT") return;
+    setTimeout(() => handle(s), 0);
+  });
   const { data } = await supabase.auth.getSession();
   setTimeout(() => handle(data.session), 0);
+  const wake = () => {
+    if (document.visibilityState !== "visible" || !navigator.onLine) return;
+    supabase.auth.getSession().then(({ data: d }) => {
+      const exp = d.session?.expires_at ?? 0;
+      if (d.session && exp * 1000 - Date.now() < 5 * 60_000) supabase.auth.refreshSession().catch(() => {});
+    }).catch(() => {});
+  };
+  document.addEventListener("visibilitychange", wake);
+  window.addEventListener("online", wake);
 
   // Native-app auth bridge: the Capacitor app opens the published site with
   // ?native_auth=1 in the system browser. If a session exists, hand it back to

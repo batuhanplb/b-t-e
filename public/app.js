@@ -185,7 +185,7 @@ async function boot() {
         meta: m => { S.meta = m; S.loaded.meta = true; bump(); render(); },
         months: (o) => { S.months = o; S.loaded.months = true; bump(); render(); if (!S._recDone && S.loaded.meta) { S._recDone = true; extendRecs(); } },
         debts: o => { S.debts = o; S.loaded.debts = true; render(); },
-        err: e => { console.error(e); toast(e.code === "permission-denied" ? "Bu Google hesabının verilere erişimi yok." : "Veri bağlantısı kesildi."); if (e.code === "permission-denied") { S.authErr = "Bu Google hesabının (" + (u.email || "") + ") bu uygulamaya erişimi yok."; S.store.signOut(); } }
+        err: e => { console.error(e); toast("Veri bağlantısı kesildi, tekrar deneniyor."); }
       });
     }
     render();
