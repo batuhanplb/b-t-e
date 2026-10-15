@@ -149,3 +149,15 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
 .tx-pd .tx-payee .sugg:not(:empty){position:absolute;left:0;right:0;top:calc(100% - 8px);z-index:15;background:var(--surface);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow-float)}
 .tx-pd .tx-date .in{padding-left:6px;padding-right:4px;font-size:12px;min-width:0;width:100%}
 .tx-form .fld{margin-bottom:10px}
+/* Modül düzenleme: kart üstü düğmeler (masaüstü) ve liste (telefon) */
+.mod.editing{position:relative;outline:2px dashed color-mix(in oklch,var(--primary) 45%,transparent);outline-offset:-2px}
+.mod.editing>.ed-bar{position:absolute;left:8px;right:8px;bottom:8px;z-index:7;display:flex;gap:6px;justify-content:center;pointer-events:auto!important}
+.ed-bar .ed-b{pointer-events:auto!important;min-width:34px;height:34px;padding:0 10px;border-radius:8px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-float);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer}
+.ed-bar .ed-b svg{width:15px;height:15px}.ed-bar .ed-sz{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}.ed-bar .ed-rm{color:var(--exp)}
+.mods .mod .heat{overflow:auto!important;min-height:0;scrollbar-width:thin}
+.dg-list{padding:6px 12px 12px;display:grid}
+.dg-row{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--line)}
+.dg-name{flex:1;min-width:0;font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.dg-seg{display:flex;flex:none}.dg-seg button{padding:6px 9px;font-size:11px}.dg-fixed{flex:none;font-size:11px}
+.dg-b{width:34px;height:34px;flex:none;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center}.dg-b svg{width:16px;height:16px}.dg-b[disabled]{opacity:.3}.dg-rm{color:var(--exp)}
+.dg-sub{margin:12px 0 6px}
