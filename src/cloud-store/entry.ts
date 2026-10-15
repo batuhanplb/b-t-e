@@ -157,5 +157,18 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
   supabase.auth.onAuthStateChange((_e, s) => setTimeout(() => handle(s), 0));
   const { data } = await supabase.auth.getSession();
   setTimeout(() => handle(data.session), 0);
+
+  // Native-app auth bridge: the Capacitor app opens the published site with
+  // ?native_auth=1 in the system browser. If a session exists, hand it back to
+  // the app via the custom-scheme deep link; otherwise kick off Google sign-in
+  // that redirects back here after completion.
+  if (new URLSearchParams(location.search).has("native_auth")) {
+    if (data.session) {
+      const s = data.session;
+      location.href = "app.lovable.butce://auth#access_token=" + encodeURIComponent(s.access_token) + "&refresh_token=" + encodeURIComponent(s.refresh_token);
+    } else {
+      lovableAuth.signInWithOAuth("google", { redirect_uri: location.origin + "/?native_auth=1", extraParams: { prompt: "select_account" } }).catch(() => {});
+    }
+  }
   return store;
 }
