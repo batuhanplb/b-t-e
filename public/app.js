@@ -118,7 +118,7 @@ const S = {
   view: "home", month: CUR(), q: "", accF: "", year: Number(CUR().slice(0, 4)), tTab: "cat", tKind: "e", expanded: new Set(), onlyMine: false, borcMine: true,
   ver: 0, cache: null
 };
-S.accFs = []; S.per = "m"; S.showPastTx = true; S.showFutTx = true;
+S.accFs = []; S.per = "m"; S.showPastTx = true; S.showFutTx = false;
 S.pFrom = CUR() + "-01"; S.pTo = today(); S.pCat = ""; S.catF = null; S.showPast = false;
 const meta = () => S.meta || DEFAULT_META;
 function derived() {
@@ -127,7 +127,7 @@ function derived() {
   const catMap = Object.fromEntries(meta().categories.map(c => [c.id, c]));
   const accMap = Object.fromEntries(meta().accounts.map(a => [a.id, a]));
   const bal = C.accountBalances(meta().accounts, all);
-  S.cache = { ver: S.ver, all, catMap, accMap, bal, payees: C.payeeMemory(all), favs: C.favourites(all) };
+  S.cache = { ver: S.ver, all, catMap, accMap, bal, payees: C.payeeMemory(all), favs: C.favourites(all, Date.now(), 40) };
   return S.cache;
 }
 const bump = () => { S.ver++; };
@@ -319,6 +319,7 @@ function fillCharts() {
 }
 let chRO = null, chQ = 0;
 function afterRender() {
+  if (S.view === "acc") accDrag();
   if (typeof ResizeObserver === "undefined") { fillCharts(); return; }
   if (!chRO) chRO = new ResizeObserver(() => { if (chQ) return; chQ = requestAnimationFrame(() => { chQ = 0; fillCharts(); }); });
   chRO.disconnect(); document.querySelectorAll(".mod, .chartbox").forEach(el => chRO.observe(el));
@@ -379,7 +380,7 @@ function vHome() {
   M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">bu ay sonu</span></div><div class="mod-s">İleriye dönük 12 ay tahmini</div>' + chartBox("line", pl.map(p => p.kalan), null, [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]]) + '<div class="legend"><span><i class="l1"></i>Nakit akışı</span><span class="muted">' + mLabel(pl[5].m) + ': ' + f0(pl[5].kalan) + '</span></div>'); };
   const tops = (arr) => { const o = {}; arr.filter(t => t.k === "e").forEach(t => catParts(t).forEach(pp => { const c = C.topCat(D.catMap, pp.cat); const k = c ? c.id : "_"; o[k] = (o[k] || 0) + pp.a; })); return o; };
   const tc = tops(cur), tp = tops(prev), rows = Object.entries(tc).sort((a, b) => b[1] - a[1]);
-  M.cats = () => mod(svgI(CI.tag), "Kategoriler", "pie", '<div class="mod-n"><b>' + rows.length + '</b><span class="muted small">en çok harcanan</span></div>' + (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
+  M.cats = () => mod(svgI(CI.tag), "Kategoriler", "pie", '<div class="mod-s">En çok harcanan</div>' + (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span class="cic kcic" style="--c:' + catColor(id === "_" ? null : id) + '">' + catIcon(id === "_" ? null : id) + '</span><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
   const daily = []; for (let d = 1; d <= dm; d++) daily.push(cur.filter(t => t.k === "e" && Number(t.d.slice(8, 10)) === d).reduce((s, t) => s + t.a, 0));
   M.daily = () => mod(svgI(CI.cart), "Günlük harcama", "tx", '<div class="mod-n"><b>' + f0(lastDay ? te / lastDay : 0) + '</b><span class="muted small">günlük ortalama</span></div><div class="mod-s">' + mLabel(m) + ' gün gün</div>' + chartBox("bar", daily, [[0, "1"], [Math.round(dm / 4), String(Math.round(dm / 4) + 1)], [Math.round(dm / 2), String(Math.round(dm / 2) + 1)], [Math.round(3 * dm / 4), String(Math.round(3 * dm / 4) + 1)], [dm - 1, String(dm)]], daily.map((v, i) => (i + 1) + " " + C.TR_M[Number(m.slice(5)) - 1] + ": " + f2(v))));
   M.top = () => { const big = cur.filter(t => t.k === "e").sort((a, b) => b.a - a.a).slice(0, 20);
@@ -408,8 +409,8 @@ function vHome() {
       cols.map(([id, d]) => '<div class="hrow"' + gt + '><span title="' + esc(d.name) + '">' + esc(d.name) + '</span>' + hm.map(mm => { const all = (d.sched || []).filter(x => x.m === mm).reduce((s, x) => s + x.a, 0), v = cell(d, mm); if (!all) return '<i style="opacity:0"></i>'; const pd = v < 0.005; return '<i class="bhit ' + (pd ? "pd" : "up") + '" data-tip="' + esc(d.name + ' · ' + mLabel(mm) + (pd ? " (ödendi)" : "") + ': ' + f2(all)) + '"' + (pd ? '' : ' style="opacity:' + (0.22 + 0.33 * v / mxv).toFixed(2) + '"') + '></i>'; }).join("") + '</div>').join("") + '</div>'); };
   M.accs = () => mod(svgI(CI.card), "Hesaplar", "acc", '<div class="mod-n"><b class="' + (netT < 0 ? "neg" : "") + '">' + f0(netT) + '</b><span class="muted small">net bakiye</span></div><div class="klist">' + accsT.map(a => '<button class="krow" data-act="acc-tx" data-id="' + esc(a.id) + '"><span><b>' + accIcon(a) + esc(a.name) + '</b></span><span class="r"><b class="' + ((D.bal[a.id] || 0) < 0 ? "neg" : "") + '">' + f2(D.bal[a.id] || 0) + '</b></span></button>').join("") + '</div>');
   M.recent = () => { const recent = D.all.filter(t => t.d <= tdy).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 20);
-    return mod(svgI(CI.tag), "Son işlemler", "tx", recent.length ? '<ul class="list">' + recent.map(t => txRow(t)).join("") + '</ul>' : '<div class="empty">Henüz işlem yok.</div>', "mod-flush"); };
-  M.fav = () => D.favs.length ? mod(svgI(CI.bolt), "Hızlı ekle", null, '<div class="chips" style="margin-top:6px">' + D.favs.map((f, i) => '<button class="chip" data-act="fav" data-i="' + i + '"><i style="background:' + catColor(f.cat) + '"></i>' + esc(f.t || catLabel(f.cat, true)) + '</button>').join("") + '</div>') : "";
+    return mod(svgI(CI.tag), "Son işlemler", "tx", recent.length ? '<ul class="list">' + recent.map(t => txRow(t)).join("") + '</ul>' : '<div class="empty">Henüz işlem yok.</div>', "mod-pad"); };
+  M.fav = () => D.favs.length ? mod(svgI(CI.bolt), "Hızlı ekle", null, '<div class="chips favchips" style="margin-top:6px">' + D.favs.map((f, i) => '<button class="chip" data-act="fav" data-i="' + i + '"><i style="background:' + catColor(f.cat) + '"></i>' + esc(f.t || catLabel(f.cat, true)) + '</button>').join("") + '</div>') : "";
   let h = '<section class="card accstrip"><div class="net"><span class="muted small">Net bakiye</span><b class="' + (netT < 0 ? "neg" : "") + '">' + f2(netT) + '</b></div><div class="accs">' + accsT.map(a => '<button class="acc" data-act="acc-tx" data-id="' + esc(a.id) + '"><div class="n">' + (a.logo ? '<img class="alogo sm" style="margin:0" src="' + esc(a.logo) + '" alt="" onerror="this.style.display=\'none\'">' : '<i style="background:' + a.color + '"></i>') + esc(a.name) + '</div><div class="v ' + ((D.bal[a.id] || 0) < 0 ? "neg" : "") + '">' + f2(D.bal[a.id] || 0) + '</div></button>').join("") + '</div></section>';
   const desk = !dashMobile(), gridCols = dashCols(), edit = !!S.dashEdit;
   const wrap = (x, out, pos) => { const cls = (edit ? "editing " : "") + (out.indexOf('class="mod-n"') < 0 ? "nn " : "");
@@ -457,7 +458,7 @@ function vTx() {
   let h = '<div class="toolbar"><input class="search" type="search" placeholder="Ara: açıklama, kategori, not" value="' + esc(S.q) + '" data-in="q"><button class="sel accbtn" data-act="accf-open">' + (S.accFs.length ? S.accFs.length + " hesap" : "Tüm hesaplar") + ' ▾</button></div>';
   if (S.accOpen) h += '<div class="card" style="padding:10px 12px;margin-bottom:10px"><div class="chips">' + meta().accounts.map(a => '<button class="chip" data-act="accf-t" data-id="' + esc(a.id) + '" aria-pressed="' + S.accFs.includes(a.id) + '"><i style="background:' + a.color + '"></i>' + esc(a.name) + '</button>').join("") + (S.accFs.length ? '<button class="chip" data-act="accf-clear">Temizle ✕</button>' : '') + '</div></div>';
   if (!qs && !S.catF && !S.payF) h += '<div class="scroll-x" style="margin-bottom:10px">' + [["m", "Bu ay"], ["pm", "Geçen ay"], ["3", "Son 3 ay"], ["6", "Son 6 ay"], ["y", "Bu yıl"], ["all", "Tümü"]].map(([v, l]) => '<button class="chip" data-act="per" data-v="' + v + '" aria-pressed="' + (S.per === v) + '">' + l + '</button>').join("") + '</div>';
-  h += '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tgl-past" aria-pressed="' + S.showPastTx + '">Geçmiş' + (nPast ? " (" + nPast + ")" : "") + '</button><button class="chip" data-act="tgl-fut" aria-pressed="' + S.showFutTx + '">Gelecek' + (nFut ? " (" + nFut + ")" : "") + '</button></div>';
+  h += '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tgl-past" aria-pressed="' + S.showPastTx + '">Geçmiş</button><button class="chip" data-act="tgl-fut" aria-pressed="' + S.showFutTx + '">Gelecek</button></div>';
   if (S.catF || S.payF) h += '<div class="chips" style="margin-bottom:10px"><button class="chip" aria-pressed="true" data-act="catf-clear">' + esc(S.payF ? S.payF : catLabel(S.catF)) + (S.fYear ? " · " + S.fYear : "") + ' ✕</button></div>';
   h += '<div class="card"><div class="sum"><div>Gider<b class="neg">' + f2(te) + '</b></div><div>Gelir<b class="pos">' + f2(ti) + '</b></div><div>' + (qy ? "Sonuç" : "Fark") + '<b>' + (qy ? items.length : f2(ti - te)) + '</b></div></div></div>';
   if (!items.length) return h + '<div class="empty">' + "Eşleşen işlem yok." + '</div>';
@@ -619,7 +620,7 @@ function vInv() {
 }
 function vAcc() {
   const Dd = derived();
-  return '<div class="narrow"><div class="toolbar"><span class="small muted" style="flex:1">İşlemleri görmek için hesap adına dokunun.</span><button class="btn sm" data-act="acc-new">Hesap ekle</button></div><div class="card"><ul class="list">' + meta().accounts.slice().sort((a, b) => (a.order || 0) - (b.order || 0)).map(a => '<li><div class="set-row catrow">' + (a.logo ? '<span class="cic logo" style="width:34px;height:34px"><img src="' + esc(a.logo) + '" alt=""></span>' : '<span class="cic" style="--c:' + a.color + ';width:34px;height:34px">' + svgI(a.type === "kart" ? CI.card : a.type === "nakit" ? CI.coin : CI.home) + '</span>') + '<button class="grow" style="text-align:left" data-act="acc-tx" data-id="' + esc(a.id) + '">' + esc(a.name) + (a.type === "kart" ? ' <span class="tag">kredi kartı' + (a.cut ? ", kesim " + a.cut : "") + '</span>' : '') + (a.hidden ? ' <span class="tag">gizli</span>' : '') + '</button><span class="' + ((Dd.bal[a.id] || 0) < 0 ? "neg" : "") + '" style="white-space:nowrap">' + f2(Dd.bal[a.id] || 0) + '</span><button class="ib pen" data-act="acc-edit" data-id="' + esc(a.id) + '" aria-label="Düzenle">' + ICON.pen + '</button></div></li>').join("") + '</ul></div></div>';
+  return '<div class="narrow"><div class="toolbar"><span class="small muted" style="flex:1">İşlemleri görmek için hesap adına dokunun.</span><button class="btn sm" data-act="acc-new">Hesap ekle</button></div><div class="card"><ul class="list">' + meta().accounts.slice().sort((a, b) => (a.order || 0) - (b.order || 0)).map(a => '<li class="acc-li" data-id="' + esc(a.id) + '"><div class="set-row catrow">' + (a.logo ? '<span class="cic logo" style="width:34px;height:34px"><img src="' + esc(a.logo) + '" alt=""></span>' : '<span class="cic" style="--c:' + a.color + ';width:34px;height:34px">' + svgI(a.type === "kart" ? CI.card : a.type === "nakit" ? CI.coin : CI.home) + '</span>') + '<button class="grow" style="text-align:left" data-act="acc-tx" data-id="' + esc(a.id) + '">' + esc(a.name) + (a.type === "kart" ? ' <span class="tag">kredi kartı' + (a.cut ? ", kesim " + a.cut : "") + '</span>' : '') + (a.hidden ? ' <span class="tag">gizli</span>' : '') + '</button><span class="' + ((Dd.bal[a.id] || 0) < 0 ? "neg" : "") + '" style="white-space:nowrap">' + f2(Dd.bal[a.id] || 0) + '</span><button class="ib pen" data-act="acc-edit" data-id="' + esc(a.id) + '" aria-label="Düzenle">' + ICON.pen + '</button></div></li>').join("") + '</ul></div></div>';
 }
 function vCat() {
   const sec = (t, l) => { const rows = catTree().filter(({ c }) => c.type === t); return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(({ c, depth }) => '<li><div class="set-row catrow" style="padding-left:' + (14 + depth * 26) + 'px"><span class="cic" style="--c:' + c.color + ';width:30px;height:30px">' + catIcon(c.id) + '</span><button class="grow" style="text-align:left" data-act="cat-tx" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button><button class="ib pen" data-act="cat-edit" data-id="' + esc(c.id) + '" aria-label="Düzenle">' + ICON.pen + '</button></div></li>').join("") + '</ul></div>'; };
@@ -700,7 +701,7 @@ dlg.addEventListener("click", e => { if (e.target === dlg) closeSheet(); });
 const head = (title, cls, back) => '<div class="sh-hd ' + (cls || "") + '">' + (back ? '<button class="ib" data-act="' + back + '" aria-label="Geri">' + ICON.back + '</button>' : '') + '<h3>' + title + '</h3><button class="ib" data-act="close" aria-label="Kapat">' + ICON.x + '</button></div>';
 
 /* ---- transaction sheet ---- */
-function lastAccFor(k) { const D2 = derived(); const t = D2.all.filter(x => x.k === k && x.d <= today()).sort((a, b) => (b.ts || 0) - (a.ts || 0))[0]; return t ? t.acc : (visibleAccs()[0] || {}).id; }
+function lastAccFor(k) { const D2 = derived(); const t = D2.all.filter(x => x.k === k && x.d <= today()).sort((a, b) => (b.ts || 0) - (a.ts || 0))[0]; return (visibleAccs()[0] || {}).id || (t ? t.acc : null); }
 function recentCats(k) { const seen = [], all = derived().all.filter(t => t.k === k && t.cat).sort((a, b) => (b.ts || 0) - (a.ts || 0)); for (const t of all) { if (!seen.includes(t.cat) && catOf(t.cat)) seen.push(t.cat); if (seen.length >= 10) break; } return seen; }
 
 function openTx(opt = {}) {
@@ -1073,7 +1074,7 @@ document.addEventListener("click", e => {
     case "signin": S.authErr = ""; S.store.signIn().catch(err => { S.authErr = authMsg(err); render(); }); break;
     case "signout": closeSheet(); S.store.signOut(); break;
     case "bub": S.bub = S.bub === ds.v || !ds.v ? null : ds.v; render(); break;
-    case "nav": S.bub = null; S.dashEdit = false; S.dashTray = false; S.view = ds.v; S.catF = null; S.payF = null; S.fYear = null; if (ds.v === "tx") S.month = S.month || CUR(); if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
+    case "nav": S.bub = null; S.dashEdit = false; S.dashTray = false; S.view = ds.v; S.catF = null; S.payF = null; S.fYear = null; if (ds.v === "tx") { S.month = S.month || CUR(); S.accFs = []; S.q = ""; S.showFutTx = false; } if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
     case "mprev": S.month = C.addM(S.month, -1); render(); break;
     case "hprev": S.hm = C.addM(S.hm || CUR(), -1); render(); break;
     case "hnext": S.hm = C.addM(S.hm || CUR(), 1); render(); break;
@@ -1271,3 +1272,20 @@ addEventListener("resize", () => { const cols = dashCols(); if (cols !== wasCols
 addEventListener("online", render); addEventListener("offline", render);
 
 boot();
+
+// Tanımlar > Hesaplar: basılı tut + sürükle ile sıralama
+function accDrag() {
+  const ul = document.querySelector(".acc-li") && document.querySelector(".acc-li").parentElement; if (!ul || ul._dr) return; ul._dr = 1;
+  let tm = 0, drag = null, sy = 0;
+  const end = save => { clearTimeout(tm); tm = 0; if (!drag) return; drag.classList.remove("dragging"); drag = null; document.body.classList.remove("no-sel");
+    if (save) { const ids = [...ul.querySelectorAll(".acc-li")].map(li => li.dataset.id); saveMetaChange(m => { m.accounts.forEach(a => { const i = ids.indexOf(a.id); if (i >= 0) a.order = i; }); }); S._noClick = Date.now(); render(); } };
+  ul.addEventListener("pointerdown", e => { const li = e.target.closest(".acc-li"); if (!li || e.target.closest(".pen")) return; sy = e.clientY;
+    tm = setTimeout(() => { drag = li; li.classList.add("dragging"); document.body.classList.add("no-sel"); navigator.vibrate && navigator.vibrate(20); }, 380); });
+  ul.addEventListener("pointermove", e => { if (!drag) { if (tm && Math.abs(e.clientY - sy) > 8) { clearTimeout(tm); tm = 0; } return; }
+    const over = document.elementFromPoint(e.clientX, e.clientY); const li = over && over.closest(".acc-li");
+    if (li && li !== drag && li.parentElement === ul) { const r = li.getBoundingClientRect(); ul.insertBefore(drag, e.clientY > r.top + r.height / 2 ? li.nextSibling : li); } });
+  ul.addEventListener("touchmove", e => { if (drag) e.preventDefault(); }, { passive: false });
+  ul.addEventListener("pointerup", () => end(true)); ul.addEventListener("pointercancel", () => end(!!drag));
+  ul.addEventListener("click", e => { if (S._noClick && Date.now() - S._noClick < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
+  ul.addEventListener("contextmenu", e => e.preventDefault());
+}

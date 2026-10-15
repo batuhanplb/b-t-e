@@ -61,7 +61,7 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
  nav.tabs{width:202px;padding:20px 12px 0;border-right:1px solid var(--line)}.top,main{padding-left:226px;padding-right:24px}.top-in{padding:16px 0 12px}
  nav.tabs button,.nav-foot button{font-size:12px;color:var(--muted);height:38px;border-radius:6px}nav.tabs button[aria-current="page"]{color:var(--primary);background:var(--c3)}
  nav.tabs .nav-sec{font-size:10px;padding:20px 12px 8px;letter-spacing:0}.nav-new,.nav-foot .nav-new{background:var(--primary)!important;color:var(--on-primary)!important}
- .mods{gap:12px;grid-auto-rows:124px}.mod{padding:14px}.mod[data-w="1"]{padding:10px}.mod[data-w="1"] .mod-h h3{font-size:11px}.mod[data-w="1"] .mod-n b{font-size:16px}
+ .mods{gap:12px;grid-auto-rows:80px}.mod{padding:14px}.mod[data-w="1"]{padding:10px}.mod[data-w="1"] .mod-h h3{font-size:11px}.mod[data-w="1"] .mod-n b{font-size:16px}
  .mod[data-w="1"] .mod-h{gap:4px}.mod[data-w="1"] .mod-ic{display:none}.mod[data-w="1"] .krow{flex-direction:column}.mod[data-w="1"] .krow .r{max-width:100%}
 }
 @media(max-width:899px){
@@ -82,7 +82,7 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
 @media(max-width:899px){
  .dash-pencil,.dg-tray{display:block}.dash-pencil{display:grid;place-items:center;width:44px;height:44px}
  .dash-tb{display:flex;flex-wrap:wrap;gap:8px}.dash-tb .btn{margin-left:0;min-height:40px}.dash-tb .pill{height:40px}
- .manual-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:124px;grid-auto-flow:row dense}
+ .manual-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:80px;grid-auto-flow:row dense}
  .manual-grid>.mod{grid-column:var(--gx) / span var(--gw);grid-row:var(--gy) / span var(--gh);min-height:0;overflow:hidden}
  .manual-grid .mod .chartbox{flex:1 1 0;height:auto;min-height:0}
  .manual-grid .mod .klist,.manual-grid .mod .heat,.manual-grid .mod .tips,.manual-grid .mod ul.list,.manual-grid .mod .chips{flex:1 1 0;min-height:0;max-height:none;overflow:auto;scrollbar-width:thin}
@@ -165,3 +165,12 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
 html.native,html.native body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 html.native body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html.native input,html.native textarea,html.native [contenteditable]{-webkit-user-select:text;user-select:text}
+
+/* kompakt ızgara, hesap sıralama, kategori simgesi, hızlı ekle */
+.mods .chartbox{height:70px}.mod{overflow:hidden}
+.mod-pad .list .tx{padding-left:2px;padding-right:2px}
+.krow .kcic{width:26px;height:26px;border-radius:7px;flex:none}.krow .kcic svg{width:14px;height:14px}.krow>span.kcic{flex:none}
+.favchips{flex-wrap:wrap;overflow:hidden}
+.acc-li{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.acc-li.dragging{background:var(--c3);box-shadow:var(--shadow-float);position:relative;z-index:2;border-radius:6px}
+body.no-sel{user-select:none;-webkit-user-select:none}
