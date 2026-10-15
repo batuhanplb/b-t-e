@@ -20,7 +20,7 @@ jobs:
         run: |
           mv package.json package.web.json
           echo '{"name":"butce-app","private":true}' > package.json
-          npm install --no-save --no-package-lock --ignore-scripts @capacitor/cli@7 @capacitor/core@7 @capacitor/android@7 @capacitor/app@7 @capacitor/status-bar@7 @capacitor/splash-screen@7
+          npm install --no-save --no-package-lock --ignore-scripts typescript@5 @capacitor/cli@7 @capacitor/core@7 @capacitor/android@7 @capacitor/app@7 @capacitor/status-bar@7 @capacitor/splash-screen@7
       - run: npx cap sync android
       - name: APK derle
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
