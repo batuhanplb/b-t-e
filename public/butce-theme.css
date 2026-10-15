@@ -172,5 +172,6 @@ html.native input,html.native textarea,html.native [contenteditable]{-webkit-use
 .krow .kcic{width:26px;height:26px;border-radius:7px;flex:none}.krow .kcic svg{width:14px;height:14px}.krow>span.kcic{flex:none}
 .favchips{flex-wrap:wrap;overflow:hidden}
 .acc-li{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-.acc-li.dragging{background:var(--c3);box-shadow:var(--shadow-float);position:relative;z-index:2;border-radius:6px}
+.acc-li{touch-action:pan-y}
+.acc-li.dragging{transition:box-shadow .2s;background:var(--c3);box-shadow:var(--shadow-float);position:relative;z-index:2;border-radius:6px}
 body.no-sel{user-select:none;-webkit-user-select:none}

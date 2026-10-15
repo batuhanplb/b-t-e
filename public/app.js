@@ -13,9 +13,11 @@ async function otaCheck(manual) {
   try {
     const cur = await U.current();
     OTA.cur = (cur.bundle && cur.bundle.version) || "builtin";
-    const r = await fetch(SITE + "/ota/latest.json?t=" + Date.now(), { cache: "no-store" });
-    if (!r.ok) return { s: "err" };
-    const latest = await r.json();
+    const H = window.Capacitor.Plugins.CapacitorHttp;
+    let latest;
+    if (H && H.get) { const r = await H.get({ url: SITE + "/ota/latest.json?t=" + Date.now(), headers: { "Cache-Control": "no-cache" } });
+      if (r.status !== 200) return { s: "err" }; latest = typeof r.data === "string" ? JSON.parse(r.data) : r.data; }
+    else { const r = await fetch(SITE + "/ota/latest.json?t=" + Date.now(), { cache: "no-store" }); if (!r.ok) return { s: "err" }; latest = await r.json(); }
     if (!latest.version || OTA.cur === latest.version) return { s: "ok" };
     if (manual) toast("Yeni sürüm indiriliyor…");
     const list = await U.list();
@@ -944,7 +946,7 @@ function renderSettings() {
       '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">İçe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
       '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
       '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Başka bütçe uygulamalarının (Money Manager, Spendee, Wallet, YNAB, Monefy, Toshl, Bluecoins, Mint, 1Money, Cashew, Money Lover vb.) ve bankaların CSV, Excel (.xlsx), QIF ve OFX dosyaları mevcut verilere eklenir; aynı işlemler tekrar eklenmez. Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler.</p></div>';
-    if (NATIVE) h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">Sürüm: ' + esc(OTA.cur || "…") + '</span><button class="btn sm ghost" data-act="ota-check">Güncellemeleri kontrol et</button></div>';
+    if (NATIVE) h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">Sürüm: ' + esc(OTA.cur || "…") + '<br><span id="ota-msg" class="muted">' + esc(OTA.msg || "") + '</span></span><button class="btn sm ghost" data-act="ota-check">Güncellemeleri kontrol et</button></div>';
     h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div>';
     h += '</div>';
   } else if (v === "acc") {
@@ -1135,7 +1137,8 @@ document.addEventListener("click", e => {
     case "expand": S.expanded.has(ds.k) ? S.expanded.delete(ds.k) : S.expanded.add(ds.k); render(); break;
     case "onlymine": S.onlyMine = ds.v === "1"; render(); break;
     case "settings": openSettings(); break;
-    case "ota-check": { toast("Kontrol ediliyor…"); otaCheck(true).then(r => { toast(r.s === "ok" ? "Uygulama güncel" : r.s === "upd" ? "Güncelleniyor…" : "Sunucuya ulaşılamadı"); if (D && D.view === "main") renderSettings(); }); break; }
+    case "ota-check": { const m = document.getElementById("ota-msg"); const bt = e.target.closest("button"); if (bt) { bt.disabled = true; bt.textContent = "Kontrol ediliyor…"; } if (m) m.textContent = "";
+      otaCheck(true).then(r => { OTA.msg = r.s === "ok" ? "✓ Uygulama güncel" : r.s === "upd" ? "Güncelleniyor…" : "Sunucuya ulaşılamadı"; const m2 = document.getElementById("ota-msg"); if (m2) m2.textContent = OTA.msg; if (bt) { bt.disabled = false; bt.textContent = "Güncellemeleri kontrol et"; } toast(OTA.msg); }); break; }
     case "acct": openSettings(); break;
     case "set-back": D.view = "main"; renderSettings(); break;
     case "acc-new": D = { view: "acc" }; D.acc = { _new: true, id: "a-" + C.rid(), name: "", type: "banka", color: "#3166c9", start: 0, exclude: false, hidden: false, order: meta().accounts.length }; renderSettings(); break;
@@ -1290,14 +1293,27 @@ boot();
 // Tanımlar > Hesaplar: basılı tut + sürükle ile sıralama
 function accDrag() {
   const ul = document.querySelector(".acc-li") && document.querySelector(".acc-li").parentElement; if (!ul || ul._dr) return; ul._dr = 1;
-  let tm = 0, drag = null, sy = 0;
-  const end = save => { clearTimeout(tm); tm = 0; if (!drag) return; drag.classList.remove("dragging"); drag = null; document.body.classList.remove("no-sel");
-    if (save) { const ids = [...ul.querySelectorAll(".acc-li")].map(li => li.dataset.id); saveMetaChange(m => { m.accounts.forEach(a => { const i = ids.indexOf(a.id); if (i >= 0) a.order = i; }); }); S._noClick = Date.now(); render(); } };
+  let tm = 0, drag = null, sy = 0, grab = 0;
+  const natTop = el => { const t = el.style.transform; el.style.transform = "none"; const v = el.getBoundingClientRect().top; el.style.transform = t; return v; };
+  const end = save => { clearTimeout(tm); tm = 0; if (!drag) return; const d = drag; drag = null; document.body.classList.remove("no-sel");
+    d.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s"; d.style.transform = ""; d.classList.remove("dragging");
+    setTimeout(() => { d.style.transition = ""; d.style.zIndex = "";
+      if (save) { const ids = [...ul.querySelectorAll(".acc-li")].map(li => li.dataset.id); saveMetaChange(m => { m.accounts.forEach(a => { const i = ids.indexOf(a.id); if (i >= 0) a.order = i; }); }); S._noClick = Date.now(); render(); } }, 230); };
   ul.addEventListener("pointerdown", e => { const li = e.target.closest(".acc-li"); if (!li || e.target.closest(".pen")) return; sy = e.clientY;
-    tm = setTimeout(() => { drag = li; li.classList.add("dragging"); document.body.classList.add("no-sel"); navigator.vibrate && navigator.vibrate(20); }, 380); });
+    tm = setTimeout(() => { drag = li; grab = sy - natTop(li); li.style.zIndex = 5; li.classList.add("dragging"); document.body.classList.add("no-sel"); navigator.vibrate && navigator.vibrate(20); }, 380); });
   ul.addEventListener("pointermove", e => { if (!drag) { if (tm && Math.abs(e.clientY - sy) > 8) { clearTimeout(tm); tm = 0; } return; }
-    const over = document.elementFromPoint(e.clientX, e.clientY); const li = over && over.closest(".acc-li");
-    if (li && li !== drag && li.parentElement === ul) { const r = li.getBoundingClientRect(); ul.insertBefore(drag, e.clientY > r.top + r.height / 2 ? li.nextSibling : li); } });
+    const sibs = [...ul.querySelectorAll(".acc-li")].filter(x => x !== drag);
+    const tgt = sibs.find(li => { const r = li.getBoundingClientRect(); return e.clientY > r.top && e.clientY < r.bottom; });
+    if (tgt) { const r = tgt.getBoundingClientRect(); const ref = e.clientY > r.top + r.height / 2 ? tgt.nextSibling : tgt;
+      if (ref !== drag && ref !== drag.nextSibling) {
+        const first = new Map(sibs.map(x => [x, x.getBoundingClientRect().top]));
+        ul.insertBefore(drag, ref);
+        sibs.forEach(x => { const dy = first.get(x) - x.getBoundingClientRect().top; if (!dy) return;
+          x.style.transition = "none"; x.style.transform = "translateY(" + dy + "px)"; x.offsetHeight;
+          x.style.transition = "transform .2s cubic-bezier(.2,.8,.2,1)"; x.style.transform = ""; });
+        navigator.vibrate && navigator.vibrate(8);
+      } }
+    drag.style.transform = "translateY(" + (e.clientY - grab - natTop(drag)) + "px) scale(1.03)"; });
   ul.addEventListener("touchmove", e => { if (drag) e.preventDefault(); }, { passive: false });
   ul.addEventListener("pointerup", () => end(true)); ul.addEventListener("pointercancel", () => end(!!drag));
   ul.addEventListener("click", e => { if (S._noClick && Date.now() - S._noClick < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
