@@ -78,6 +78,29 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     kind: "cloud",
     user: null as User,
     async signIn() {
+      // Native (Capacitor) app: popups don't work in the WebView, so run the
+      // managed Google flow in the system browser on the published site and
+      // receive the session back through the app.lovable.butce://auth deep link.
+      const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+      if (cap?.isNativePlatform?.()) {
+        const [{ Browser }, { App }] = await Promise.all([import("@capacitor/browser"), import("@capacitor/app")]);
+        const done = new Promise<void>((resolve, reject) => {
+          App.addListener("appUrlOpen", async ({ url }) => {
+            if (!url.startsWith("app.lovable.butce://auth")) return;
+            try {
+              const p = new URLSearchParams(url.split("#")[1] || "");
+              const at = p.get("access_token"), rt = p.get("refresh_token");
+              if (!at || !rt) throw new Error("missing tokens");
+              await supabase.auth.setSession({ access_token: at, refresh_token: rt });
+              resolve();
+            } catch (e) { reject(Object.assign(new Error("Giriş tamamlanamadı"), { code: "auth/failed" })); }
+            finally { Browser.close().catch(() => {}); }
+          });
+        });
+        await Browser.open({ url: "https://butceapp.lovable.app/?native_auth=1" });
+        await done;
+        return;
+      }
       const r = await lovableAuth.signInWithOAuth("google", { redirect_uri: location.origin + location.pathname, extraParams: { prompt: "select_account" } });
       if (r.error) throw Object.assign(r.error, { code: /cancel/i.test(r.error.message) ? "auth/popup-closed" : "auth/failed" });
       if (!r.redirected && r.tokens) await supabase.auth.setSession(r.tokens);
