@@ -198,3 +198,5 @@ dialog.sheet input,dialog.sheet textarea{-webkit-user-select:text;user-select:te
 .mod .krow>.kcic{width:26px!important;height:26px!important;min-width:26px;flex:0 0 26px!important;display:grid!important;place-items:center;align-self:center;padding:0}
 .mod .krow>.kcic svg,.mod .krow>.kcic img{width:14px;height:14px;display:block;margin:0}
 .mod .krow>.kcic img{width:100%;height:100%;object-fit:cover}
+
+.chart .br.cur{fill:var(--primary)}.sched tr.gl-me td{background:color-mix(in srgb,var(--primary) 8%,transparent)}
