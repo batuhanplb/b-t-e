@@ -1,6 +1,6 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.5.4";
+const APP_VERSION = "1.2.6.0";
 
 // Android uygulaması (Capacitor) içinde çalışırken: paylaşım bağlantıları canlı siteye gider, tarayıcı hissi kapatılır.
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -351,7 +351,7 @@ function delta(cur, prev, goodDown) {
   const p = (cur - prev) / Math.abs(prev) * 100, up = p >= 0, good = goodDown ? !up : up;
   return '<span class="dl ' + (good ? "pos" : "neg") + '">' + (up ? "↑" : "↓") + " " + nfp.format(Math.abs(p)).replace(/,00$/, "") + '%</span>';
 }
-const MODS = [["exp", "Toplam gider", 1, 1], ["inc", "Toplam gelir", 1, 1], ["cash", "Nakit akışı", 1, 0], ["cats", "Kategoriler", 1, 1], ["daily", "Günlük harcama", 1, 1], ["tips", "Öneri ve dikkat", 1, 1], ["debtcal", "Borç takvimi", 1, 0], ["recent", "Son işlemler", 1, 0], ["fav", "Hızlı ekle", 1, 0], ["sub", "Abonelikler", 1, 0]];
+const MODS = [["exp", "Toplam gider", 1, 1], ["inc", "Toplam gelir", 1, 1], ["cash", "Nakit akışı", 1, 0], ["cats", "Harcama oranı", 1, 1], ["daily", "Günlük harcama", 1, 1], ["tips", "Öneri ve dikkat", 1, 1], ["debtcal", "Borç takvimi", 1, 0], ["fav", "Hızlı ekle", 1, 0], ["sub", "Abonelikler", 1, 0]];
 const normW = v => v === 2 || v === "w" ? "w" : v === 0 || v === "s" ? "s" : "n";
 const DG = { exp: [2, 2], inc: [2, 2], cash: [2, 2], cats: [2, 2], daily: [2, 2], tips: [2, 2], debtcal: [2, 3], recent: [2, 3], fav: [2, 1], sub: [2, 2] };
 const clampN = (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
@@ -369,7 +369,7 @@ function packLayout(list, cols) {
 const SZ = { debtcal: [[2, 1], [2, 2]], exp: [[1, 1]], inc: [[1, 1]], daily: [[1, 1], [2, 1]], cash: [[1, 1], [2, 1]], recent: [[1, 2], [2, 2]], cats: [[1, 1], [1, 2]], sub: [[1, 1], [1, 2]], tips: [[1, 1], [1, 2]], fav: [[2, 1]] };
 const szNames = id => { const n = (SZ[id] || [[1, 1]]).length; return n === 1 ? ["Tek boy"] : n === 2 ? ["Küçük", "Büyük"] : ["Küçük", "Orta", "Büyük"]; };
 // Herkes için varsayılan sıra (kayıt yokken ve "Varsayılana dön" sonrası kullanılır).
-const DEF_DASH = { v: 3, items: ["exp", "inc", "daily", "debtcal", "cash", "recent", "cats", "sub", "tips", "fav"].map(id => ({ id, on: true, sz: 0 })) };
+const DEF_DASH = { v: 3, items: ["exp", "inc", "daily", "debtcal", "cash", "cats", "sub", "tips", "fav"].map(id => ({ id, on: true, sz: 0 })) };
 const dashMobile = () => !matchMedia("(min-width:900px)").matches;
 const dashCols = () => dashMobile() ? (matchMedia("(max-width:359px)").matches ? 1 : 2) : 6;
 const dashKey = () => dashMobile() ? "dashMobile" : "dash";
@@ -377,7 +377,7 @@ const dashCfg = () => { const mobile = dashMobile(), own = meta()[dashKey()], md
   let saved = (md && md.items) || [];
   if (md.v !== 3) saved = saved.slice().sort((a, b) => ((a.g && a.g.y) || 99) - ((b.g && b.g.y) || 99) || ((a.g && a.g.x) || 0) - ((b.g && b.g.x) || 0));
   const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id), opts = SZ[id] || [[1, 1]], sz = f && Number.isInteger(f.sz) ? clampN(f.sz, 0, opts.length - 1) : 0, [w, hh] = opts[sz];
-    return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "recent", "fav"].includes(id), sz, dyn, g: { w: mobile ? w : w * 2, h: id === "fav" ? 1 : hh === 1 ? 2 : (mobile ? 4 : 3) } }; });
+    return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "fav"].includes(id), sz, dyn, g: { w: mobile ? w : w * 2, h: id === "fav" ? 1 : hh === 1 ? 2 : (mobile ? 4 : 3) } }; });
   if (saved.length) out.sort((a, b) => { const i = saved.findIndex(x => x.id === a.id), j = saved.findIndex(x => x.id === b.id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
   return out; };
 const modName = id => (MODS.find(m => m[0] === id) || [, id])[1];
@@ -398,10 +398,10 @@ function vHome() {
   const M = {};
   M.exp = () => mod(svgI(CI.bag), "Toplam gider", "tx", '<div class="mod-n inl"><b>' + f0(te) + '</b>' + delta(te, pe, true) + '</div>' + chartBox("line", cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp), lbl) + leg);
   M.inc = () => mod(svgI(CI.coin), "Toplam gelir", "tx", '<div class="mod-n inl"><b>' + f0(ti) + '</b>' + delta(ti, pi) + '</div>' + chartBox("line", cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp), lbl) + leg);
-  M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + (salDay() > 1 ? "maaşa kadar" : "bu ay sonu") + '</span></div>' + chartBox("line", pl.map(p => p.kalan), null, [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]]) ); };
+  M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + (salDay() > 1 ? salDay() + "'ine kadar" : "bu ay sonu") + '</span></div>' + chartBox("line", pl.map(p => p.kalan), null, [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]]) ); };
   const tops = (arr) => { const o = {}; arr.filter(t => t.k === "e").forEach(t => catParts(t).forEach(pp => { const c = C.topCat(D.catMap, pp.cat); const k = c ? c.id : "_"; o[k] = (o[k] || 0) + pp.a; })); return o; };
   const tc = tops(cur), tp = tops(prev), rows = Object.entries(tc).sort((a, b) => b[1] - a[1]);
-  M.cats = () => mod(svgI(CI.tag), "Kategoriler", "pie", '<div class="mod-s">En çok harcanan</div>' + (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span class="cic kcic" style="--c:' + catColor(id === "_" ? null : id) + '">' + catIcon(id === "_" ? null : id) + '</span><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
+  M.cats = () => mod(svgI(CI.tag), "Harcama oranı", "pie", (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span class="cic kcic" style="--c:' + catColor(id === "_" ? null : id) + '">' + catIcon(id === "_" ? null : id) + '</span><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
   const curAll = monthItems(m), daily = []; for (let d = 1; d <= dm; d++) daily.push(curAll.filter(t => t.k === "e" && Number(t.d.slice(8, 10)) === d).reduce((s, t) => s + t.a, 0));
   M.daily = () => mod(svgI(CI.cart), "Günlük harcama", "tx", '<div class="mod-n"><b>' + f0(isCur ? daily[lastDay - 1] || 0 : (lastDay ? te / lastDay : 0)) + '</b></div>' + chartBox("bar", daily, daily.map((_, i) => [i, String(i + 1)]).filter(([i]) => i % 2 === 0), daily.map((v, i) => (i + 1) + " " + C.TR_M[Number(m.slice(5)) - 1] + ": " + f2(v))));
   M.top = () => { const big = cur.filter(t => t.k === "e").sort((a, b) => b.a - a.a).slice(0, 20);
@@ -410,7 +410,7 @@ function vHome() {
     return mod(svgI(CI.coin), "Gelir-gider dengesi", null, '<div class="mod-n"><b class="' + (sav < 0 ? "neg" : "pos") + '">' + f0(sav) + '</b><span class="muted small">bu ay kalan</span></div><div class="ratiobar"><i style="width:' + Math.min(100, r).toFixed(1) + '%;background:' + (r > 100 ? "var(--exp)" : "var(--primary)") + '"></i></div><div class="legend" style="justify-content:space-between"><span>Gider gelirin %' + nfp.format(r).replace(/,00$/, "") + '\'i</span><span>' + f0(te) + ' / ' + f0(ti) + '</span></div>'); };
   M.sub = () => { const subs = {}; D.all.filter(t => t.k === "e" && t.grp && t.d.slice(0, 7) === m).forEach(t => { const k = (t.t || catLabel(t.cat, true)); subs[k] = (subs[k] || 0) + t.a; });
     const sr = Object.entries(subs).sort((a, b) => b[1] - a[1]).slice(0, 20), tot = Object.values(subs).reduce((a, b) => a + b, 0);
-    return mod(svgI(CI.swap), "Abonelikler", "tx", '<div class="mod-n"><b>' + f0(tot) + '</b></div>' + (sr.length ? '<div class="klist">' + sr.map(([k, v]) => '<div class="krow"><span><b>' + esc(k) + '</b></span><span class="r"><b>' + f0(v) + '</b></span></div>').join("") + '</div>' : '<div class="empty">Tekrarlayan ödeme yok.</div>')); };
+    return mod(svgI(CI.swap), "Abonelikler", "tx", '<div class="mod-n tr"><b>' + f0(tot) + '</b></div>' + (sr.length ? '<div class="klist">' + sr.map(([k, v]) => '<div class="krow"><span><b>' + esc(k) + '</b></span><span class="r"><b>' + f0(v) + '</b></span></div>').join("") + '</div>' : '<div class="empty">Tekrarlayan ödeme yok.</div>')); };
   M.tips = () => { const tips = [];
     const pl = cashPlan(), neg = pl.find(p => p.kalan < 0);
     if (neg) tips.push(["warn", "Nakit eksiye düşüyor", mLabel(neg.m) + " sonunda " + f2(neg.kalan) + ". Gelir ekleyin ya da gideri öne alın.", "cash"]);
@@ -868,10 +868,10 @@ function saveTx(more) {
   if (D._new && D.rep === "mon" && D.open && txs.length) { const l = txs[txs.length - 1]; saveMetaChange(m => { (m.recs = m.recs || []).push({ grp: l.grp, last: l.d, day: Number(D.d.slice(8, 10)), tpl: { k: l.k, acc: l.acc, cat: l.cat || null, t: l.t || "", n: l.n || "", a: l.a, to: l.to || null } }); }); }
   if (!D._new && D._m !== D.d.slice(0, 7)) { saveMonth(D._m, monthItems(D._m).filter(x => x.id !== D.id)); }
   txs.forEach(t => { const m = t.d.slice(0, 7); const arr = (touched.has(m) ? S.months[m] : monthItems(m)).filter(x => x.id !== t.id); arr.push(t); arr.sort((x, y) => (x.ts || 0) - (y.ts || 0)); S.months[m] = arr; touched.add(m); });
-  touched.forEach(m => saveMonth(m, S.months[m]));
+  touched.forEach(m => { try { const r = saveMonth(m, S.months[m]); r && r.catch && r.catch(e => console.error(e)); } catch (e) { console.error(e); } });
   const msg = D._new ? (txs.length > 1 ? txs.length + " işlem eklendi" : "Kaydedildi") : "Güncellendi";
   if (more) { const keepK = D.k, keepAcc = D.acc; render(); openTx({ k: keepK, acc: keepAcc }); toast(msg); }
-  else { closeSheet(); render(); toast(msg); }
+  else { if (dlg.open) dlg.close(); D = null; render(); toast(msg); }
 }
 function deleteTx(all) {
   if (all && D.grp) {
@@ -1269,7 +1269,7 @@ document.addEventListener("change", e => {
   if (D && t.dataset.gt && t.value) { if (!D[t.dataset.gt].includes(t.value)) D[t.dataset.gt].push(t.value); renderSettings(); }
   if (D && t.dataset.c) { D.cat[t.dataset.c] = t.value || null; if (t.dataset.c === "type") { D.cat.parent = null; renderSettings(); } }
   if (D && t.dataset.d === "d") { D.d = t.value; renderPlanBox(); }
-  if (D && t.id === "f-t") { D.t = t.value; setTimeout(() => { if (D && applyPayee()) { const a = document.activeElement, id = a && a.id; renderTx(true); id && document.getElementById(id)?.focus(); } }, 180); }
+  if (D && t.id === "f-t") { D.t = t.value; setTimeout(() => { if (D && dlg.open && applyPayee()) { const a = document.activeElement, id = a && a.id; renderTx(true); id && document.getElementById(id)?.focus(); } }, 180); }
   if (["pFrom", "pTo", "pCat"].includes(t.dataset.ch)) { S[t.dataset.ch] = t.value; render(); }
 });
 document.addEventListener("keydown", e => {

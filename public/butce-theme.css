@@ -192,3 +192,9 @@ img{-webkit-user-drag:none}
 .mod .krow:has(>.kcic)>span:nth-child(2){flex:1 1 auto;min-width:0}
 
 .mod[data-w="1"] .mod-n.tr{position:static;max-width:100%;margin:4px 0 2px;flex-wrap:wrap}
+/* v1.2.6.0: modal seçim kapalı, kategori simgesi düz */
+dialog.sheet,dialog.sheet *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+dialog.sheet input,dialog.sheet textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.mod .krow>.kcic{width:26px!important;height:26px!important;min-width:26px;flex:0 0 26px!important;display:grid!important;place-items:center;align-self:center;padding:0}
+.mod .krow>.kcic svg,.mod .krow>.kcic img{width:14px;height:14px;display:block;margin:0}
+.mod .krow>.kcic img{width:100%;height:100%;object-fit:cover}
