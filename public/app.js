@@ -1,6 +1,6 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.9.0";
+const APP_VERSION = "1.2.9.1";
 function ask(msg, opts) {
   opts = opts || [{ l: "Sil", v: true, red: 1 }];
   return new Promise(res => {
@@ -8,7 +8,7 @@ function ask(msg, opts) {
     o.innerHTML = '<div class="askbox"><p>' + msg + '</p>' + opts.map((x, i) => '<button class="btn' + (x.red ? ' askred' : '') + '" data-i="' + i + '">' + x.l + '</button>').join("") + '<button class="btn ghost" data-i="-1">Vazgeç</button></div>';
     const done = v => { o.remove(); res(v); };
     o.addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("button"); if (b) done(+b.dataset.i < 0 ? null : opts[+b.dataset.i].v); else if (e.target === o) done(null); });
-    document.body.appendChild(o);
+    (typeof dlg !== "undefined" && dlg.open ? dlg : document.body).appendChild(o);
   });
 }
 

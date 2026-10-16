@@ -208,8 +208,8 @@ button.tx.picked{background:color-mix(in oklab,var(--primary,#3b5bdb) 14%,transp
 .selbar .selinfo{flex:1;display:flex;flex-direction:column;font-size:13px;line-height:1.3}
 @media(min-width:900px){.selbar{left:auto;right:24px;bottom:24px;width:420px}}
 
-.askov{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.45);display:flex;align-items:flex-end;justify-content:center;padding:12px 12px calc(12px + env(safe-area-inset-bottom));animation:askf .15s}
-.askbox{width:100%;max-width:420px;background:var(--card,#fff);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 10px 40px rgba(0,0,0,.25);animation:asku .2s ease-out}
-.askbox p{margin:0 0 6px;font-size:14px;font-weight:600;text-align:center}
-.askbox .btn{width:100%}.askbox .askred{background:var(--exp);color:#fff;border-color:var(--exp)}
+.askov{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:24px;animation:askf .15s}
+.askbox{width:100%;max-width:340px;background:var(--card,#fff);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 40px rgba(0,0,0,.25);animation:asku .2s ease-out}
+.askbox p{margin:0 0 6px;font-size:16px;font-weight:600;text-align:center}
+.askbox .btn{width:100%;min-height:48px;font-size:15px;border-radius:12px}.askbox .askred{background:var(--exp);color:#fff;border-color:var(--exp)}
 @keyframes askf{from{opacity:0}}@keyframes asku{from{transform:translateY(30px);opacity:0}}
