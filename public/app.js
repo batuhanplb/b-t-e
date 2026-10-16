@@ -560,8 +560,12 @@ function cashAmt(it, m) {
   if (!it.start || m < it.start || (it.end && m > it.end)) return 0;
   let a = 0, f = ""; (it.amts || []).forEach(x => { if (x.from <= m && x.from >= f) { f = x.from; a = x.a; } }); return a;
 }
+const salDay = () => Math.min(31, Math.max(1, parseInt(meta().salaryDay) || 1));
+// Dönem anahtarı: maaş günü sd ise, "K" dönemi K ayının sd'si ile sonraki ayın sd-1'i arasıdır.
+const cycKey = (m, day) => (day >= salDay() ? m : C.addM(m, -1));
+function cycEnd(K) { const sd = salDay(); if (sd === 1) return K + "-" + String(C.daysIn(K)).padStart(2, "0"); const n = C.addM(K, 1); return n + "-" + String(Math.min(sd - 1, C.daysIn(n))).padStart(2, "0"); }
 function cashPlan() {
-  const tdy = today(), cm = CUR(), dNow = Number(tdy.slice(8, 10)), Dd = derived();
+  const tdy = today(), sd = salDay(), cm = cycKey(CUR(), Number(tdy.slice(8, 10))), Dd = derived();
   const accs = meta().accounts.filter(a => a.type !== "kart" && !a.exclude && !a.hidden), ids = new Set(accs.map(a => a.id));
   const bal = C.accountBalances(meta().accounts, Dd.all.filter(t => t.d <= tdy));
   let elde = C.r2(accs.reduce((s, a) => s + (bal[a.id] || 0), 0));
@@ -569,21 +573,24 @@ function cashPlan() {
   for (let i = 0; i < 12; i++) {
     const m = C.addM(cm, i), lines = [];
     const skip = (meta().cash || {}).skip || {};
-    items.forEach(it => { const a = cashAmt(it, m); if (!a) return; const day = it.rep === "once" ? Number(it.date.slice(8, 10)) : (it.day || 1);
-      if (m === cm && day < dNow) return; lines.push({ k: it.k === "inc" ? "+" : "-", n: it.name, a, day, id: it.id, on: !(it.skip || []).includes(m), ref: "ci|" + it.id + "|" + m }); });
-    cols.forEach(([id, d]) => { (d.sched || []).forEach((x, xi) => { if (x.m !== m || !(x.a > 0)) return; const pd = isPaid(d, x);
-      if (pd && m === cm && dueDate(d, x.m) < new Date(new Date().setHours(0, 0, 0, 0)) && x.p !== true) return;
+    items.forEach(it => { const day = it.rep === "once" ? Number((it.date || "").slice(8, 10)) : (it.day || 1);
+      const am = it.rep === "once" ? (it.date ? cycKey(it.date.slice(0, 7), day) === m ? it.date.slice(0, 7) : null : null) : (day >= sd ? m : C.addM(m, 1));
+      if (!am) return; const a = cashAmt(it, am); if (!a) return;
+      lines.push({ k: it.k === "inc" ? "+" : "-", n: it.name, a, day, id: it.id, on: !(it.skip || []).includes(m), ref: "ci|" + it.id + "|" + m }); });
+    cols.forEach(([id, d]) => { (d.sched || []).forEach((x, xi) => { if (cycKey(x.m, d.day || 1) !== m || !(x.a > 0)) return; const pd = isPaid(d, x);
       lines.push({ k: "-", n: d.name + (d.kind === "kart" ? " ekstresi" : " taksiti"), a: C.r2(x.a), day: d.day || 1, debt: true, on: !pd, ref: "debt|" + id + "|" + d.src + "|" + xi }); }); });
-    const plan = Dd.all.filter(t => t.d.slice(0, 7) === m && t.d > tdy && t.k !== "tr" && ids.has(t.acc));
+    const plan = Dd.all.filter(t => cycKey(t.d.slice(0, 7), Number(t.d.slice(8, 10))) === m && t.d > tdy && t.k !== "tr" && ids.has(t.acc));
     const pi = plan.filter(t => t.k === "i").reduce((s, t) => s + t.a, 0), pe = plan.filter(t => t.k === "e").reduce((s, t) => s + t.a, 0);
     if (pi) lines.push({ k: "+", n: "Planlı gelir işlemleri", a: C.r2(pi), day: 0, on: !skip["pi|" + m], ref: "plan|pi|" + m }); if (pe) lines.push({ k: "-", n: "Planlı gider işlemleri", a: C.r2(pe), day: 0, on: !skip["pe|" + m], ref: "plan|pe|" + m });
-    lines.sort((a, b) => (a.k === b.k ? 0 : a.k === "+" ? -1 : 1) || a.day - b.day);
+    const ord = dd => (dd >= sd ? dd - sd : dd + 31);
+    lines.sort((a, b) => (a.k === b.k ? 0 : a.k === "+" ? -1 : 1) || ord(a.day) - ord(b.day));
     const inc = lines.filter(l => l.k === "+" && l.on).reduce((s, l) => s + l.a, 0), exp = lines.filter(l => l.k === "-" && l.on).reduce((s, l) => s + l.a, 0);
     const kalan = C.r2(elde + inc - exp);
-    out.push({ m, elde, inc: C.r2(inc), exp: C.r2(exp), kalan, lines }); elde = kalan;
+    out.push({ m, end: cycEnd(m), elde, inc: C.r2(inc), exp: C.r2(exp), kalan, lines }); elde = kalan;
   }
   return out;
 }
+const cycLabel = p => salDay() === 1 ? mLabel(p.m) : dLabel(p.end) + "’e kadar";
 function vCash() {
   const pl = cashPlan(), items = (meta().cash || {}).items || [];
   const mx = Math.max(1, ...pl.map(p => Math.abs(p.kalan)));
