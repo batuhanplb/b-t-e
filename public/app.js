@@ -954,6 +954,7 @@ function renderSettings() {
     h += '<div class="sec-h"><h2>Paylaşım</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0 0 10px">Ödemeler, Nakit akışı ve Gider sayfalarınızı bağlantıya sahip kişilerle salt okunur paylaşın. Verileriniz değiştikçe paylaşılan sayfa kendiliğinden güncellenir.</p>' +
       (shUrl ? '<input class="in" readonly id="shurl" value="' + esc(shUrl) + '" style="margin-bottom:10px"><div class="chips"><button class="btn sm" data-act="sh-copy">Bağlantıyı kopyala</button><button class="btn sm ghost" data-act="sh-now">Şimdi güncelle</button><button class="btn sm ghost danger" data-act="sh-off">Paylaşımı kapat</button></div>'
         : '<button class="btn sm" data-act="sh-on">Paylaşım bağlantısı oluştur</button>') + '</div>';
+    h += '<div class="sec-h"><h2>Nakit akışı</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><label class="fld" style="margin:0"><span>Maaş / dönem başlangıcı</span><select class="in" onchange="setSalDay(this.value)">' + [...Array(31)].map((_, i) => '<option value="' + (i + 1) + '"' + (salDay() === i + 1 ? " selected" : "") + '>' + (i ? "Ayın " + (i + 1) + "’i" : "Ayın 1’i (takvim ayı)") + '</option>').join("") + '</select></label><p class="small muted" style="margin:8px 0 0">Nakit akışındaki kalan para, bir sonraki maaş gününden önceki güne kadar hesaplanır.</p></div>';
     h += '<div class="sec-h"><h2>Veri</h2></div><div class="card" style="padding:14px">' +
       '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">İçe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
       '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
@@ -1007,6 +1008,7 @@ function catTree() {
   cats.filter(c => !c.parent).sort(byName).forEach(p => { out.push({ c: p, depth: 0 }); cats.filter(c => c.parent === p.id).sort(byName).forEach(c => out.push({ c, depth: 1 })); });
   return out;
 }
+window.setSalDay = v => { saveMetaChange(m => { m.salaryDay = Number(v) || 1; }); render(); toast("Kaydedildi"); };
 function saveMetaChange(fn) {
   if (!S.loaded.meta) { toast("Veriler henüz yüklenmedi, biraz sonra tekrar deneyin."); return; }
   const m = clone(meta()); fn(m); S.meta = m; bump(); S.store.setMeta(m);
