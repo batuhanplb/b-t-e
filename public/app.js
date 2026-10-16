@@ -1,6 +1,6 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.6.0";
+const APP_VERSION = "1.2.7.0";
 
 // Android uygulaması (Capacitor) içinde çalışırken: paylaşım bağlantıları canlı siteye gider, tarayıcı hissi kapatılır.
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -173,7 +173,7 @@ async function boot() {
     catch (e) { console.error(e); $("#root").innerHTML = '<div class="boot">Paylaşılan sayfa açılamadı.</div>'; }
     return;
   }
-  const VIEWS = ["home", "tx", "debt", "cash", "table", "pie", "inv", "acc", "cat"];
+  const VIEWS = ["home", "tx", "debt", "cash", "table", "pie", "inv", "acc", "cat", "subs"];
   const hv = location.hash.slice(1);
   if (VIEWS.includes(hv)) S.view = hv;
   addEventListener("hashchange", () => { const h = location.hash.slice(1); if (VIEWS.includes(h) && h !== S.view) { S.view = h; S.catF = null; S.payF = null; render(); window.scrollTo(0, 0); } });
@@ -204,9 +204,9 @@ function render() {
     return;
   }
   if (!S.loaded.months || !S.loaded.meta) { root.innerHTML = '<div class="boot">Veriler yükleniyor…</div>'; return; }
-  const titles = { home: "Anasayfa", tx: "İşlemler", debt: "Ödemeler", cash: "Nakit akışı", table: "Gider", pie: "Dağılım", inv: "Yatırımlar", acc: "Hesaplar", cat: "Kategoriler" };
+  const titles = { home: "Anasayfa", tx: "İşlemler", debt: "Borç takvimi", cash: "Nakit akışı", table: "Gider", pie: "Dağılım", inv: "Yatırımlar", acc: "Hesaplar", cat: "Kategoriler", subs: "Abonelikler" };
   const ctl = "";
-  const body = { home: vHome, tx: vTx, debt: vDebt, cash: vCash, table: vTable, pie: vPie, inv: vInv, acc: vAcc, cat: vCat }[S.view]();
+  const body = { home: vHome, tx: vTx, debt: vDebt, cash: vCash, table: vTable, pie: vPie, inv: vInv, acc: vAcc, cat: vCat, subs: vSubs }[S.view]();
   const scrollY = window.scrollY;
   const keep = root.dataset.view === S.view;
   root.dataset.view = S.view;
@@ -216,7 +216,7 @@ function render() {
     '<header class="top"><div class="top-in"><div class="ttl"><div class="crumb">Bütçe <span>›</span> ' + titles[S.view] + '</div><h1>' + titles[S.view] + '</h1></div>' + ctl + '<button class="ib topset" data-act="settings" aria-label="Ayarlar">' + ICON.gear + '</button></div></header>' +
     '<main>' + (["cash", "tx", "pie"].includes(S.view) ? '<div class="narrow wide">' + body + '</div>' : body) + '</main>' +
     '<nav class="tabs" aria-label="Bölümler"><div class="nav-brand">' + LOGO + '</div>' +
-    [["MENÜ"], ["home", "Anasayfa", ICON.home], ["tx", "İşlemler", ICON.list], ["ANALİZ"], ["table", "Gider", ICON.table], ["pie", "Dağılım", ICON.pie], ["inv", "Yatırımlar", ICON.trend, 1], ["ÖDEME"], ["debt", "Ödemeler", ICON.card], ["cash", "Nakit akışı", ICON.trend], ["TANIMLAR"], ["acc", "Hesaplar", ICON.wallet], ["cat", "Kategoriler", ICON.tag]].map(([v, l, i, lk]) => l ? '<button data-act="nav" data-v="' + v + '" aria-current="' + (S.view === v ? "page" : "false") + '">' + i + l + (lk ? '<span class="lockb">' + ICON.lock + '</span>' : '') + '</button>' : '<div class="nav-sec">' + v + '</div>').join("") +
+    [["MENÜ"], ["home", "Anasayfa", ICON.home], ["tx", "İşlemler", ICON.list], ["ANALİZ"], ["table", "Gider", ICON.table], ["pie", "Dağılım", ICON.pie], ["inv", "Yatırımlar", ICON.trend, 1], ["ÖDEME"], ["debt", "Borç takvimi", ICON.card], ["cash", "Nakit akışı", ICON.trend], ["TANIMLAR"], ["acc", "Hesaplar", ICON.wallet], ["cat", "Kategoriler", ICON.tag]].map(([v, l, i, lk]) => l ? '<button data-act="nav" data-v="' + v + '" aria-current="' + (S.view === v ? "page" : "false") + '">' + i + l + (lk ? '<span class="lockb">' + ICON.lock + '</span>' : '') + '</button>' : '<div class="nav-sec">' + v + '</div>').join("") +
     '<div class="nav-foot"><button class="nav-new" data-act="add">' + ICON.plus + 'Yeni işlem</button><button data-act="nav" data-v="tx">' + ICON.search + 'Ara</button><button data-act="acct">' + ICON.user + '<span class="nfn">' + esc((S.user && (S.user.name || S.user.email)) || "Hesabım") + '</span></button><button data-act="settings">' + ICON.gear + 'Ayarlar</button></div>' +
     '</nav>' +
     mbar() +
@@ -227,7 +227,7 @@ function render() {
   afterRender();
 }
 const ANA = [["table", "Gider", ICON.table], ["pie", "Dağılım", ICON.pie], ["inv", "Yatırımlar", ICON.trend, 1]];
-const PAY = [["debt", "Ödemeler", ICON.card], ["cash", "Nakit akışı", ICON.trend]];
+const PAY = [["debt", "Borç takvimi", ICON.card], ["cash", "Nakit akışı", ICON.trend]];
 const TAN = [["acc", "Hesaplar", ICON.wallet], ["cat", "Kategoriler", ICON.tag]];
 function mbar() {
   const inA = ANA.some(([v]) => v === S.view), inP = PAY.some(([v]) => v === S.view), inT = TAN.some(([v]) => v === S.view), op = S.bub;
@@ -325,10 +325,10 @@ function lineSvg(a, b, labels, W = 340, H = 170) {
   const xl = pb < 20 ? "" : thinLabels(labels, x, 34).map(([i, t, xx]) => '<text x="' + xx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" class="ax">' + t + '</text>').join("");
   return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + g + (pbb.length ? '<path d="' + smoothPath(pbb) + '" class="ln2"/>' : '') + (pa.length ? '<path d="' + smoothPath(pa) + '" class="ln1"/>' : '') + xl + '</svg>';
 }
-function barSvg(vals, labels, tips, W = 340, H = 150) {
+function barSvg(vals, labels, tips, W = 340, H = 150, hi = -1) {
   const pt = 8, pb = H < 90 ? 16 : 24, n = vals.length, mx = Math.max(1, ...vals), pl = 30, bw = (W - pl - 4) / n, gn = H < 90 ? 2 : 3;
   let g = ""; for (let k = 1; k <= gn; k++) { const v = mx * k / gn, yy = H - pb - (H - pt - pb) * k / gn; g += '<line x1="' + pl + '" x2="' + W + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" class="gl" stroke-dasharray="3 3"/><text x="' + (pl - 4) + '" y="' + (yy + 3).toFixed(1) + '" text-anchor="end" class="ax">' + shortN(v) + '</text>'; }
-  const bars = vals.map((v, i) => { const h = (H - pt - pb) * v / mx; return '<rect x="' + (pl + i * bw).toFixed(1) + '" y="0" width="' + bw.toFixed(1) + '" height="' + (H - pb) + '" fill="transparent" class="bhit" data-tip="' + esc((tips && tips[i]) || "") + '"></rect><rect x="' + (pl + i * bw + bw * 0.18).toFixed(1) + '" y="' + (H - pb - h).toFixed(1) + '" width="' + (bw * 0.64).toFixed(1) + '" height="' + Math.max(v ? 2 : 0, h).toFixed(1) + '" rx="2" class="br" pointer-events="none"/>'; }).join("") + g;
+  const bars = vals.map((v, i) => { const h = (H - pt - pb) * v / mx; return '<rect x="' + (pl + i * bw).toFixed(1) + '" y="0" width="' + bw.toFixed(1) + '" height="' + (H - pb) + '" fill="transparent" class="bhit" data-tip="' + esc((tips && tips[i]) || "") + '"></rect><rect x="' + (pl + i * bw + bw * 0.18).toFixed(1) + '" y="' + (H - pb - h).toFixed(1) + '" width="' + (bw * 0.64).toFixed(1) + '" height="' + Math.max(v ? 2 : 0, h).toFixed(1) + '" rx="2" class="br' + (i === hi ? ' cur' : '') + '" pointer-events="none"/>'; }).join("") + g;
   const xl = thinLabels(labels, i => pl + i * bw + bw / 2, 8).map(([i, t, xx]) => '<text x="' + xx.toFixed(1) + '" y="' + (H - 3) + '" text-anchor="middle" class="ax">' + t + '</text>').join("");
   return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + bars + '<line x1="0" x2="' + W + '" y1="' + (H - pb) + '" y2="' + (H - pb) + '" class="gl"/>' + xl + '</svg>';
 }
@@ -336,7 +336,7 @@ function fillCharts() {
   document.querySelectorAll(".chartbox").forEach(b => { const c = CH[b.dataset.cid]; if (!c) return; const W = Math.floor(b.clientWidth), H = Math.floor(b.clientHeight);
     if (W < 40 || H < 40) { if (b.dataset.k) { b.dataset.k = ""; b.innerHTML = ""; } return; }
     const key = W + "x" + H; if (b.dataset.k === key) return; b.dataset.k = key;
-    b.innerHTML = c.kind === "line" ? lineSvg(c.args[0], c.args[1], c.args[2], W, H) : barSvg(c.args[0], c.args[1], c.args[2], W, H); });
+    b.innerHTML = c.kind === "line" ? lineSvg(c.args[0], c.args[1], c.args[2], W, H) : barSvg(c.args[0], c.args[1], c.args[2], W, H, c.args[3] == null ? -1 : c.args[3]); });
 }
 let chRO = null, chQ = 0;
 function afterRender() {
@@ -351,7 +351,7 @@ function delta(cur, prev, goodDown) {
   const p = (cur - prev) / Math.abs(prev) * 100, up = p >= 0, good = goodDown ? !up : up;
   return '<span class="dl ' + (good ? "pos" : "neg") + '">' + (up ? "↑" : "↓") + " " + nfp.format(Math.abs(p)).replace(/,00$/, "") + '%</span>';
 }
-const MODS = [["exp", "Toplam gider", 1, 1], ["inc", "Toplam gelir", 1, 1], ["cash", "Nakit akışı", 1, 0], ["cats", "Harcama oranı", 1, 1], ["daily", "Günlük harcama", 1, 1], ["tips", "Öneri ve dikkat", 1, 1], ["debtcal", "Borç takvimi", 1, 0], ["fav", "Hızlı ekle", 1, 0], ["sub", "Abonelikler", 1, 0]];
+const MODS = [["exp", "Toplam gider", 1, 1], ["inc", "Toplam gelir", 1, 1], ["cash", "Nakit akışı", 1, 0], ["cats", "Dağılım", 1, 1], ["daily", "Günlük harcama", 1, 1], ["tips", "Öneri ve dikkat", 1, 1], ["debtcal", "Borç takvimi", 1, 0], ["fav", "Hızlı ekle", 1, 0], ["sub", "Abonelikler", 1, 0]];
 const normW = v => v === 2 || v === "w" ? "w" : v === 0 || v === "s" ? "s" : "n";
 const DG = { exp: [2, 2], inc: [2, 2], cash: [2, 2], cats: [2, 2], daily: [2, 2], tips: [2, 2], debtcal: [2, 3], recent: [2, 3], fav: [2, 1], sub: [2, 2] };
 const clampN = (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
@@ -381,7 +381,7 @@ const dashCfg = () => { const mobile = dashMobile(), own = meta()[dashKey()], md
   if (saved.length) out.sort((a, b) => { const i = saved.findIndex(x => x.id === a.id), j = saved.findIndex(x => x.id === b.id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
   return out; };
 const modName = id => (MODS.find(m => m[0] === id) || [, id])[1];
-const mod = (ic, title, go, inner, cls) => '<section class="mod ' + (cls || "") + '"><div class="mod-h"><span class="mod-ic">' + ic + '</span><h3>' + title + '</h3>' + (go ? '<button class="ib mod-go" data-act="nav" data-v="' + go + '" aria-label="Aç">' + ICON.r + '</button>' : '') + '</div>' + inner + '</section>';
+const mod = (ic, title, go, inner, cls) => '<section class="mod ' + (cls || "") + '"><div class="mod-h"' + (go ? ' data-act="mod-go" data-v="' + go + '" role="link" style="cursor:pointer"' : '') + '><span class="mod-ic">' + ic + '</span><h3>' + title + '</h3></div>' + inner + '</section>';
 function vHome() {
   for (const k in CH) delete CH[k]; chSeq = 0;
   const D = derived(), m = S.hm || CUR(), pm = C.addM(m, -1), tdy = today(), isCur = m === CUR();
@@ -396,21 +396,20 @@ function vHome() {
   const accsT = visibleAccs(), netT = accsT.filter(a => !a.exclude).reduce((s, a) => s + (D.bal[a.id] || 0), 0);
   const cfgM = dashCfg(), on = cfgM.filter(x => x.on);
   const M = {};
-  M.exp = () => mod(svgI(CI.bag), "Toplam gider", "tx", '<div class="mod-n inl"><b>' + f0(te) + '</b>' + delta(te, pe, true) + '</div>' + chartBox("line", cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp), lbl) + leg);
-  M.inc = () => mod(svgI(CI.coin), "Toplam gelir", "tx", '<div class="mod-n inl"><b>' + f0(ti) + '</b>' + delta(ti, pi) + '</div>' + chartBox("line", cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp), lbl) + leg);
+  M.exp = () => mod(svgI(CI.bag), "Toplam gider", "g:e", '<div class="mod-n inl"><b>' + f0(te) + '</b>' + delta(te, pe, true) + '</div>' + chartBox("line", cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp), lbl) + leg);
+  M.inc = () => mod(svgI(CI.coin), "Toplam gelir", "g:i", '<div class="mod-n inl"><b>' + f0(ti) + '</b>' + delta(ti, pi) + '</div>' + chartBox("line", cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp), lbl) + leg);
   M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + (salDay() > 1 ? salDay() + "'ine kadar" : "bu ay sonu") + '</span></div>' + chartBox("line", pl.map(p => p.kalan), null, [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]]) ); };
   const tops = (arr) => { const o = {}; arr.filter(t => t.k === "e").forEach(t => catParts(t).forEach(pp => { const c = C.topCat(D.catMap, pp.cat); const k = c ? c.id : "_"; o[k] = (o[k] || 0) + pp.a; })); return o; };
   const tc = tops(cur), tp = tops(prev), rows = Object.entries(tc).sort((a, b) => b[1] - a[1]);
-  M.cats = () => mod(svgI(CI.tag), "Harcama oranı", "pie", (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span class="cic kcic" style="--c:' + catColor(id === "_" ? null : id) + '">' + catIcon(id === "_" ? null : id) + '</span><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
+  M.cats = () => mod(svgI(CI.tag), "Dağılım", "pie", (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span class="cic kcic" style="--c:' + catColor(id === "_" ? null : id) + '">' + catIcon(id === "_" ? null : id) + '</span><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
   const curAll = monthItems(m), daily = []; for (let d = 1; d <= dm; d++) daily.push(curAll.filter(t => t.k === "e" && Number(t.d.slice(8, 10)) === d).reduce((s, t) => s + t.a, 0));
-  M.daily = () => mod(svgI(CI.cart), "Günlük harcama", "tx", '<div class="mod-n"><b>' + f0(isCur ? daily[lastDay - 1] || 0 : (lastDay ? te / lastDay : 0)) + '</b></div>' + chartBox("bar", daily, daily.map((_, i) => [i, String(i + 1)]).filter(([i]) => i % 2 === 0), daily.map((v, i) => (i + 1) + " " + C.TR_M[Number(m.slice(5)) - 1] + ": " + f2(v))));
+  M.daily = () => mod(svgI(CI.cart), "Günlük harcama", "g:e", '<div class="mod-n"><b>' + f0(isCur ? daily[lastDay - 1] || 0 : (lastDay ? te / lastDay : 0)) + '</b></div>' + chartBox("bar", daily, daily.map((_, i) => [i, String(i + 1)]).filter(([i]) => i % 2 === 0), daily.map((v, i) => (i + 1) + " " + C.TR_M[Number(m.slice(5)) - 1] + ": " + f2(v)), isCur ? lastDay - 1 : -1));
   M.top = () => { const big = cur.filter(t => t.k === "e").sort((a, b) => b.a - a.a).slice(0, 20);
     return mod(svgI(CI.bag), "En büyük harcamalar", "tx", big.length ? '<div class="klist">' + big.map(t => '<button class="krow" data-act="edit-tx" data-id="' + esc(t.id) + '" data-m="' + t.d.slice(0, 7) + '"><span><b>' + esc(t.t || catLabel(t.cat, true)) + '</b><span class="muted small">' + dLabel(t.d) + '</span></span><span class="r"><b>' + f0(t.a) + '</b></span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'); };
   M.ratio = () => { const r = ti ? te / ti * 100 : 0, sav = ti - te;
     return mod(svgI(CI.coin), "Gelir-gider dengesi", null, '<div class="mod-n"><b class="' + (sav < 0 ? "neg" : "pos") + '">' + f0(sav) + '</b><span class="muted small">bu ay kalan</span></div><div class="ratiobar"><i style="width:' + Math.min(100, r).toFixed(1) + '%;background:' + (r > 100 ? "var(--exp)" : "var(--primary)") + '"></i></div><div class="legend" style="justify-content:space-between"><span>Gider gelirin %' + nfp.format(r).replace(/,00$/, "") + '\'i</span><span>' + f0(te) + ' / ' + f0(ti) + '</span></div>'); };
-  M.sub = () => { const subs = {}; D.all.filter(t => t.k === "e" && t.grp && t.d.slice(0, 7) === m).forEach(t => { const k = (t.t || catLabel(t.cat, true)); subs[k] = (subs[k] || 0) + t.a; });
-    const sr = Object.entries(subs).sort((a, b) => b[1] - a[1]).slice(0, 20), tot = Object.values(subs).reduce((a, b) => a + b, 0);
-    return mod(svgI(CI.swap), "Abonelikler", "tx", '<div class="mod-n tr"><b>' + f0(tot) + '</b></div>' + (sr.length ? '<div class="klist">' + sr.map(([k, v]) => '<div class="krow"><span><b>' + esc(k) + '</b></span><span class="r"><b>' + f0(v) + '</b></span></div>').join("") + '</div>' : '<div class="empty">Tekrarlayan ödeme yok.</div>')); };
+  M.sub = () => { const sr = subList().map(x => [x, x.items.filter(t => t.d.slice(0, 7) === m)]).filter(([, a]) => a.length), tot = sr.reduce((s, [, a]) => s + a.reduce((q, t) => q + t.a, 0), 0);
+    return mod(svgI(CI.swap), "Abonelikler", "subs", '<div class="mod-n tr"><b>' + f0(tot) + '</b></div>' + (sr.length ? '<div class="klist">' + sr.slice(0, 20).map(([x, a]) => '<button class="krow" data-act="edit-tx" data-id="' + esc(a[0].id) + '" data-m="' + m + '"><span><b>' + esc(x.name) + '</b></span><span class="r"><b>' + f0(a.reduce((q, t) => q + t.a, 0)) + '</b></span></button>').join("") + '</div>' : '<div class="empty">Abonelik yok.</div>')); };
   M.tips = () => { const tips = [];
     const pl = cashPlan(), neg = pl.find(p => p.kalan < 0);
     if (neg) tips.push(["warn", "Nakit eksiye düşüyor", mLabel(neg.m) + " sonunda " + f2(neg.kalan) + ". Gelir ekleyin ya da gideri öne alın.", "cash"]);
@@ -458,6 +457,24 @@ function vHome() {
   if (on.length) h += '<div class="mods manual-grid">' + section(on) + '</div>';
   return h;
 }
+function subList() {
+  const g = {}; derived().all.filter(t => t.k === "e" && t.grp && !t.ins).forEach(t => (g[t.grp] = g[t.grp] || []).push(t));
+  const recs = meta().recs || [];
+  return Object.entries(g).map(([grp, items]) => { items.sort((a, b) => a.d.localeCompare(b.d)); const l = items[items.length - 1]; return { grp, items, name: l.t || catLabel(l.cat, true), cat: l.cat, open: recs.some(r => r.grp === grp) }; });
+}
+function vSubs() {
+  const tdy = today(), cm = CUR(), L = subList().map(x => { const nx = x.items.find(t => t.d >= tdy), cur = x.items.filter(t => t.d.slice(0, 7) === cm), ref = nx || x.items[x.items.length - 1];
+    return { ...x, nx, ref, mon: cur.length ? cur.reduce((s, t) => s + t.a, 0) : (nx ? nx.a : 0), paid: x.items.filter(t => t.d <= tdy).length, active: !!nx || x.open }; });
+  const act = L.filter(x => x.active).sort((a, b) => b.mon - a.mon), old = L.filter(x => !x.active), mt = act.reduce((s, x) => s + x.mon, 0);
+  const spent = L.reduce((s, x) => s + x.items.filter(t => t.d <= tdy && t.d.slice(0, 4) === tdy.slice(0, 4)).reduce((q, t) => q + t.a, 0), 0);
+  const nxt = act.filter(x => x.nx).sort((a, b) => a.nx.d.localeCompare(b.nx.d))[0];
+  let h = '<div class="kpis"><div class="card kpi"><span>Aylık toplam</span><b>' + f2(mt) + '</b></div><div class="card kpi"><span>Yıllık tahmini</span><b>' + f2(mt * 12) + '</b></div><div class="card kpi"><span>Bu yıl ödenen</span><b>' + f2(spent) + '</b></div><div class="card kpi"><span>Sıradaki ödeme</span><b>' + (nxt ? esc(nxt.name) : "—") + '</b>' + (nxt ? '<span class="small muted">' + dLabel(nxt.nx.d) + ' · ' + f2(nxt.nx.a) + '</span>' : '') + '</div></div>';
+  const row = x => '<li><button class="set-row" data-act="edit-tx" data-id="' + esc(x.ref.id) + '" data-m="' + x.ref.d.slice(0, 7) + '"><span class="cic" style="--c:' + catColor(x.cat) + ';width:32px;height:32px">' + catIcon(x.cat) + '</span><span class="grow">' + esc(x.name) + '<span class="small muted" style="display:block">' + (x.nx ? "Sonraki: " + dLabel(x.nx.d) : "Son: " + dLabel(x.ref.d)) + ' · ' + x.paid + ' ödeme yapıldı</span></span><span><b>' + f2(x.mon || x.ref.a) + '</b><span class="small muted" style="display:block;text-align:right">/ay</span></span></button></li>';
+  h += '<div class="sec-h" style="margin-top:18px"><h2>Aktif abonelikler (' + act.length + ')</h2><button class="btn sm" data-act="add-sub">Abonelik ekle</button></div>';
+  h += act.length ? '<div class="card"><ul class="list">' + act.map(row).join("") + '</ul></div>' : '<div class="card empty">Aktif abonelik yok. Yeni işlemde "Abonelik" seçerek ekleyebilirsin.</div>';
+  if (old.length) h += '<div class="sec-h" style="margin-top:18px"><h2>Biten abonelikler</h2></div><div class="card"><ul class="list">' + old.map(row).join("") + '</ul></div>';
+  return h;
+}
 function vTx() {
   const D = derived();
   let items;
@@ -480,7 +497,7 @@ function vTx() {
   const nPast = items.filter(t => t.d < tdy).length, nFut = items.filter(t => t.d > tdy).length;
   let h = '<div class="toolbar"><input class="search" type="search" placeholder="Ara: açıklama, kategori, not" value="' + esc(S.q) + '" data-in="q"><button class="sel accbtn" data-act="accf-open">' + (S.accFs.length ? S.accFs.length + " hesap" : "Tüm hesaplar") + ' ▾</button></div>';
   if (S.accOpen) h += '<div class="card" style="padding:10px 12px;margin-bottom:10px"><div class="chips">' + meta().accounts.map(a => '<button class="chip" data-act="accf-t" data-id="' + esc(a.id) + '" aria-pressed="' + S.accFs.includes(a.id) + '"><i style="background:' + a.color + '"></i>' + esc(a.name) + '</button>').join("") + (S.accFs.length ? '<button class="chip" data-act="accf-clear">Temizle ✕</button>' : '') + '</div></div>';
-  if (!qs && !S.catF && !S.payF) h += '<div class="scroll-x" style="margin-bottom:10px">' + [["m", "Bu ay"], ["pm", "Geçen ay"], ["3", "Son 3 ay"], ["6", "Son 6 ay"], ["y", "Bu yıl"], ["all", "Tümü"]].map(([v, l]) => '<button class="chip" data-act="per" data-v="' + v + '" aria-pressed="' + (S.per === v) + '">' + l + '</button>').join("") + '</div>';
+  if (!qs && !S.catF && !S.payF) h += '<div class="scroll-x" style="margin-bottom:10px">' + [["30", "Son 30 gün"], ["m", "Bu ay"], ["pm", "Geçen ay"], ["3", "Son 3 ay"], ["6", "Son 6 ay"], ["y", "Bu yıl"], ["all", "Tümü"]].map(([v, l]) => '<button class="chip" data-act="per" data-v="' + v + '" aria-pressed="' + (S.per === v) + '">' + l + '</button>').join("") + '</div>';
   h += '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tgl-past" aria-pressed="' + S.showPastTx + '">Geçmiş</button><button class="chip" data-act="tgl-fut" aria-pressed="' + S.showFutTx + '">Gelecek</button><span style="flex:1"></span><button class="chip" data-act="tgl-e" aria-pressed="' + S.showE + '">Gider</button><button class="chip" data-act="tgl-i" aria-pressed="' + S.showI + '">Gelir</button></div>';
   if (S.catF || S.payF) h += '<div class="chips" style="margin-bottom:10px"><button class="chip" aria-pressed="true" data-act="catf-clear">' + esc(S.payF ? S.payF : catLabel(S.catF)) + (S.fYear ? " · " + S.fYear : "") + ' ✕</button></div>';
   h += '<div class="card"><div class="sum"><div>Gider<b class="neg">' + f2(te) + '</b></div><div>Gelir<b class="pos">' + f2(ti) + '</b></div><div>' + (qy ? "Sonuç" : "Fark") + '<b>' + (qy ? items.length : f2(ti - te)) + '</b></div></div></div>';
@@ -638,7 +655,7 @@ function scheduleShare(now) {
 function renderShare() {
   const d = S.share, root = $("#root");
   if (!d) { root.innerHTML = '<div class="boot">Bu bağlantı geçersiz ya da paylaşım kapatılmış.</div>'; return; }
-  const tabs = [["debt", "Ödemeler"], ["cash", "Nakit akışı"], ["table", "Gider " + d.year]];
+  const tabs = [["debt", "Borç takvimi"], ["cash", "Nakit akışı"], ["table", "Gider " + d.year]];
   root.innerHTML = '<div class="shareview"><header class="shtop"><span class="lgw"><img class="lgi" src="/icons/icon-192.png" alt=""><span class="lgt">Bütçe</span></span><span class="small muted">' + (d.name ? esc(d.name) + " paylaştı, " : "") + 'son güncelleme ' + new Date(d.ts).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + '</span></header>' +
     '<div class="chips shtabs">' + tabs.map(([k, l]) => '<button class="chip" data-sh="' + k + '" aria-pressed="' + (S.shTab === k) + '">' + l + '</button>').join("") + '</div><div class="shbody">' + d[S.shTab] + '</div><p class="small muted">Bu sayfa salt okunurdur.</p></div>';
   root.querySelectorAll("[data-sh]").forEach(b => b.onclick = () => { S.shTab = b.dataset.sh; renderShare(); });
@@ -682,6 +699,7 @@ function extendRecs() {
 }
 function perRange() {
   const cm = CUR(), y = cm.slice(0, 4), t = today();
+  if (S.per === "30") { const d = new Date(); d.setDate(d.getDate() - 29); return [C.ymd(d), t]; }
   if (S.per === "m") return [cm + "-01", cm + "-" + C.daysIn(cm)];
   if (S.per === "pm") { const p = C.addM(cm, -1); return [p + "-01", p + "-" + C.daysIn(p)]; }
   if (S.per === "3") return [C.addM(cm, -2) + "-01", cm + "-" + C.daysIn(cm)];
@@ -738,6 +756,7 @@ function openTx(opt = {}) {
   if (opt.id) {
     const t = monthItems(opt.m).find(x => x.id === opt.id); if (!t) return;
     D = { ...clone(t), aStr: amtIn(t.a), sp: (t.sp || []).map(x => ({ cat: x.cat, a: amtIn(x.a) })), _m: opt.m, _origD: t.d, _new: false, rep: "one", cnt: 2, catOpen: false, accTouched: true };
+    if (t.grp && !t.ins) D.gl = derived().all.filter(x => x.grp === t.grp && x.id !== t.id).sort((a, b) => a.d.localeCompare(b.d)).map(x => ({ id: x.id, m: x.d.slice(0, 7), d: x.d, a: x.a, o: x.d + "|" + x.a }));
   } else {
     const k = opt.k || "e";
     const defD = S.view === "tx" && S.month !== CUR() ? S.month + "-01" : today();
@@ -769,12 +788,14 @@ function renderTx(keep) {
   else h += dateF;
   h += '<label class="fld"><span>Not</span><input class="in" maxlength="120" value="' + esc(D.n) + '" data-d="n" placeholder="İsteğe bağlı"></label>';
   if (D._new) {
-    h += '<div class="fld"><span>Tekrar</span><div class="seg" style="display:flex">' + [["one", "Tek sefer"], ["inst", "Taksit"], ["mon", "Her ay"]].map(([v, l]) => '<button style="flex:1" data-act="tx-rep" data-v="' + v + '" aria-pressed="' + (D.rep === v) + '">' + l + '</button>').join("") + '</div></div>';
+    h += '<div class="fld"><span>Tekrar</span><div class="seg" style="display:flex">' + [["one", "Tek sefer"], ["inst", "Taksit"], ["mon", "Abonelik"]].map(([v, l]) => '<button style="flex:1" data-act="tx-rep" data-v="' + v + '" aria-pressed="' + (D.rep === v) + '">' + l + '</button>').join("") + '</div></div>';
     if (D.rep === "mon") h += '<label class="fld" style="display:flex;gap:10px;align-items:center"><input type="checkbox" data-open' + (D.open ? " checked" : "") + '> Ben iptal edene kadar (abonelik)</label>';
     if (D.rep !== "one" && !(D.rep === "mon" && D.open)) h += '<label class="fld"><span>' + (D.rep === "inst" ? "Taksit sayısı" : "Kaç ay") + '</span><input class="in" type="number" min="2" max="60" value="' + D.cnt + '" data-d="cnt"></label>';
     if (D.rep !== "one") h += '<div id="planlist"></div>';
   } else if (D.ins) h += '<p class="small muted">Taksit ' + esc(D.ins) + '. Bu değişiklik sadece bu taksiti etkiler.</p>';
-  else if (D.grp) h += '<p class="small muted">Her ay tekrarlanan işlem. Durdurmak için Sil → "Sonrakiler de".</p>';
+  else if (D.grp) { h += '<p class="small muted">Abonelik. Durdurmak için Sil → "Sonrakiler de".</p>';
+    if (D.gl && D.gl.length) { const tdy = today(), all = D.gl.concat([{ me: 1, d: D.d, a: C.parseAmt(D.aStr) }]).sort((a, b) => a.d.localeCompare(b.d));
+      h += '<div class="fld"><span>Tüm ödemeler</span></div><div class="schedwrap" style="max-height:260px"><table class="sched"><tbody>' + all.map(p => p.me ? '<tr class="gl-me"><td class="muted small" style="white-space:nowrap;width:1%">Bu işlem</td><td colspan="2" class="small"><b>' + dLabel(p.d) + ' · ' + f2(p.a) + '</b></td></tr>' : (i => '<tr' + (p.d < tdy ? ' style="opacity:.7"' : '') + '><td class="muted small" style="white-space:nowrap;width:1%">' + (p.d < tdy ? "Geçmiş" : "Gelecek") + '</td><td><input type="date" data-gd="' + i + '" value="' + p.d + '" style="text-align:left"></td><td><input inputmode="decimal" data-ga="' + i + '" value="' + esc(amtIn(p.a)) + '"></td></tr>')(D.gl.indexOf(p))).join("") + '</tbody></table></div>'; } }
   h += '<div id="e-gen"></div></div><div class="sh-ft">';
   if (!D._new) h += '<button class="btn danger" data-act="tx-del">Sil</button>';
   else h += '<button class="btn ghost" data-act="tx-save" data-more="1">Kaydet ve yeni</button>';
@@ -864,11 +885,15 @@ function saveTx(more) {
   if (!D.acc) return err("#e-gen", "Hesap seçin.");
   if (D.k === "tr" && (!D.to || D.to === D.acc)) return err("#e-gen", "Transfer için iki farklı hesap seçin.");
   if (!D.d) return err("#e-gen", "Tarih seçin.");
-  const txs = genTxs(), touched = new Set();
+  const txs = genTxs(), touched = new Set(), touched2 = new Set();
   if (D._new && D.rep === "mon" && D.open && txs.length) { const l = txs[txs.length - 1]; saveMetaChange(m => { (m.recs = m.recs || []).push({ grp: l.grp, last: l.d, day: Number(D.d.slice(8, 10)), tpl: { k: l.k, acc: l.acc, cat: l.cat || null, t: l.t || "", n: l.n || "", a: l.a, to: l.to || null } }); }); }
   if (!D._new && D._m !== D.d.slice(0, 7)) { saveMonth(D._m, monthItems(D._m).filter(x => x.id !== D.id)); }
   txs.forEach(t => { const m = t.d.slice(0, 7); const arr = (touched.has(m) ? S.months[m] : monthItems(m)).filter(x => x.id !== t.id); arr.push(t); arr.sort((x, y) => (x.ts || 0) - (y.ts || 0)); S.months[m] = arr; touched.add(m); });
   touched.forEach(m => { try { const r = saveMonth(m, S.months[m]); r && r.catch && r.catch(e => console.error(e)); } catch (e) { console.error(e); } });
+  if (!D._new && D.gl) D.gl.forEach(g => { if (g.d + "|" + g.a === g.o || !g.d || !(g.a > 0)) return; const t0 = monthItems(g.m).find(x => x.id === g.id); if (!t0) return; const nm = g.d.slice(0, 7);
+    if (nm !== g.m) { S.months[g.m] = monthItems(g.m).filter(x => x.id !== g.id); touched2.add(g.m); }
+    const arr = monthItems(nm).filter(x => x.id !== g.id); arr.push({ ...t0, d: g.d, a: C.r2(g.a) }); arr.sort((x, y) => (x.ts || 0) - (y.ts || 0)); S.months[nm] = arr; touched2.add(nm); });
+  touched2.forEach(m => { try { saveMonth(m, S.months[m]); } catch (e) { console.error(e); } });
   const msg = D._new ? (txs.length > 1 ? txs.length + " işlem eklendi" : "Kaydedildi") : "Güncellendi";
   if (more) { const keepK = D.k, keepAcc = D.acc; render(); openTx({ k: keepK, acc: keepAcc }); toast(msg); }
   else { if (dlg.open) dlg.close(); D = null; render(); toast(msg); }
@@ -1116,6 +1141,10 @@ document.addEventListener("click", e => {
     case "add": openTx({}); break;
     case "fav": { const f = derived().favs[+ds.i]; openTx({ k: f.k, cat: f.cat, acc: f.acc, t: f.t }); break; }
     case "edit-tx": openTx({ id: ds.id, m: ds.m }); break;
+    case "add-sub": openTx({ k: "e" }); if (D) { D.rep = "mon"; D.open = true; renderTx(true); } break;
+    case "mod-go": { if (S.dashEdit) break; const v = ds.v; S.catF = null; S.payF = null; S.fYear = null; S.bub = null;
+      if (v.startsWith("g:")) { S.view = "tx"; S.per = "30"; S.accFs = []; S.q = ""; S.showPastTx = true; S.showFutTx = false; S.showE = v === "g:e"; S.showI = v === "g:i"; } else S.view = v;
+      if (location.hash.slice(1) !== S.view) location.hash = S.view; render(); window.scrollTo(0, 0); break; }
     case "close": closeSheet(); break;
     case "tx-k": { const k = ds.v; if (k === D.k) break; D.k = k; D.cat = null; D.catOpen = false; if (k === "tr") { D.to = visibleAccs().find(x => x.id !== D.acc)?.id || null; } else if (!D.accTouched) D.acc = lastAccFor(k); renderTx(true); break; }
     case "tx-acc": D[ds.f] = ds.id; if (ds.f === "acc") D.accTouched = true; dlgIn.querySelectorAll('[data-act="tx-acc"][data-f="' + ds.f + '"]').forEach(b => b.setAttribute("aria-pressed", b.dataset.id === ds.id)); break;
@@ -1251,6 +1280,8 @@ document.addEventListener("input", e => {
   if (D && D.ci && t.dataset.ci) D.ci[t.dataset.ci] = t.value;
   if ("open" in t.dataset) { D.open = t.checked; D.planEdited = false; renderTx(true); return; }
   if (t.dataset.pa != null) { const v = C.parseAmt(t.value); D.plan[+t.dataset.pa].a = isNaN(v) ? 0 : v; D.planEdited = true; const e = $("#plantot"); if (e) e.textContent = "Toplam " + f2(D.plan.reduce((s, p) => s + (p.a || 0), 0)); }
+  if (t.dataset.gd != null && D && D.gl) { D.gl[+t.dataset.gd].d = t.value; return; }
+  if (t.dataset.ga != null && D && D.gl) { D.gl[+t.dataset.ga].a = C.parseAmt(t.value) || 0; return; }
   if (t.dataset.pd != null) { D.plan[+t.dataset.pd].d = t.value; D.planEdited = true; }
   if (t.dataset.sa != null) { D.sp[+t.dataset.sa].a = t.value; const b = $("#spbox .spf span"); if (b) { const a = C.parseAmt(D.aStr) || 0, sum = D.sp.reduce((s, x) => s + (C.parseAmt(x.a) || 0), 0), df = C.r2(a - sum); b.className = "small " + (Math.abs(df) < 0.005 ? "muted" : "neg"); b.textContent = Math.abs(df) < 0.005 ? "Dağıtım tam" : (df > 0 ? "Kalan " + f2(df) : "Fazla " + f2(-df)); } }
   if (t.dataset.si != null) { const v = C.parseAmt(t.value); D.sched[+t.dataset.si].a = isNaN(v) ? 0 : v; }
