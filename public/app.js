@@ -798,9 +798,9 @@ function renderTx(keep) {
     if (D.rep !== "one" && !(D.rep === "mon" && D.open)) h += '<label class="fld"><span>' + (D.rep === "inst" ? "Taksit sayısı" : "Kaç ay") + '</span><input class="in" type="number" min="2" max="60" value="' + D.cnt + '" data-d="cnt"></label>';
     if (D.rep !== "one") h += '<div id="planlist"></div>';
   } else if (D.ins) h += '<p class="small muted">Taksit ' + esc(D.ins) + '. Bu değişiklik sadece bu taksiti etkiler.</p>';
-  else if (D.grp) { h += '<p class="small muted">Abonelik. Durdurmak için Sil → "Sonrakiler de".</p>';
+  else if (D.grp) { h += '<p class="small muted">Abonelik. Durdurmak için Sil → "Gelecek işlemleri de sil".</p>';
     if (D.gl && D.gl.length) { const tdy = today(), all = D.gl.concat([{ me: 1, d: D.d, a: C.parseAmt(D.aStr) }]).sort((a, b) => a.d.localeCompare(b.d));
-      h += '<div class="fld"><span>Tüm ödemeler</span></div><div class="schedwrap" style="max-height:260px"><table class="sched"><tbody>' + all.map(p => p.me ? '<tr class="gl-me"><td class="muted small" style="white-space:nowrap;width:1%">Bu işlem</td><td colspan="2" class="small"><b>' + dLabel(p.d) + ' · ' + f2(p.a) + '</b></td></tr>' : (i => '<tr' + (p.d < tdy ? ' style="opacity:.7"' : '') + '><td class="muted small" style="white-space:nowrap;width:1%">' + (p.d < tdy ? "Geçmiş" : "Gelecek") + '</td><td><input type="date" data-gd="' + i + '" value="' + p.d + '" style="text-align:left"></td><td><input inputmode="decimal" data-ga="' + i + '" value="' + esc(amtIn(p.a)) + '"></td></tr>')(D.gl.indexOf(p))).join("") + '</tbody></table></div>'; } }
+      h += '<div class="fld"><span>Tüm ödemeler</span></div><div class="schedwrap" id="glwrap" style="max-height:232px;overflow-y:auto"><table class="sched"><tbody>' + all.map(p => p.me ? '<tr class="gl-me"><td class="muted small" style="white-space:nowrap;width:1%">Bu işlem</td><td colspan="2" class="small"><b>' + dLabel(p.d) + ' · ' + f2(p.a) + '</b></td></tr>' : (i => '<tr' + (p.d < tdy ? ' style="opacity:.7"' : '') + '><td class="muted small" style="white-space:nowrap;width:1%">' + (p.d < tdy ? "Geçmiş" : "Gelecek") + '</td><td><input type="date" data-gd="' + i + '" value="' + p.d + '" style="text-align:left"></td><td><input inputmode="decimal" data-ga="' + i + '" value="' + esc(amtIn(p.a)) + '"></td></tr>')(D.gl.indexOf(p))).join("") + '</tbody></table></div>'; } }
   h += '<div id="e-gen"></div></div><div class="sh-ft">';
   if (!D._new) h += '<button class="btn danger" data-act="tx-del">Sil</button>';
   else h += '<button class="btn ghost" data-act="tx-save" data-more="1">Kaydet ve yeni</button>';
@@ -808,6 +808,7 @@ function renderTx(keep) {
   openSheet(h, keep);
   if (k !== "tr") renderSugg();
   renderPlanBox();
+  const gw = $("#glwrap"); if (gw) { const me = gw.querySelector(".gl-me"), pv = me && me.previousElementSibling; const top = (pv || me); if (top) gw.scrollTop = top.offsetTop; }
 }
 function catPanel(k) { return '<div class="catpanel tx-catpanel"><div id="catlist" class="tx-catlist" role="listbox" aria-label="Kategoriler">' + catList(k, D.cq) + '</div></div>'; }
 function catList(k, q) {
@@ -1166,7 +1167,7 @@ document.addEventListener("click", e => {
     case "tx-rep": D.rep = ds.v; D.plan = null; D.planEdited = false; if (ds.v !== "one" && D.cnt < 2) D.cnt = 2; renderTx(true); break;
     case "sugg": { const p = derived().payees.find(x => x.t === ds.t); if (p) { D.t = p.t; if (p.cat) D.cat = p.cat; if (p.acc && !D.accTouched) D.acc = p.acc; } renderTx(true); setTimeout(() => $("#f-amt") && !$("#f-amt").value && $("#f-amt").focus(), 30); break; }
     case "tx-save": saveTx(!!ds.more); break;
-    case "tx-del": if (D.grp) { dlgIn.querySelector(".sh-ft").innerHTML = '<button class="btn ghost" data-act="tx-del-x">Vazgeç</button><button class="btn ghost" data-act="tx-del-one">Sadece bu</button><button class="btn" style="background:var(--exp);color:#fff" data-act="tx-del-rest">Sonrakiler de</button>'; } else if (confirm("Bu işlem silinsin mi?")) deleteTx(false); break;
+    case "tx-del": if (D.grp) { const rd = 'style="background:var(--exp);color:#fff;border-color:var(--exp)"'; dlgIn.querySelector(".sh-ft").innerHTML = '<button class="btn ghost" data-act="tx-del-x">Vazgeç</button><button class="btn" ' + rd + ' data-act="tx-del-one">İşlemi sil</button><button class="btn" ' + rd + ' data-act="tx-del-rest">Gelecek işlemleri de sil</button>'; } else if (confirm("Bu işlem silinsin mi?")) deleteTx(false); break;
     case "tx-del-one": deleteTx(false); break;
     case "tx-del-rest": deleteTx(true); break;
     case "tx-del-x": renderTx(true); break;
