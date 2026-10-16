@@ -190,3 +190,5 @@ img{-webkit-user-drag:none}
 .mod .krow:has(>.kcic){flex-direction:row!important;flex-wrap:nowrap!important;align-items:center}
 .mod .krow>.kcic:first-child{flex-basis:auto!important}
 .mod .krow:has(>.kcic)>span:nth-child(2){flex:1 1 auto;min-width:0}
+
+.mod[data-w="1"] .mod-n.tr{position:static;max-width:100%;margin:4px 0 2px;flex-wrap:wrap}
