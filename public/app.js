@@ -1,6 +1,16 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.8.0";
+const APP_VERSION = "1.2.9.0";
+function ask(msg, opts) {
+  opts = opts || [{ l: "Sil", v: true, red: 1 }];
+  return new Promise(res => {
+    const o = document.createElement("div"); o.className = "askov";
+    o.innerHTML = '<div class="askbox"><p>' + msg + '</p>' + opts.map((x, i) => '<button class="btn' + (x.red ? ' askred' : '') + '" data-i="' + i + '">' + x.l + '</button>').join("") + '<button class="btn ghost" data-i="-1">Vazgeç</button></div>';
+    const done = v => { o.remove(); res(v); };
+    o.addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("button"); if (b) done(+b.dataset.i < 0 ? null : opts[+b.dataset.i].v); else if (e.target === o) done(null); });
+    document.body.appendChild(o);
+  });
+}
 
 // Android uygulaması (Capacitor) içinde çalışırken: paylaşım bağlantıları canlı siteye gider, tarayıcı hissi kapatılır.
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -1153,8 +1163,13 @@ document.addEventListener("click", e => {
       if (location.hash.slice(1) !== S.view) location.hash = S.view; render(); window.scrollTo(0, 0); break; }
     case "close": closeSheet(); break;
     case "sel-x": S.sel = null; render(); break;
-    case "sel-del": { const ids = Object.keys(S.sel || {}); if (!ids.length || !confirm("Seçilen " + ids.length + " işlem silinsin mi?")) break; const by = {}; ids.forEach(id => (by[S.sel[id]] = by[S.sel[id]] || new Set()).add(id));
-      Object.keys(by).forEach(m => { const arr = monthItems(m).filter(x => !by[m].has(x.id)); S.months[m] = arr; try { saveMonth(m, arr); } catch (e) { console.error(e); } }); S.sel = null; render(); toast(ids.length + " işlem silindi"); break; }
+    case "sel-del": { const ids = Object.keys(S.sel || {}); if (!ids.length) break; const sel = S.sel, all = derived().all, txOf = id => all.find(x => x.id === id), subs = ids.filter(id => { const t = txOf(id); return t && t.grp && !t.ins; });
+      const q = subs.length ? ask("Seçilenlerin " + subs.length + " tanesi abonelik. Abonelikleri ne yapalım?", [{ l: "Sadece seçili işlemleri sil", v: "sel", red: 1 }, { l: "Abonelikleri tut, diğerlerini sil", v: "keep", red: 1 }, { l: "Seçilileri ve gelecek abonelikleri de sil", v: "fut", red: 1 }]) : ask("Seçilen " + ids.length + " işlem silinsin mi?").then(v => v ? "sel" : null);
+      q.then(mode => { if (!mode) return; const del = new Set(mode === "keep" ? ids.filter(id => !subs.includes(id)) : ids), from = {};
+        if (mode === "fut") { subs.forEach(id => { const t = txOf(id); if (!from[t.grp] || t.d < from[t.grp]) from[t.grp] = t.d; }); if ((meta().recs || []).some(r => from[r.grp])) saveMetaChange(m => { m.recs = (m.recs || []).filter(r => !from[r.grp]); }); }
+        let n = 0; const ms = new Set(Object.values(sel)); if (mode === "fut") Object.keys(S.months).forEach(m => ms.add(m));
+        ms.forEach(m => { const arr = monthItems(m), keep = arr.filter(x => !del.has(x.id) && !(x.grp && from[x.grp] && x.d >= from[x.grp])); if (keep.length !== arr.length) { n += arr.length - keep.length; S.months[m] = keep; try { saveMonth(m, keep); } catch (e) { console.error(e); } } });
+        S.sel = null; render(); toast(n + " işlem silindi"); }); break; }
     case "tx-k": { const k = ds.v; if (k === D.k) break; D.k = k; D.cat = null; D.catOpen = false; if (k === "tr") { D.to = visibleAccs().find(x => x.id !== D.acc)?.id || null; } else if (!D.accTouched) D.acc = lastAccFor(k); renderTx(true); break; }
     case "tx-acc": D[ds.f] = ds.id; if (ds.f === "acc") D.accTouched = true; dlgIn.querySelectorAll('[data-act="tx-acc"][data-f="' + ds.f + '"]').forEach(b => b.setAttribute("aria-pressed", b.dataset.id === ds.id)); break;
     case "cat-open": D.catOpen = !D.catOpen; D.cq = ""; D.spPick = null; renderTx(true); if (D.catOpen) $("#cq")?.focus(); break;
@@ -1167,7 +1182,7 @@ document.addEventListener("click", e => {
     case "tx-rep": D.rep = ds.v; D.plan = null; D.planEdited = false; if (ds.v !== "one" && D.cnt < 2) D.cnt = 2; renderTx(true); break;
     case "sugg": { const p = derived().payees.find(x => x.t === ds.t); if (p) { D.t = p.t; if (p.cat) D.cat = p.cat; if (p.acc && !D.accTouched) D.acc = p.acc; } renderTx(true); setTimeout(() => $("#f-amt") && !$("#f-amt").value && $("#f-amt").focus(), 30); break; }
     case "tx-save": saveTx(!!ds.more); break;
-    case "tx-del": if (D.grp) { const rd = 'style="background:var(--exp);color:#fff;border-color:var(--exp)"'; dlgIn.querySelector(".sh-ft").innerHTML = '<button class="btn ghost" data-act="tx-del-x">Vazgeç</button><button class="btn" ' + rd + ' data-act="tx-del-one">İşlemi sil</button><button class="btn" ' + rd + ' data-act="tx-del-rest">Gelecek işlemleri de sil</button>'; } else if (confirm("Bu işlem silinsin mi?")) deleteTx(false); break;
+    case "tx-del": if (D.grp) { const rd = 'style="background:var(--exp);color:#fff;border-color:var(--exp)"'; dlgIn.querySelector(".sh-ft").innerHTML = '<button class="btn ghost" data-act="tx-del-x">Vazgeç</button><button class="btn" ' + rd + ' data-act="tx-del-one">İşlemi sil</button><button class="btn" ' + rd + ' data-act="tx-del-rest">Gelecek işlemleri de sil</button>'; } else ask("Bu işlem silinsin mi?").then(v => v && deleteTx(false)); break;
     case "tx-del-one": deleteTx(false); break;
     case "tx-del-rest": deleteTx(true); break;
     case "tx-del-x": renderTx(true); break;
@@ -1186,7 +1201,7 @@ document.addEventListener("click", e => {
     case "d-save": saveDebt(); break;
     case "d-close": { if (!D._id) break; const d = S.debts[D._id]; if (!d) break; const nw = !d.closed; if (nw && !confirm("Bu borç kapatıldı olarak işaretlensin mi? Listede görünmeyecek.")) break;
       d.closed = nw; S.store.setDebt(D._id, d); closeSheet(); render(); toast(nw ? "Borç kapatıldı" : "Borç geri açıldı"); break; }
-    case "d-del": if (confirm("Bu borç ve tüm taksitleri silinsin mi?")) { const id = D._id; delete S.debts[id]; S.store.delDebt(id); closeSheet(); render(); toast("Silindi"); } break;
+    case "d-del": ask("Bu borç ve tüm taksitleri silinsin mi?").then(v => { if (!v) return; const id = D._id; delete S.debts[id]; S.store.delDebt(id); closeSheet(); render(); toast("Silindi"); }); break;
     case "ttab": S.tTab = ds.v; S._toCur = true; render(); break;
     case "year": S.year = +ds.v; S._toCur = true; render(); break;
     case "tkind": S.tKind = ds.v; render(); break;
@@ -1265,7 +1280,7 @@ document.addEventListener("click", e => {
     case "dg-add": dgSave(items => { const k = items.findIndex(x => x.id === ds.id); if (k < 0) return; const it = items.splice(k, 1)[0]; it.on = true; items.push(it); }); render(); break;
     case "dg-mv": dgSave(items => { const i = items.findIndex(x => x.id === ds.id), dir = Number(ds.d); if (i < 0) return; let j = i + dir; while (j >= 0 && j < items.length && !items[j].on) j += dir; if (j < 0 || j >= items.length) return; [items[i], items[j]] = [items[j], items[i]]; }); render(); break;
     case "dg-sz": dgSave(items => { const it = items.find(x => x.id === ds.id); if (!it) return; const n = (SZ[it.id] || [[1, 1]]).length; it.sz = ds.s != null ? clampN(+ds.s, 0, n - 1) : (it.sz + 1) % n; }); render(); break;
-    case "dg-reset": if (!confirm("Modül yerleşimi varsayılana dönsün mü?")) break; saveMetaChange(m => { delete m[dashKey()]; }); render(); toast("Varsayılana dönüldü"); break;
+    case "dg-reset": ask("Modül yerleşimi varsayılana dönsün mü?", [{ l: "Varsayılana dön", v: 1 }]).then(v => { if (!v) return; saveMetaChange(m => { delete m[dashKey()]; }); render(); toast("Varsayılana dönüldü"); }); break;
     case "gt-edit": D = { view: "gt", hid: [], ...clone(gtCfg()) }; renderSettings(); break;
     case "gt-rm": D[ds.g].splice(+ds.i, 1); renderSettings(); break;
     case "gt-mv": { const g = ds.g, i = +ds.i, j = i + Number(ds.d); if (j >= 0 && j < D[g].length) { [D[g][i], D[g][j]] = [D[g][j], D[g][i]]; } renderSettings(); break; }
