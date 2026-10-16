@@ -326,10 +326,10 @@ function lineSvg(a, b, labels, W = 340, H = 170) {
   return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + g + (pbb.length ? '<path d="' + smoothPath(pbb) + '" class="ln2"/>' : '') + (pa.length ? '<path d="' + smoothPath(pa) + '" class="ln1"/>' : '') + xl + '</svg>';
 }
 function barSvg(vals, labels, tips, W = 340, H = 150) {
-  const pt = 8, pb = H < 90 ? 6 : 24, n = vals.length, mx = Math.max(1, ...vals), pl = 30, bw = (W - pl - 4) / n, gn = H < 90 ? 2 : 3;
+  const pt = 8, pb = H < 90 ? 16 : 24, n = vals.length, mx = Math.max(1, ...vals), pl = 30, bw = (W - pl - 4) / n, gn = H < 90 ? 2 : 3;
   let g = ""; for (let k = 1; k <= gn; k++) { const v = mx * k / gn, yy = H - pb - (H - pt - pb) * k / gn; g += '<line x1="' + pl + '" x2="' + W + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" class="gl" stroke-dasharray="3 3"/><text x="' + (pl - 4) + '" y="' + (yy + 3).toFixed(1) + '" text-anchor="end" class="ax">' + shortN(v) + '</text>'; }
   const bars = vals.map((v, i) => { const h = (H - pt - pb) * v / mx; return '<rect x="' + (pl + i * bw).toFixed(1) + '" y="0" width="' + bw.toFixed(1) + '" height="' + (H - pb) + '" fill="transparent" class="bhit" data-tip="' + esc((tips && tips[i]) || "") + '"></rect><rect x="' + (pl + i * bw + bw * 0.18).toFixed(1) + '" y="' + (H - pb - h).toFixed(1) + '" width="' + (bw * 0.64).toFixed(1) + '" height="' + Math.max(v ? 2 : 0, h).toFixed(1) + '" rx="2" class="br" pointer-events="none"/>'; }).join("") + g;
-  const xl = pb < 20 ? "" : thinLabels(labels, i => pl + i * bw + bw / 2, 14).map(([i, t, xx]) => '<text x="' + xx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" class="ax">' + t + '</text>').join("");
+  const xl = thinLabels(labels, i => pl + i * bw + bw / 2, 14).map(([i, t, xx]) => '<text x="' + xx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" class="ax">' + t + '</text>').join("");
   return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + bars + '<line x1="0" x2="' + W + '" y1="' + (H - pb) + '" y2="' + (H - pb) + '" class="gl"/>' + xl + '</svg>';
 }
 function fillCharts() {
