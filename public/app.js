@@ -381,7 +381,7 @@ const dashCfg = () => { const mobile = dashMobile(), own = meta()[dashKey()], md
   if (saved.length) out.sort((a, b) => { const i = saved.findIndex(x => x.id === a.id), j = saved.findIndex(x => x.id === b.id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
   return out; };
 const modName = id => (MODS.find(m => m[0] === id) || [, id])[1];
-const mod = (ic, title, go, inner, cls) => '<section class="mod ' + (cls || "") + '"><div class="mod-h"><span class="mod-ic">' + ic + '</span><h3>' + title + '</h3>' + (go ? '<button class="ib mod-go" data-act="nav" data-v="' + go + '" aria-label="Aç">' + ICON.r + '</button>' : '') + '</div>' + inner + '</section>';
+const mod = (ic, title, go, inner, cls) => '<section class="mod ' + (cls || "") + '"><div class="mod-h"' + (go ? ' data-act="mod-go" data-v="' + go + '" role="link" style="cursor:pointer"' : '') + '><span class="mod-ic">' + ic + '</span><h3>' + title + '</h3></div>' + inner + '</section>';
 function vHome() {
   for (const k in CH) delete CH[k]; chSeq = 0;
   const D = derived(), m = S.hm || CUR(), pm = C.addM(m, -1), tdy = today(), isCur = m === CUR();
