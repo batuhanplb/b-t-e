@@ -137,7 +137,7 @@ const S = {
   view: "home", month: CUR(), q: "", accF: "", year: Number(CUR().slice(0, 4)), tTab: "cat", tKind: "e", expanded: new Set(), onlyMine: false, borcMine: true,
   ver: 0, cache: null
 };
-S.accFs = []; S.per = "m"; S.showPastTx = true; S.showFutTx = false;
+S.accFs = []; S.per = "m"; S.showPastTx = true; S.showFutTx = false; S.showE = true; S.showI = true;
 S.pFrom = CUR() + "-01"; S.pTo = today(); S.pCat = ""; S.catF = null; S.showPast = false;
 const meta = () => S.meta || DEFAULT_META;
 function derived() {
@@ -469,6 +469,8 @@ function vTx() {
   const tdy = today();
   if (!S.showPastTx) items = items.filter(t => t.d >= tdy);
   if (!S.showFutTx) items = items.filter(t => t.d <= tdy);
+  if (!S.showE) items = items.filter(t => t.k !== "e");
+  if (!S.showI) items = items.filter(t => t.k !== "i");
   if (S.accFs.length) items = items.filter(t => S.accFs.includes(t.acc) || (t.to && S.accFs.includes(t.to)));
   items.sort((a, b) => b.d.localeCompare(a.d) || (b.ts || 0) - (a.ts || 0));
   if (qy) items = items.slice(0, 300);
@@ -477,7 +479,7 @@ function vTx() {
   let h = '<div class="toolbar"><input class="search" type="search" placeholder="Ara: açıklama, kategori, not" value="' + esc(S.q) + '" data-in="q"><button class="sel accbtn" data-act="accf-open">' + (S.accFs.length ? S.accFs.length + " hesap" : "Tüm hesaplar") + ' ▾</button></div>';
   if (S.accOpen) h += '<div class="card" style="padding:10px 12px;margin-bottom:10px"><div class="chips">' + meta().accounts.map(a => '<button class="chip" data-act="accf-t" data-id="' + esc(a.id) + '" aria-pressed="' + S.accFs.includes(a.id) + '"><i style="background:' + a.color + '"></i>' + esc(a.name) + '</button>').join("") + (S.accFs.length ? '<button class="chip" data-act="accf-clear">Temizle ✕</button>' : '') + '</div></div>';
   if (!qs && !S.catF && !S.payF) h += '<div class="scroll-x" style="margin-bottom:10px">' + [["m", "Bu ay"], ["pm", "Geçen ay"], ["3", "Son 3 ay"], ["6", "Son 6 ay"], ["y", "Bu yıl"], ["all", "Tümü"]].map(([v, l]) => '<button class="chip" data-act="per" data-v="' + v + '" aria-pressed="' + (S.per === v) + '">' + l + '</button>').join("") + '</div>';
-  h += '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tgl-past" aria-pressed="' + S.showPastTx + '">Geçmiş</button><button class="chip" data-act="tgl-fut" aria-pressed="' + S.showFutTx + '">Gelecek</button></div>';
+  h += '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tgl-past" aria-pressed="' + S.showPastTx + '">Geçmiş</button><button class="chip" data-act="tgl-fut" aria-pressed="' + S.showFutTx + '">Gelecek</button><span style="flex:1"></span><button class="chip" data-act="tgl-e" aria-pressed="' + S.showE + '">Gider</button><button class="chip" data-act="tgl-i" aria-pressed="' + S.showI + '">Gelir</button></div>';
   if (S.catF || S.payF) h += '<div class="chips" style="margin-bottom:10px"><button class="chip" aria-pressed="true" data-act="catf-clear">' + esc(S.payF ? S.payF : catLabel(S.catF)) + (S.fYear ? " · " + S.fYear : "") + ' ✕</button></div>';
   h += '<div class="card"><div class="sum"><div>Gider<b class="neg">' + f2(te) + '</b></div><div>Gelir<b class="pos">' + f2(ti) + '</b></div><div>' + (qy ? "Sonuç" : "Fark") + '<b>' + (qy ? items.length : f2(ti - te)) + '</b></div></div></div>';
   if (!items.length) return h + '<div class="empty">' + "Eşleşen işlem yok." + '</div>';
@@ -1203,6 +1205,8 @@ document.addEventListener("click", e => {
     case "accf-clear": S.accFs = []; render(); break;
     case "per": S.per = ds.v; render(); break;
     case "tgl-past": S.showPastTx = !S.showPastTx; render(); break;
+    case "tgl-e": S.showE = !S.showE; render(); break;
+    case "tgl-i": S.showI = !S.showI; render(); break;
     case "tgl-fut": S.showFutTx = !S.showFutTx; render(); break;
     case "gt-open": { S.view = "tx"; S.q = ""; S.accF = ""; S.catF = null; S.payF = null; S.fYear = S.year; if (location.hash.slice(1) !== "tx") location.hash = "tx";
       if (ds.id.startsWith("p:")) S.payF = ds.id.slice(2); else S.catF = ds.id; render(); window.scrollTo(0, 0); break; }
