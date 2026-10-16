@@ -1,6 +1,6 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.5.1";
+const APP_VERSION = "1.2.5.2";
 
 // Android uygulaması (Capacitor) içinde çalışırken: paylaşım bağlantıları canlı siteye gider, tarayıcı hissi kapatılır.
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -351,9 +351,9 @@ function delta(cur, prev, goodDown) {
   const p = (cur - prev) / Math.abs(prev) * 100, up = p >= 0, good = goodDown ? !up : up;
   return '<span class="dl ' + (good ? "pos" : "neg") + '">' + (up ? "↑" : "↓") + " " + nfp.format(Math.abs(p)).replace(/,00$/, "") + '%</span>';
 }
-const MODS = [["exp", "Toplam gider", 1, 1], ["inc", "Toplam gelir", 1, 1], ["cash", "Nakit akışı", 1, 0], ["cats", "Kategoriler", 1, 1], ["daily", "Günlük harcama", 1, 1], ["tips", "Öneri ve dikkat", 1, 1], ["debtcal", "Borç takvimi", 1, 0], ["recent", "Son işlemler", 1, 0], ["fav", "Hızlı ekle", 1, 0], ["top", "En büyük harcamalar", 1, 1], ["sub", "Abonelikler", 1, 0], ["ratio", "Gelir-gider dengesi", 1, 1]];
+const MODS = [["exp", "Toplam gider", 1, 1], ["inc", "Toplam gelir", 1, 1], ["cash", "Nakit akışı", 1, 0], ["cats", "Kategoriler", 1, 1], ["daily", "Günlük harcama", 1, 1], ["tips", "Öneri ve dikkat", 1, 1], ["debtcal", "Borç takvimi", 1, 0], ["recent", "Son işlemler", 1, 0], ["fav", "Hızlı ekle", 1, 0], ["sub", "Abonelikler", 1, 0]];
 const normW = v => v === 2 || v === "w" ? "w" : v === 0 || v === "s" ? "s" : "n";
-const DG = { exp: [2, 2], inc: [2, 2], cash: [2, 2], cats: [2, 2], daily: [2, 2], tips: [2, 2], debtcal: [2, 3], recent: [2, 3], fav: [2, 1], top: [2, 2], sub: [2, 2], ratio: [2, 1] };
+const DG = { exp: [2, 2], inc: [2, 2], cash: [2, 2], cats: [2, 2], daily: [2, 2], tips: [2, 2], debtcal: [2, 3], recent: [2, 3], fav: [2, 1], sub: [2, 2] };
 const clampN = (v, a, b) => Math.max(a, Math.min(b, Math.round(v)));
 const normG = (g, id, w) => { const d = DG[id] || [2, 2]; const o = { w: clampN(g && +g.w || (w === "w" ? 4 : d[0]), 1, 6), h: clampN(g && +g.h || d[1], 1, 6) }; if (g && +g.x >= 1 && +g.y >= 1) { o.x = clampN(+g.x, 1, 6); o.y = clampN(+g.y, 1, 400); } return o; };
 function packLayout(list, cols) {
@@ -366,10 +366,10 @@ function packLayout(list, cols) {
   return list.map(it => out[it.id]);
 }
 // Modül boy seçenekleri: [genişlik, yükseklik]; genişlik 2 = tüm satır (telefon), küçükten büyüğe.
-const SZ = { debtcal: [[2, 1], [2, 2]], exp: [[1, 1]], inc: [[1, 1]], daily: [[1, 1], [2, 1]], top: [[1, 1], [1, 2]], cash: [[1, 1], [2, 1]], ratio: [[1, 1]], recent: [[1, 2], [2, 2]], cats: [[1, 1], [1, 2]], sub: [[1, 1], [1, 2]], tips: [[1, 1], [1, 2]], fav: [[2, 1]] };
+const SZ = { debtcal: [[2, 1], [2, 2]], exp: [[1, 1]], inc: [[1, 1]], daily: [[1, 1], [2, 1]], cash: [[1, 1], [2, 1]], recent: [[1, 2], [2, 2]], cats: [[1, 1], [1, 2]], sub: [[1, 1], [1, 2]], tips: [[1, 1], [1, 2]], fav: [[2, 1]] };
 const szNames = id => { const n = (SZ[id] || [[1, 1]]).length; return n === 1 ? ["Tek boy"] : n === 2 ? ["Küçük", "Büyük"] : ["Küçük", "Orta", "Büyük"]; };
 // Herkes için varsayılan sıra (kayıt yokken ve "Varsayılana dön" sonrası kullanılır).
-const DEF_DASH = { v: 3, items: ["exp", "inc", "daily", "debtcal", "cash", "recent", "top", "cats", "ratio", "sub", "tips", "fav"].map(id => ({ id, on: true, sz: 0 })) };
+const DEF_DASH = { v: 3, items: ["exp", "inc", "daily", "debtcal", "cash", "recent", "cats", "sub", "tips", "fav"].map(id => ({ id, on: true, sz: 0 })) };
 const dashMobile = () => !matchMedia("(min-width:900px)").matches;
 const dashCols = () => dashMobile() ? (matchMedia("(max-width:359px)").matches ? 1 : 2) : 6;
 const dashKey = () => dashMobile() ? "dashMobile" : "dash";
