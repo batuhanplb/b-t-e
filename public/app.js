@@ -1,6 +1,6 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.7.0";
+const APP_VERSION = "1.2.8.0";
 
 // Android uygulaması (Capacitor) içinde çalışırken: paylaşım bağlantıları canlı siteye gider, tarayıcı hissi kapatılır.
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
@@ -300,7 +300,7 @@ function txRow(t, m) {
   }
   if (t.ins) sub += ", taksit " + t.ins;
   if (t.n) sub += ", " + t.n;
-  return '<li><button class="tx' + (fut ? " future" : "") + '" data-act="edit-tx" data-id="' + esc(t.id) + '" data-m="' + (m || t.d.slice(0, 7)) + '"><span class="cic" style="--c:' + color + '">' + (t.k === "tr" ? svgI(CI.swap) : catIcon(spc)) + '</span><span class="m"><span class="t">' + esc(title) + '</span><span class="s">' + (((derived().accMap[t.acc] || {}).logo) ? '<img class="alogo xs" src="' + esc(derived().accMap[t.acc].logo) + '" alt="">' : '') + esc(sub) + '</span></span><span class="a ' + cls + '">' + amt + '</span></button></li>';
+  return '<li><button class="tx' + (fut ? " future" : "") + (S.sel && S.sel[t.id] ? " picked" : "") + '" data-act="edit-tx" data-id="' + esc(t.id) + '" data-m="' + (m || t.d.slice(0, 7)) + '"><span class="cic" style="--c:' + color + '">' + (t.k === "tr" ? svgI(CI.swap) : catIcon(spc)) + '</span><span class="m"><span class="t">' + esc(title) + '</span><span class="s">' + (((derived().accMap[t.acc] || {}).logo) ? '<img class="alogo xs" src="' + esc(derived().accMap[t.acc].logo) + '" alt="">' : '') + esc(sub) + '</span></span><span class="a ' + cls + '">' + amt + '</span></button></li>';
 }
 
 const LOGO = '<span class="lgw"><img class="lgi" src="/icons/icon-192.png" alt=""><span class="lgt">Bütçe</span></span>';
@@ -511,7 +511,12 @@ function vTx() {
     }
     out += txRow(t);
   }
-  return h + out + '</ul></div>';
+  return h + out + '</ul></div>' + selBar();
+}
+function selBar() {
+  if (!S.sel) return "";
+  const ids = Object.keys(S.sel), all = derived().all, tot = ids.reduce((s, id) => { const t = all.find(x => x.id === id); return !t || t.k === "tr" ? s : s + (t.k === "e" ? -t.a : t.a); }, 0);
+  return '<div class="selbar"><div class="selinfo"><b>' + ids.length + ' seçildi</b><span class="' + (tot < 0 ? "neg" : "pos") + '">Toplam: ' + (tot < 0 ? "-" : "") + f2(Math.abs(tot)) + '</span></div><button class="btn sm ghost" data-act="sel-x">Vazgeç</button><button class="btn sm" style="background:var(--exp);color:#fff" data-act="sel-del"' + (ids.length ? "" : " disabled") + '>Sil</button></div>';
 }
 
 /* ---- debts ---- */
@@ -1132,7 +1137,7 @@ document.addEventListener("click", e => {
     case "signin": S.authErr = ""; S.store.signIn().catch(err => { S.authErr = authMsg(err); render(); }); break;
     case "signout": closeSheet(); S.store.signOut(); break;
     case "bub": S.bub = S.bub === ds.v || !ds.v ? null : ds.v; render(); break;
-    case "nav": S.bub = null; S.dashEdit = false; S.dashTray = false; S.view = ds.v; S.catF = null; S.payF = null; S.fYear = null; if (ds.v === "tx") { S.month = S.month || CUR(); S.accFs = []; S.q = ""; S.showFutTx = false; } if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
+    case "nav": S.sel = null; S.bub = null; S.dashEdit = false; S.dashTray = false; S.view = ds.v; S.catF = null; S.payF = null; S.fYear = null; if (ds.v === "tx") { S.month = S.month || CUR(); S.accFs = []; S.q = ""; S.showFutTx = false; } if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
     case "mprev": S.month = C.addM(S.month, -1); render(); break;
     case "hprev": S.hm = C.addM(S.hm || CUR(), -1); render(); break;
     case "hnext": S.hm = C.addM(S.hm || CUR(), 1); render(); break;
@@ -1140,12 +1145,15 @@ document.addEventListener("click", e => {
     case "acc-tx": S.view = "tx"; S.accFs = [ds.id]; S.catF = null; S.payF = null; S.q = ""; S.per = "all"; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
     case "add": openTx({}); break;
     case "fav": { const f = derived().favs[+ds.i]; openTx({ k: f.k, cat: f.cat, acc: f.acc, t: f.t }); break; }
-    case "edit-tx": openTx({ id: ds.id, m: ds.m }); break;
+    case "edit-tx": if (S.selSkip) { S.selSkip = false; break; } if (S.sel) { if (S.sel[ds.id]) delete S.sel[ds.id]; else S.sel[ds.id] = ds.m; if (!Object.keys(S.sel).length) S.sel = null; render(); break; } openTx({ id: ds.id, m: ds.m }); break;
     case "add-sub": openTx({ k: "e" }); if (D) { D.rep = "mon"; D.open = true; renderTx(true); } break;
     case "mod-go": { if (S.dashEdit) break; const v = ds.v; S.catF = null; S.payF = null; S.fYear = null; S.bub = null;
       if (v.startsWith("g:")) { S.view = "tx"; S.per = "30"; S.accFs = []; S.q = ""; S.showPastTx = true; S.showFutTx = false; S.showE = v === "g:e"; S.showI = v === "g:i"; } else S.view = v;
       if (location.hash.slice(1) !== S.view) location.hash = S.view; render(); window.scrollTo(0, 0); break; }
     case "close": closeSheet(); break;
+    case "sel-x": S.sel = null; render(); break;
+    case "sel-del": { const ids = Object.keys(S.sel || {}); if (!ids.length || !confirm("Seçilen " + ids.length + " işlem silinsin mi?")) break; const by = {}; ids.forEach(id => (by[S.sel[id]] = by[S.sel[id]] || new Set()).add(id));
+      Object.keys(by).forEach(m => { const arr = monthItems(m).filter(x => !by[m].has(x.id)); S.months[m] = arr; try { saveMonth(m, arr); } catch (e) { console.error(e); } }); S.sel = null; render(); toast(ids.length + " işlem silindi"); break; }
     case "tx-k": { const k = ds.v; if (k === D.k) break; D.k = k; D.cat = null; D.catOpen = false; if (k === "tr") { D.to = visibleAccs().find(x => x.id !== D.acc)?.id || null; } else if (!D.accTouched) D.acc = lastAccFor(k); renderTx(true); break; }
     case "tx-acc": D[ds.f] = ds.id; if (ds.f === "acc") D.accTouched = true; dlgIn.querySelectorAll('[data-act="tx-acc"][data-f="' + ds.f + '"]').forEach(b => b.setAttribute("aria-pressed", b.dataset.id === ds.id)); break;
     case "cat-open": D.catOpen = !D.catOpen; D.cq = ""; D.spPick = null; renderTx(true); if (D.catOpen) $("#cq")?.focus(); break;
@@ -1374,3 +1382,13 @@ function accDrag() {
   ul.addEventListener("click", e => { if (S._noClick && Date.now() - S._noClick < 400) { e.stopPropagation(); e.preventDefault(); } }, true);
   ul.addEventListener("contextmenu", e => e.preventDefault());
 }
+
+/* long-press multi-select in transactions */
+(() => { let tm = null, sx = 0, sy = 0;
+  document.addEventListener("pointerdown", e => { const b = e.target.closest("button.tx"); if (!b || S.view !== "tx") return; sx = e.clientX; sy = e.clientY; clearTimeout(tm);
+    tm = setTimeout(() => { tm = null; S.sel = S.sel || {}; S.sel[b.dataset.id] = b.dataset.m; S.selSkip = true; try { navigator.vibrate && navigator.vibrate(15); } catch (_) {} render(); setTimeout(() => { S.selSkip = false; }, 600); }, 450); });
+  const cancel = () => { clearTimeout(tm); tm = null; };
+  document.addEventListener("pointermove", e => { if (tm && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) cancel(); });
+  document.addEventListener("pointerup", cancel); document.addEventListener("pointercancel", cancel);
+  document.addEventListener("contextmenu", e => { if (e.target.closest("button.tx")) e.preventDefault(); });
+})();
