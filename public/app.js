@@ -1295,7 +1295,7 @@ document.addEventListener("pointerup", () => { if (dragT) { dragT.w.classList.re
 let tipEl = null, tipT = null;
 function showTip(r, x, y, sticky) { if (!tipEl) { tipEl = document.createElement("div"); tipEl.className = "ctip"; document.body.appendChild(tipEl); }
   const t = r.dataset.tip; if (!t) return; const i = t.lastIndexOf(":"); tipEl.innerHTML = '<span>' + esc(t.slice(0, i)) + '</span><b>' + esc(t.slice(i + 1).trim()) + '</b>';
-  tipEl.style.display = "block"; const w = tipEl.offsetWidth, h = tipEl.offsetHeight; tipEl.style.left = Math.max(6, Math.min(innerWidth - w - 6, x - w / 2)) + "px"; tipEl.style.top = Math.max(6, y - h - 12) + "px";
+  tipEl.style.display = "block"; const w = tipEl.offsetWidth, h = tipEl.offsetHeight, md = r.closest(".mod"); if (md) { const b = md.getBoundingClientRect(); x = b.left + b.width / 2; y = b.top + h + 4; } tipEl.style.left = Math.max(6, Math.min(innerWidth - w - 6, x - w / 2)) + "px"; tipEl.style.top = Math.max(6, y - h - 12) + "px";
   document.querySelectorAll(".br.hl").forEach(e => e.classList.remove("hl")); const br = r.nextElementSibling; if (br && br.classList.contains("br")) br.classList.add("hl");
   clearTimeout(tipT); if (sticky) tipT = setTimeout(hideTip, 2500); }
 function hideTip() { if (tipEl) tipEl.style.display = "none"; document.querySelectorAll(".br.hl").forEach(e => e.classList.remove("hl")); }
