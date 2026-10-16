@@ -905,14 +905,14 @@ function saveTx(more) {
   if (D._new && D.rep === "mon" && D.open && txs.length) { const l = txs[txs.length - 1]; saveMetaChange(m => { (m.recs = m.recs || []).push({ grp: l.grp, last: l.d, day: Number(D.d.slice(8, 10)), tpl: { k: l.k, acc: l.acc, cat: l.cat || null, t: l.t || "", n: l.n || "", a: l.a, to: l.to || null } }); }); }
   if (!D._new && D._m !== D.d.slice(0, 7)) { saveMonth(D._m, monthItems(D._m).filter(x => x.id !== D.id)); }
   txs.forEach(t => { const m = t.d.slice(0, 7); const arr = (touched.has(m) ? S.months[m] : monthItems(m)).filter(x => x.id !== t.id); arr.push(t); arr.sort((x, y) => (x.ts || 0) - (y.ts || 0)); S.months[m] = arr; touched.add(m); });
-  touched.forEach(m => { try { const r = saveMonth(m, S.months[m]); r && r.catch && r.catch(e => console.error(e)); } catch (e) { console.error(e); } });
   if (!D._new && D.gl) D.gl.forEach(g => { if (g.d + "|" + g.a === g.o || !g.d || !(g.a > 0)) return; const t0 = monthItems(g.m).find(x => x.id === g.id); if (!t0) return; const nm = g.d.slice(0, 7);
     if (nm !== g.m) { S.months[g.m] = monthItems(g.m).filter(x => x.id !== g.id); touched2.add(g.m); }
     const arr = monthItems(nm).filter(x => x.id !== g.id); arr.push({ ...t0, d: g.d, a: C.r2(g.a) }); arr.sort((x, y) => (x.ts || 0) - (y.ts || 0)); S.months[nm] = arr; touched2.add(nm); });
-  touched2.forEach(m => { try { saveMonth(m, S.months[m]); } catch (e) { console.error(e); } });
   const msg = D._new ? (txs.length > 1 ? txs.length + " işlem eklendi" : "Kaydedildi") : "Güncellendi";
-  if (more) { const keepK = D.k, keepAcc = D.acc; render(); openTx({ k: keepK, acc: keepAcc }); toast(msg); }
-  else { if (dlg.open) dlg.close(); D = null; render(); toast(msg); }
+  const flush = () => { new Set([...touched, ...touched2]).forEach(m => { try { const r = saveMonth(m, S.months[m]); r && r.catch && r.catch(e => console.error(e)); } catch (e) { console.error(e); } }); };
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if (more) { const keepK = D.k, keepAcc = D.acc; openTx({ k: keepK, acc: keepAcc }); toast(msg); setTimeout(() => { flush(); render(); }, 30); }
+  else { if (dlg.open) dlg.close(); D = null; S.bub = null; toast(msg); setTimeout(() => { flush(); render(); }, 30); }
 }
 function deleteTx(all) {
   if (all && D.grp) {
