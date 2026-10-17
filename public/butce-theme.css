@@ -213,15 +213,3 @@ button.tx.picked{background:color-mix(in oklab,var(--primary,#3b5bdb) 14%,transp
 .askbox p{margin:0 0 6px;font-size:16px;font-weight:600;text-align:center}
 .askbox .btn{width:100%;min-height:48px;font-size:15px;border-radius:12px}.askbox .askred{background:var(--exp);color:#fff;border-color:var(--exp)}
 @keyframes askf{from{opacity:0}}@keyframes asku{from{transform:translateY(30px);opacity:0}}
-/* 1.2.9.2 mobil dokunma alanları */
-@media (max-width:760px){
- .btn{min-height:44px}.btn.sm{min-height:40px}.ib{min-width:40px;min-height:40px}
- .chip{min-height:36px;padding:8px 12px}.seg button,.seg label{min-height:38px}
- .bub .bi{min-width:48px;min-height:48px}.mnav a,.mnav button{min-height:52px}
- dialog.sheet{max-height:92dvh;overflow:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
- dialog.sheet input,dialog.sheet select{min-height:44px;font-size:16px}
- .askov{padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
- .askbox{max-width:min(360px,100%);max-height:85dvh;overflow:auto}
- .askbox .btn{min-height:52px;font-size:16px}
- button,a,.chip,.btn{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-}
