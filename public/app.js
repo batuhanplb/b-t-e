@@ -1,6 +1,6 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.9.1";
+const APP_VERSION = "1.2.9.2";
 function ask(msg, opts) {
   opts = opts || [{ l: "Sil", v: true, red: 1 }];
   return new Promise(res => {
