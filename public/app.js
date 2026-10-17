@@ -1,6 +1,6 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.9.1";
+const APP_VERSION = "1.2.10.0";
 function ask(msg, opts) {
   opts = opts || [{ l: "Sil", v: true, red: 1 }];
   return new Promise(res => {
@@ -953,11 +953,11 @@ function schedRows() {
 const refreshSched = () => { const w = $("#schedwrap"), st = w.scrollTop; w.innerHTML = schedRows(); w.scrollTop = st; };
 function planHtml() {
   const nd = new Date(); nd.setMonth(nd.getMonth() + 1);
-  return '<div class="plan"><div class="row2"><label class="fld"><span>Kaç ay (taksit sayısı)</span><input class="in" type="number" id="p-n" min="1" max="120" value="' + (D.term || 12) + '"></label><label class="fld"><span>İlk ödeme tarihi</span><input class="in" type="date" id="p-date" value="' + C.ymd(nd) + '"></label></div><label class="fld"><span>Aylık taksit</span><input class="in" inputmode="decimal" id="p-a" placeholder="0,00"></label><div id="p-err"></div><button class="btn sm" data-act="d-plan-go">Taksitleri oluştur</button><p class="small muted" style="margin:8px 0 0">Oluşan taksitleri listeden tek tek düzenleyebilirsiniz.</p></div>';
+  return '<div class="plan"><div class="row2"><label class="fld"><span>Kaç ay (taksit sayısı)</span><input class="in" type="number" id="p-n" min="1" max="120" value="' + (D.term || 12) + '"></label><label class="fld"><span>İlk ödeme tarihi</span><input class="in" id="p-date" inputmode="numeric" maxlength="10" placeholder="GG.AA.YYYY" value="' + C.ymd(nd).split("-").reverse().join(".") + '"></label></div><label class="fld"><span>Aylık taksit</span><input class="in" inputmode="decimal" id="p-a" placeholder="0,00"></label><div id="p-err"></div><button class="btn sm" data-act="d-plan-go">Taksitleri oluştur</button><p class="small muted" style="margin:8px 0 0">Oluşan taksitleri listeden tek tek düzenleyebilirsiniz.</p></div>';
 }
 function applyPlan(quiet) {
   const el = $("#p-n"); if (!el) return false;
-  const n = parseInt(el.value), am = C.parseAmt($("#p-a").value), l = NaN, dt = $("#p-date").value;
+  const n = parseInt(el.value), am = C.parseAmt($("#p-a").value), l = NaN, dm = $("#p-date").value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/), dt = dm && +dm[2] >= 1 && +dm[2] <= 12 && +dm[1] >= 1 && +dm[1] <= 31 ? dm[3] + "-" + dm[2].padStart(2, "0") + "-" + dm[1].padStart(2, "0") : "";
   if (!(n > 0) || !(am > 0) || !dt) { if (!quiet) $("#p-err").innerHTML = '<p class="err">Taksit sayısı, ilk ödeme tarihi ve aylık tutarı girin.</p>'; return false; }
   const st = dt.slice(0, 7); D.day = Number(dt.slice(8, 10));
   D.sched = [...Array(n)].map((_, i) => ({ m: C.addM(st, i), a: i === n - 1 && l > 0 ? C.r2(l) : C.r2(am) }));
@@ -1295,7 +1295,8 @@ document.addEventListener("input", e => {
   const t = e.target;
   if (t.dataset.in === "q") { S.q = t.value; const pos = t.selectionStart; render(); const n = document.querySelector('[data-in="q"]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } return; }
   if (!D) return;
-  if (t.dataset.d === "aStr" || t.dataset.sa != null || t.dataset.pa != null) formatAmountField(t);
+  if (t.dataset.d === "aStr" || t.dataset.sa != null || t.dataset.pa != null || t.dataset.si != null || t.id === "p-a" || (t.dataset.num === "amt" && t.dataset.f !== "rate")) formatAmountField(t);
+  if (t.id === "p-date") { const g = t.value.replace(/\D/g, "").slice(0, 8); t.value = g.length > 4 ? g.slice(0, 2) + "." + g.slice(2, 4) + "." + g.slice(4) : g.length > 2 ? g.slice(0, 2) + "." + g.slice(2) : g; return; }
   if (t.dataset.d) { D[t.dataset.d] = t.dataset.d === "cnt" ? parseInt(t.value) || 0 : t.value; if (t.dataset.d === "t") renderSugg(); if (["aStr", "cnt"].includes(t.dataset.d)) renderPlanBox(); if (t.dataset.d === "cnt" || (t.dataset.d === "aStr" && D.rep !== "one")) { /* preview updates on next render */ } }
   if (t.dataset.f) { const k = t.dataset.num; let v = t.value; if (k === "amt") { v = v.trim() === "" ? null : C.parseAmt(v); if (v !== null && isNaN(v)) return; } else if (k === "int") v = v === "" ? null : parseInt(v); D[t.dataset.f] = v; }
   if (t.id === "cq") { D.cq = t.value; $("#catlist").innerHTML = catList(D.k, D.cq); return; }
@@ -1308,10 +1309,11 @@ document.addEventListener("input", e => {
   if (t.dataset.ga != null && D && D.gl) { D.gl[+t.dataset.ga].a = C.parseAmt(t.value) || 0; return; }
   if (t.dataset.pd != null) { D.plan[+t.dataset.pd].d = t.value; D.planEdited = true; }
   if (t.dataset.sa != null) { D.sp[+t.dataset.sa].a = t.value; const b = $("#spbox .spf span"); if (b) { const a = C.parseAmt(D.aStr) || 0, sum = D.sp.reduce((s, x) => s + (C.parseAmt(x.a) || 0), 0), df = C.r2(a - sum); b.className = "small " + (Math.abs(df) < 0.005 ? "muted" : "neg"); b.textContent = Math.abs(df) < 0.005 ? "Dağıtım tam" : (df > 0 ? "Kalan " + f2(df) : "Fazla " + f2(-df)); } }
-  if (t.dataset.si != null) { const v = C.parseAmt(t.value); D.sched[+t.dataset.si].a = isNaN(v) ? 0 : v; }
+  if (t.dataset.si != null) { const v = C.parseAmt(t.value); D.sched[+t.dataset.si].a = isNaN(v) ? 0 : v; if (D.kind !== "kart") { D.total = C.r2(D.sched.reduce((s, x) => s + (x.a || 0), 0)); const te = document.querySelector('[data-f="total"]'); if (te) te.value = amtIn(D.total); } }
   if (t.dataset.a) { const k = t.dataset.a; D.acc[k] = t.type === "checkbox" ? t.checked : k === "start" ? (C.parseAmt(t.value) || 0) : t.value; }
   if (t.dataset.c) { D.cat[t.dataset.c] = t.value || (t.dataset.c === "parent" ? null : ""); }
 });
+document.addEventListener("focusin", e => { const t = e.target; if (t.tagName === "INPUT" && (t.inputMode === "decimal" || t.inputMode === "numeric" || t.type === "number")) { t.setAttribute("autocomplete", "one-time-code"); t.setAttribute("autocorrect", "off"); t.setAttribute("spellcheck", "false"); t.setAttribute("data-lpignore", "true"); t.setAttribute("data-1p-ignore", "true"); t.setAttribute("name", "n" + Math.random().toString(36).slice(2)); } });
 document.addEventListener("change", e => {
   const t = e.target;
   if (t.dataset.ch === "accF") { S.accF = t.value; render(); }
