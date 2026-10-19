@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.18.0";
+const APP_VERSION = "1.2.18.1";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -388,7 +388,7 @@ const szNames = id => { const n = (SZ[id] || [[1, 1]]).length; return n === 1 ? 
 // Herkes için varsayılan sıra (kayıt yokken ve "Varsayılana dön" sonrası kullanılır).
 const DEF_DASH = { v: 3, items: ["exp", "inc", "daily", "debtcal", "cash", "cats", "sub", "tips", "fav"].map(id => ({ id, on: true, sz: 0 })) };
 const dashMobile = () => !matchMedia("(min-width:900px)").matches;
-const dashCols = () => dashMobile() ? (matchMedia("(max-width:359px)").matches ? 1 : 2) : 6;
+const dashCols = () => dashMobile() ? (matchMedia("(max-width:359px)").matches ? 1 : 2) : 8;
 const dashKey = () => dashMobile() ? "dashMobile" : "dash";
 const dashCfg = () => { const mobile = dashMobile(), own = (S.dashEdit && S.dashDraft) || meta()[dashKey()], md = own || meta().dash || DEF_DASH;
   let saved = (md && md.items) || [];
