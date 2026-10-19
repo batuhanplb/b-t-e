@@ -10,12 +10,12 @@
  --paid:var(--c3);--paid-ink:var(--inc);--due-bg:var(--c4);--due:var(--c4i);--sub:var(--c3);
  --shadow-float:0 4px 16px color-mix(in oklab,var(--ink) 14%,transparent);color-scheme:light;
 }
-@media not all{:root{
+html[data-theme=dark]{
  --bg:oklch(.17 .007 180);--surface:oklch(.215 .009 180);--sunk:oklch(.25 .009 180);--line:oklch(.32 .01 180);
   --ink:oklch(.93 .005 180);--muted:oklch(.73 .008 180);--faint:oklch(.6 .008 180);--primary:oklch(.76 .11 262);--on-primary:oklch(.19 .02 180);
   --inc:oklch(.75 .13 150);--exp:oklch(.75 .135 25);--tr:oklch(.76 .1 250);
   --c1:oklch(.26 .03 240);--c1i:var(--tr);--c3:oklch(.27 .045 262);--c4:oklch(.28 .035 80);--c4i:oklch(.79 .105 80);--c5:oklch(.27 .03 25);color-scheme:dark;
-}}
+}
 body{font-size:13px;line-height:1.45;background:var(--bg)}
 *,*::before,*::after{letter-spacing:0}
 button,input,select,textarea{font-family:var(--font)}
