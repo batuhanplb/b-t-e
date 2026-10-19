@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.16.1";
+const APP_VERSION = "1.2.17.0";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -390,7 +390,7 @@ const DEF_DASH = { v: 3, items: ["exp", "inc", "daily", "debtcal", "cash", "cats
 const dashMobile = () => !matchMedia("(min-width:900px)").matches;
 const dashCols = () => dashMobile() ? (matchMedia("(max-width:359px)").matches ? 1 : 2) : 6;
 const dashKey = () => dashMobile() ? "dashMobile" : "dash";
-const dashCfg = () => { const mobile = dashMobile(), own = meta()[dashKey()], md = own || meta().dash || DEF_DASH;
+const dashCfg = () => { const mobile = dashMobile(), own = (S.dashEdit && S.dashDraft) || meta()[dashKey()], md = own || meta().dash || DEF_DASH;
   let saved = (md && md.items) || [];
   if (md.v !== 3) saved = saved.slice().sort((a, b) => ((a.g && a.g.y) || 99) - ((b.g && b.g.y) || 99) || ((a.g && a.g.x) || 0) - ((b.g && b.g.x) || 0));
   const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id), opts = szOpts(id), sz = f && Number.isInteger(f.sz) ? clampN(f.sz, 0, opts.length - 1) : 0, [w, hh] = opts[sz];
@@ -461,7 +461,7 @@ function vHome() {
     return rendered.map(([x, o], i) => wrap(x, o, lay[i])).join(""); };
   const hidden = cfgM.filter(x => !x.on);
   h += '<div class="toolbar dash-tb"><div class="pill"><button class="ib" data-act="hprev" aria-label="Önceki ay">' + ICON.l + '</button><span>' + mLabel(m) + '</span><button class="ib" data-act="hnext" aria-label="Sonraki ay">' + ICON.r + '</button></div><span style="flex:1"></span>' +
-    (edit ? (desk ? '<button class="btn sm ghost" data-act="dg-tray">+ Modül ekle' + (hidden.length ? " (" + hidden.length + ")" : "") + '</button>' : '') + '<button class="btn sm ghost" data-act="dg-reset">Varsayılana dön</button><button class="btn sm" data-act="dash-edit-off">Bitti</button>'
+    (edit ? (desk ? '<button class="btn sm ghost" data-act="dg-tray">+ Modül ekle' + (hidden.length ? " (" + hidden.length + ")" : "") + '</button>' : '') + '<button class="btn sm ghost" data-act="dg-reset">Varsayılana dön</button><button class="btn sm ghost" data-act="dash-edit-cancel">Vazgeç</button><button class="btn sm" data-act="dash-edit-off">Bitti</button>'
       : '<button class="ib dash-pencil" data-act="dash-edit-on" aria-label="Modülleri düzenle" title="Modülleri düzenle">' + ICON.pen + '</button>') + '</div>';
   if (edit && !desk) { // telefonda kartların yerine sade bir liste
     const shown = on, up = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>', dn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
@@ -1179,7 +1179,7 @@ document.addEventListener("click", e => {
     case "signin": S.authErr = ""; S.store.signIn().catch(err => { S.authErr = authMsg(err); render(); }); break;
     case "signout": closeSheet(); S.store.signOut(); break;
     case "bub": S.bub = S.bub === ds.v || !ds.v ? null : ds.v; render(); break;
-    case "nav": S.stmt = null; S.sel = null; S.bub = null; S.dashEdit = false; S.dashTray = false; S.view = ds.v; S.catF = null; S.payF = null; S.fYear = null; if (ds.v === "tx") { S.month = S.month || CUR(); S.accFs = []; S.q = ""; S.showFutTx = false; } if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
+    case "nav": S.stmt = null; S.sel = null; S.bub = null; S.dashEdit = false; S.dashDraft = null; S.dashTray = false; S.view = ds.v; S.catF = null; S.payF = null; S.fYear = null; if (ds.v === "tx") { S.month = S.month || CUR(); S.accFs = []; S.q = ""; S.showFutTx = false; } if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
     case "mprev": S.month = C.addM(S.month, -1); render(); break;
     case "hprev": S.hm = C.addM(S.hm || CUR(), -1); render(); break;
     case "hnext": S.hm = C.addM(S.hm || CUR(), 1); render(); break;
@@ -1310,14 +1310,15 @@ document.addEventListener("click", e => {
     case "acc-logo-rm": D.acc.logo = null; renderSettings(); break;
     case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (!confirm("Hesap silinsin mi?")) break; saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
     case "cat-del": { const id = D.cat.id; if (derived().all.some(t => t.cat === id) || meta().categories.some(x => x.parent === id)) { $("#s-err").innerHTML = '<p class="err">Bu kategori kullanılıyor veya alt kategorisi var.</p>'; break; } if (!confirm("Kategori silinsin mi?")) break; saveMetaChange(m => { m.categories = m.categories.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
-    case "dash-edit-on": S.dashEdit = true; S.dashTray = false; render(); break;
-    case "dash-edit-off": S.dashEdit = false; S.dashTray = false; render(); break;
+    case "dash-edit-on": S.dashDraft = null; S.dashEdit = true; S.dashTray = false; render(); break;
+    case "dash-edit-off": { const dr = S.dashDraft; S.dashDraft = null; S.dashEdit = false; S.dashTray = false; if (dr) saveMetaChange(m => { if (dr.reset) delete m[dashKey()]; else m[dashKey()] = dr; }); render(); if (dr) toast("Kaydedildi"); break; }
+    case "dash-edit-cancel": S.dashDraft = null; S.dashEdit = false; S.dashTray = false; render(); break;
     case "dg-tray": S.dashTray = !S.dashTray; render(); break;
     case "dg-hide": dgSave(items => { const it = items.find(x => x.id === ds.id); if (it) it.on = false; }); render(); break;
     case "dg-add": dgSave(items => { const k = items.findIndex(x => x.id === ds.id); if (k < 0) return; const it = items.splice(k, 1)[0]; it.on = true; items.push(it); }); render(); break;
     case "dg-mv": dgSave(items => { const i = items.findIndex(x => x.id === ds.id), dir = Number(ds.d); if (i < 0) return; let j = i + dir; while (j >= 0 && j < items.length && !items[j].on) j += dir; if (j < 0 || j >= items.length) return; [items[i], items[j]] = [items[j], items[i]]; }); render(); break;
     case "dg-sz": dgSave(items => { const it = items.find(x => x.id === ds.id); if (!it) return; const n = szOpts(it.id).length; it.sz = ds.s != null ? clampN(+ds.s, 0, n - 1) : (it.sz + 1) % n; }); render(); break;
-    case "dg-reset": ask("Modül yerleşimi varsayılana dönsün mü?", [{ l: "Varsayılana dön", v: 1 }]).then(v => { if (!v) return; saveMetaChange(m => { delete m[dashKey()]; }); render(); toast("Varsayılana dönüldü"); }); break;
+    case "dg-reset": ask("Modül yerleşimi varsayılana dönsün mü?", [{ l: "Varsayılana dön", v: 1 }]).then(v => { if (!v) return; S.dashDraft = { ...JSON.parse(JSON.stringify(DEF_DASH)), reset: true }; render(); }); break;
     case "gt-edit": D = { view: "gt", hid: [], ...clone(gtCfg()) }; renderSettings(); break;
     case "gt-rm": D[ds.g].splice(+ds.i, 1); renderSettings(); break;
     case "gt-mv": { const g = ds.g, i = +ds.i, j = i + Number(ds.d); if (j >= 0 && j < D[g].length) { [D[g][i], D[g][j]] = [D[g][j], D[g][i]]; } renderSettings(); break; }
@@ -1401,7 +1402,7 @@ document.addEventListener("touchstart", e => { const r = e.target.closest && e.t
 document.addEventListener("touchmove", e => { if (!scrub) return; const t0 = e.touches[0]; if (!scrub.on) { if (Math.abs(t0.clientX - scrub.x) > 8 || Math.abs(t0.clientY - scrub.y) > 8) { clearTimeout(scrub.tm); scrub = null; } return; } e.preventDefault(); scrub.x = t0.clientX; scrub.y = t0.clientY; const el = document.elementFromPoint(t0.clientX, Math.min(t0.clientY, innerHeight - 2)); let r = el && el.closest && el.closest(".bhit"); if (!r) { const svg = document.querySelectorAll("svg.chart"); for (const s of svg) { const b = s.getBoundingClientRect(); if (t0.clientX >= b.left && t0.clientX <= b.right && t0.clientY >= b.top - 40 && t0.clientY <= b.bottom + 40) { const hs = [...s.querySelectorAll(".bhit")]; r = hs.find(h => { const hb = h.getBoundingClientRect(); return t0.clientX >= hb.left && t0.clientX <= hb.right; }); break; } } } if (r) showTip(r, t0.clientX, t0.clientY); }, { passive: false });
 document.addEventListener("touchend", () => { if (!scrub) return; clearTimeout(scrub.tm); if (scrub.on) tipT = setTimeout(hideTip, 1500); scrub = null; });
 addEventListener("scroll", () => { if (tipEl && tipEl.style.display === "block") hideTip(); }, { passive: true });
-function dgSave(mut) { const items = dashCfg(); mut(items); saveMetaChange(m => { m[dashKey()] = { v: 3, items: items.map(x => ({ id: x.id, on: x.on, sz: x.sz })) }; }); }
+function dgSave(mut) { const items = dashCfg(); mut(items); S.dashDraft = { v: 3, items: items.map(x => ({ id: x.id, on: x.on, sz: x.sz })) }; }
 let wasCols = dashCols();
 addEventListener("resize", () => { const cols = dashCols(); if (cols !== wasCols) { wasCols = cols; if (S.store && S.view === "home") render(); } });
 addEventListener("online", render); addEventListener("offline", render);
