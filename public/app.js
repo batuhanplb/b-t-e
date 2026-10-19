@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.20.0";
+const APP_VERSION = "1.2.20.1";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
