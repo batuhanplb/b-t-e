@@ -217,3 +217,5 @@ button.tx.picked{background:color-mix(in oklab,var(--primary,#3b5bdb) 14%,transp
 
 @media(min-width:900px){.manual-grid:has(.mod.editing){padding-bottom:260px;background-image:linear-gradient(to right,color-mix(in srgb,var(--primary) 10%,transparent) 1px,transparent 1px);background-size:calc((100% + 14px)/8) 100%}.mod.editing[draggable]{cursor:grab}.mod.dg-dragging{opacity:.4}}
 @media(min-width:900px){main .mods,main .manual-grid{grid-template-columns:repeat(8,minmax(0,1fr))!important}}
+
+.pay-dir{min-width:36px;padding:0 10px;justify-content:center}.pay-dir svg{width:15px;height:15px;display:block}
