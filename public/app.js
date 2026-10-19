@@ -329,7 +329,7 @@ function smoothPath(pts) {
 const CH = {}; let chSeq = 0;
 function chartBox(kind, ...args) { const id = "c" + (++chSeq); CH[id] = { kind, args }; return '<div class="chartbox" data-cid="' + id + '"></div>'; }
 function thinLabels(labels, xf, minGap) { let last = -1e9; const out = []; (labels || []).forEach(([i, t]) => { const xx = xf(i); if (xx - last >= minGap) { out.push([i, t, xx]); last = xx; } }); return out; }
-function cumTips(a, b) { return a.map((v, i) => (i + 1) + ". gün: " + f0(v || 0) + (b && b[i] != null ? " · önceki: " + f0(b[i]) : "")); }
+function cumTips(a, b) { return a.map((v, i) => v == null ? "" : (i + 1) + ". gün: " + f0(v) + (b && b[i] != null ? " · önceki: " + f0(b[i]) : "")); }
 function lineSvg(a, b, labels, W = 340, H = 170, tips) {
   const pr = W < 230 ? 34 : 46, pl = 6, pt = 10, pb = H < 90 ? 8 : 26, gn = H < 90 ? 2 : 3, n = Math.max(a.length, (b || []).length);
   const vals = a.concat(b || []).filter(v => v != null), lo = Math.min(0, ...vals), hi = Math.max(1, ...vals), rg = hi - lo || 1;
