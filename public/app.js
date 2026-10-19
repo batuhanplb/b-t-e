@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.22.1";
+const APP_VERSION = "1.2.22.2";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -853,6 +853,13 @@ function renderTx(keep) {
   const gw = $("#glwrap"); if (gw) { const me = gw.querySelector(".gl-me"), pv = me && me.previousElementSibling; const top = (pv || me); if (top) gw.scrollTop = top.offsetTop; }
 }
 function catPanel(k) { return '<div class="catpanel tx-catpanel"><div id="catlist" class="tx-catlist" role="listbox" aria-label="Kategoriler">' + catList(k, D.cq) + '</div></div>'; }
+function gtList(kind, g, q) {
+  q = (q || "").trim().toLocaleLowerCase("tr"); if (!q) return "";
+  const have = D[g] || [];
+  const items = kind === "c" ? catTree().filter(({ c }) => c.type === "E").map(({ c }) => ({ v: c.id, l: catLabel(c.id, true), col: c.color })) : derived().payees.filter(p => p.k === "e").map(p => ({ v: "p:" + p.t, l: p.t, col: "var(--tr)" }));
+  const m = items.filter(x => !have.includes(x.v) && x.l.toLocaleLowerCase("tr").includes(q)).sort((a, b) => a.l.localeCompare(b.l, "tr")).slice(0, 40);
+  return m.length ? m.map(x => '<button class="tx-catoption" role="option" data-act="gt-add" data-g="' + g + '" data-v="' + esc(x.v) + '"><i style="background:' + x.col + '"></i><span>' + esc(x.l) + '</span></button>').join("") : '<p class="small muted cat-noresults">Eşleşen yok.</p>';
+}
 function catList(k, q) {
   const cats = meta().categories.filter(c => c.type === (k === "i" ? "I" : "E"));
   const selected = D.spPick != null ? D.sp[D.spPick].cat : D.cat;
@@ -1061,7 +1068,7 @@ function renderSettings() {
       '<div class="sh-ft">' + (c._new ? '' : '<button class="btn danger" data-act="cat-del">Sil</button>') + '<button class="btn" data-act="cat-save">Kaydet</button></div>';
   } else if (v === "gt") {
     const ex = catTree().filter(({ c }) => c.type === "E");
-    const grpH = (g, l) => '<label class="fld"><span>Grup adı</span><input class="in" data-gn="' + g.replace("g", "n") + '" value="' + esc(D[g.replace("g", "n")] || l) + '"></label><div class="chips" style="margin-bottom:8px">' + (D[g].length ? D[g].map((id, i) => '<span class="chip" style="padding:4px 6px 4px 10px"><i style="background:' + (id.startsWith("p:") ? "var(--tr)" : catColor(id)) + '"></i><span' + ((D.hid || []).includes(id) ? ' style="opacity:.45;text-decoration:line-through"' : '') + '>' + esc(id.startsWith("p:") ? id.slice(2) : catLabel(id, true)) + '</span> <button class="ib" style="width:26px;height:26px" data-act="gt-hide" data-id="' + esc(id) + '" aria-label="Gizle">' + ((D.hid || []).includes(id) ? ICON.eyeoff : ICON.eye) + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="-1" aria-label="Sola taşı"' + (i === 0 ? ' disabled' : '') + '>' + ICON.l + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="1" aria-label="Sağa taşı"' + (i === D[g].length - 1 ? ' disabled' : '') + '>' + ICON.r + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-rm" data-g="' + g + '" data-i="' + i + '" aria-label="Kaldır">' + ICON.x + '</button></span>').join("") : '<span class="small muted">Henüz sütun yok.</span>') + '</div><div class="row2" style="margin-bottom:18px"><input class="in" data-gt="' + g + '" list="dl-gt-' + g + '" placeholder="Kategori ara…" autocomplete="off"><datalist id="dl-gt-' + g + '">' + ex.map(({ c }) => '<option value="' + esc(catLabel(c.id, true)) + '"></option>').join("") + '</datalist><input class="in" data-gtp="' + g + '" list="dl-gtp-' + g + '" placeholder="Lehdar ara…" autocomplete="off"><datalist id="dl-gtp-' + g + '">' + derived().payees.filter(p => p.k === "e").slice(0, 300).sort((a, b) => a.t.localeCompare(b.t, "tr")).map(p => '<option value="' + esc(p.t) + '"></option>').join("") + '</datalist></div>';
+    const grpH = (g, l) => '<label class="fld"><span>Grup adı</span><input class="in" data-gn="' + g.replace("g", "n") + '" value="' + esc(D[g.replace("g", "n")] || l) + '"></label><div class="chips" style="margin-bottom:8px">' + (D[g].length ? D[g].map((id, i) => '<span class="chip" style="padding:4px 6px 4px 10px"><i style="background:' + (id.startsWith("p:") ? "var(--tr)" : catColor(id)) + '"></i><span' + ((D.hid || []).includes(id) ? ' style="opacity:.45;text-decoration:line-through"' : '') + '>' + esc(id.startsWith("p:") ? id.slice(2) : catLabel(id, true)) + '</span> <button class="ib" style="width:26px;height:26px" data-act="gt-hide" data-id="' + esc(id) + '" aria-label="Gizle">' + ((D.hid || []).includes(id) ? ICON.eyeoff : ICON.eye) + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="-1" aria-label="Sola taşı"' + (i === 0 ? ' disabled' : '') + '>' + ICON.l + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="1" aria-label="Sağa taşı"' + (i === D[g].length - 1 ? ' disabled' : '') + '>' + ICON.r + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-rm" data-g="' + g + '" data-i="' + i + '" aria-label="Kaldır">' + ICON.x + '</button></span>').join("") : '<span class="small muted">Henüz sütun yok.</span>') + '</div><div class="row2" style="margin-bottom:18px"><div><div class="catsel cat-search">' + ICON.search + '<input data-gtq="' + g + '" autocomplete="off" placeholder="Kategori ara…"></div><div class="tx-catlist" id="gtl-c-' + g + '"></div></div><div><div class="catsel cat-search">' + ICON.search + '<input data-gtpq="' + g + '" autocomplete="off" placeholder="Lehdar ara…"></div><div class="tx-catlist" id="gtl-p-' + g + '"></div></div></div>';
     h = head("Gider tablosu sütunları") + '<div class="sh-bd"><p class="small muted" style="margin-top:0">Her grubun sonunda bir ara toplam sütunu olur. Ana kategori seçerseniz alt kategorileri de dahil edilir. Çıkarmak için sütuna dokunun.</p>' + grpH("g1", "1. grup") + grpH("g2", "2. grup") + '</div><div class="sh-ft"><button class="btn" data-act="gt-save">Kaydet</button></div>';
   } else if (v === "ci") {
     const c = D.ci, mon = c.rep !== "once";
@@ -1219,6 +1226,7 @@ document.addEventListener("click", e => {
     case "tx-k": { const k = ds.v; if (k === D.k) break; D.k = k; D.cat = null; D.catOpen = false; if (k === "tr") { D.to = visibleAccs().find(x => x.id !== D.acc)?.id || null; } else if (!D.accTouched) D.acc = lastAccFor(k); renderTx(true); break; }
     case "tx-acc": D[ds.f] = ds.id; if (ds.f === "acc") D.accTouched = true; dlgIn.querySelectorAll('[data-act="tx-acc"][data-f="' + ds.f + '"]').forEach(b => b.setAttribute("aria-pressed", b.dataset.id === ds.id)); break;
     case "cat-open": D.catOpen = !D.catOpen; D.cq = ""; D.spPick = null; renderTx(true); if (D.catOpen) $("#cq")?.focus(); break;
+    case "gt-add": if (!D[ds.g].includes(ds.v)) D[ds.g].push(ds.v); renderSettings(); break;
     case "tx-cat": if (D.spPick != null) { D.sp[D.spPick].cat = ds.id; D.spPick = null; renderTx(true); break; } D.cat = ds.id; D.catOpen = false; D.cq = ""; renderTx(true); dlgIn.querySelector('[data-act="cat-open"]')?.focus(); break;
     case "sp-toggle": if (D.sp && D.sp.length) D.sp = null; else { const a = C.parseAmt(D.aStr) || 0; D.sp = [{ cat: D.cat, a: a ? amtIn(a) : "" }, { cat: null, a: "" }]; } D.spPick = null; renderTx(true); break;
     case "sp-add": D.sp.push({ cat: null, a: "" }); renderSpBox(); break;
@@ -1346,6 +1354,7 @@ document.addEventListener("input", e => {
   if (t.id === "p-date") { const g = t.value.replace(/\D/g, "").slice(0, 8); t.value = g.length > 4 ? g.slice(0, 2) + "." + g.slice(2, 4) + "." + g.slice(4) : g.length > 2 ? g.slice(0, 2) + "." + g.slice(2) : g; return; }
   if (t.dataset.d) { D[t.dataset.d] = t.dataset.d === "cnt" ? parseInt(t.value) || 0 : t.value; if (t.dataset.d === "t") renderSugg(); if (["aStr", "cnt"].includes(t.dataset.d)) renderPlanBox(); if (t.dataset.d === "cnt" || (t.dataset.d === "aStr" && D.rep !== "one")) { /* preview updates on next render */ } }
   if (t.dataset.f) { const k = t.dataset.num; let v = t.value; if (k === "amt") { v = v.trim() === "" ? null : C.parseAmt(v); if (v !== null && isNaN(v)) return; } else if (k === "int") v = v === "" ? null : parseInt(v); D[t.dataset.f] = v; }
+  if (D && (t.dataset.gtq || t.dataset.gtpq)) { const g = t.dataset.gtq || t.dataset.gtpq, kd = t.dataset.gtq ? "c" : "p"; $("#gtl-" + kd + "-" + g).innerHTML = gtList(kd, g, t.value); return; }
   if (t.id === "cq") { D.cq = t.value; $("#catlist").innerHTML = catList(D.k, D.cq); return; }
   if (t.id === "lgq" && D) { D.lgq = t.value; clearTimeout(lgT); lgT = setTimeout(() => logoSearch(t.value), 250); return; }
   if (t.dataset.gn) D[t.dataset.gn] = t.value;
@@ -1369,8 +1378,6 @@ document.addEventListener("change", e => {
   if (t.id === "cat-img" && t.files[0] && D && D.cat) { const im = new Image(); im.onload = () => { const cv = document.createElement("canvas"); cv.width = cv.height = 72; const k = Math.min(im.width, im.height); cv.getContext("2d").drawImage(im, (im.width - k) / 2, (im.height - k) / 2, k, k, 0, 0, 72, 72); D.cat.img = cv.toDataURL("image/webp", 0.82); if (!D.cat.img.startsWith("data:image/webp")) D.cat.img = cv.toDataURL("image/png"); URL.revokeObjectURL(im.src); renderSettings(); }; im.src = URL.createObjectURL(t.files[0]); }
   if (D && t.dataset.a && t.type === "checkbox") D.acc[t.dataset.a] = t.checked;
   if (D && "kart" in t.dataset) { D.acc.type = t.checked ? "kart" : (D.acc.type === "kart" ? "banka" : D.acc.type); if (t.checked) { D.acc.exclude = true; D.acc.due = D.acc.due || 15; } renderSettings(); }
-  if (D && t.dataset.gtp && t.value) { const v = "p:" + t.value; if (!D[t.dataset.gtp].includes(v)) D[t.dataset.gtp].push(v); renderSettings(); }
-  if (D && t.dataset.gt && t.value) { const q = t.value.trim().toLocaleLowerCase("tr"); const hit = catTree().find(({ c }) => c.type === "E" && catLabel(c.id, true).toLocaleLowerCase("tr") === q) || catTree().find(({ c }) => c.type === "E" && c.name.toLocaleLowerCase("tr") === q); if (hit) { if (!D[t.dataset.gt].includes(hit.c.id)) D[t.dataset.gt].push(hit.c.id); renderSettings(); } }
   if (D && t.dataset.c) { D.cat[t.dataset.c] = t.value || null; if (t.dataset.c === "type") { D.cat.parent = null; renderSettings(); } }
   if (D && t.dataset.d === "d") { D.d = t.value; renderPlanBox(); }
   if (D && t.id === "f-t") { D.t = t.value; setTimeout(() => { if (D && dlg.open && applyPayee()) { const a = document.activeElement, id = a && a.id; renderTx(true); id && document.getElementById(id)?.focus(); } }, 180); }
