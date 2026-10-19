@@ -484,7 +484,7 @@ export function mergeImport(meta, months, recs, opt = {}) {
     for (const name of path.slice(0, 2)) {
       let c = m.categories.find(x => x.type === type && (x.parent || null) === parent && norm(x.name) === norm(name));
       if (!c && parent === null && path.length === 1) c = m.categories.find(x => x.type === type && norm(x.name) === norm(name));
-      if (!c) { c = { id: rid(), name: name, type, color: PAL[m.categories.length % PAL.length], parent }; m.categories.push(c); newCats.push((parent ? m.categories.find(x => x.id === parent).name + " › " : "") + name); }
+      if (!c) { c = { id: rid(), name: name, type, color: PAL[m.categories.length % PAL.length], parent }; m.categories.push(c); newCats.push((parent ? m.categories.find(x => x.id === parent).name + ":" : "") + name); }
       parent = c.id;
     }
     return parent;
