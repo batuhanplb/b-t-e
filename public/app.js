@@ -1386,7 +1386,8 @@ document.addEventListener("click", e => {
     case "cat-tx": closeSheet(); S.view = "tx"; S.catF = ds.id; S.q = ""; S.accF = ""; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
     case "cat-exp": (S.catExp = S.catExp || {})[ds.id] = !S.catExp[ds.id]; render(); break;
     case "pay-tx": S.view = "tx"; S.payF = ds.t; S.catF = null; S.q = ""; S.accFs = []; S.fYear = null; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
-    case "pay-sort": S.paySort = S.paySort === "isim" ? "n" : S.paySort === "n" ? "a" : "isim"; render(); break;
+    case "pay-sort": { const nx = S.paySort === "isim" ? "n" : S.paySort === "n" ? "a" : "isim"; S.paySort = nx; S.payDir = nx === "isim" ? "az" : "cok"; render(); break; }
+    case "pay-dir": { const s = S.paySort || "isim"; const d = S.payDir === "cok" ? "cok" : S.payDir === "az" ? "az" : (s === "isim" ? "az" : "cok"); S.payDir = d === "az" ? "cok" : "az"; render(); break; }
     case "pay-ren": { const old = ds.t, ok = old.toLocaleLowerCase("tr"); askText("Lehdarın yeni adı", old).then(nv => { if (!nv || nv === old) return; const n = bulkTx(t => t.k !== "tr" && payName(t).toLocaleLowerCase("tr") === ok, t => { t.t = nv; return t; }); render(); toast(n + " işlem güncellendi"); }); break; }
     case "catf-clear": S.catF = null; S.payF = null; S.fYear = null; render(); break;
     case "accf-open": S.accOpen = !S.accOpen; render(); break;
