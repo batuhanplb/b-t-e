@@ -1,6 +1,6 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.10.0";
+const APP_VERSION = "1.2.11.0";
 function ask(msg, opts) {
   opts = opts || [{ l: "Sil", v: true, red: 1 }];
   return new Promise(res => {
@@ -326,14 +326,14 @@ function smoothPath(pts) {
 const CH = {}; let chSeq = 0;
 function chartBox(kind, ...args) { const id = "c" + (++chSeq); CH[id] = { kind, args }; return '<div class="chartbox" data-cid="' + id + '"></div>'; }
 function thinLabels(labels, xf, minGap) { let last = -1e9; const out = []; (labels || []).forEach(([i, t]) => { const xx = xf(i); if (xx - last >= minGap) { out.push([i, t, xx]); last = xx; } }); return out; }
-function lineSvg(a, b, labels, W = 340, H = 170) {
+function lineSvg(a, b, labels, W = 340, H = 170, tips) {
   const pr = W < 230 ? 34 : 46, pl = 6, pt = 10, pb = H < 90 ? 8 : 26, gn = H < 90 ? 2 : 3, n = Math.max(a.length, (b || []).length);
   const vals = a.concat(b || []).filter(v => v != null), lo = Math.min(0, ...vals), hi = Math.max(1, ...vals), rg = hi - lo || 1;
   const x = i => pl + (W - pl - pr) * (n > 1 ? i / (n - 1) : 0), y = v => pt + (H - pt - pb) * (1 - (v - lo) / rg);
   let g = ""; for (let k = 0; k <= gn; k++) { const v = lo + rg * k / gn, yy = y(v); g += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" class="gl"/><text x="' + (W - 4) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="end" class="ax">' + shortN(v) + '</text>'; }
   const pa = a.map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean), pbb = (b || []).map((v, i) => v == null ? null : [x(i), y(v)]).filter(Boolean);
   const xl = pb < 20 ? "" : thinLabels(labels, x, 34).map(([i, t, xx]) => '<text x="' + xx.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" class="ax">' + t + '</text>').join("");
-  return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + g + (pbb.length ? '<path d="' + smoothPath(pbb) + '" class="ln2"/>' : '') + (pa.length ? '<path d="' + smoothPath(pa) + '" class="ln1"/>' : '') + xl + '</svg>';
+  return '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + g + (pbb.length ? '<path d="' + smoothPath(pbb) + '" class="ln2"/>' : '') + (pa.length ? '<path d="' + smoothPath(pa) + '" class="ln1"/>' : '') + xl + (tips ? (() => { const st = n > 1 ? (W - pl - pr) / (n - 1) : W; return tips.map((t, i) => '<rect x="' + Math.max(0, x(i) - st / 2).toFixed(1) + '" y="0" width="' + st.toFixed(1) + '" height="' + H + '" fill="transparent" class="bhit" data-tip="' + esc(t || "") + '"></rect>').join(""); })() : '') + '</svg>';
 }
 function barSvg(vals, labels, tips, W = 340, H = 150, hi = -1) {
   const pt = 8, pb = H < 90 ? 16 : 24, n = vals.length, mx = Math.max(1, ...vals), pl = 30, bw = (W - pl - 4) / n, gn = H < 90 ? 2 : 3;
@@ -346,7 +346,7 @@ function fillCharts() {
   document.querySelectorAll(".chartbox").forEach(b => { const c = CH[b.dataset.cid]; if (!c) return; const W = Math.floor(b.clientWidth), H = Math.floor(b.clientHeight);
     if (W < 40 || H < 40) { if (b.dataset.k) { b.dataset.k = ""; b.innerHTML = ""; } return; }
     const key = W + "x" + H; if (b.dataset.k === key) return; b.dataset.k = key;
-    b.innerHTML = c.kind === "line" ? lineSvg(c.args[0], c.args[1], c.args[2], W, H) : barSvg(c.args[0], c.args[1], c.args[2], W, H, c.args[3] == null ? -1 : c.args[3]); });
+    b.innerHTML = c.kind === "line" ? lineSvg(c.args[0], c.args[1], c.args[2], W, H, c.args[3]) : barSvg(c.args[0], c.args[1], c.args[2], W, H, c.args[3] == null ? -1 : c.args[3]); });
 }
 let chRO = null, chQ = 0;
 function afterRender() {
@@ -408,7 +408,7 @@ function vHome() {
   const M = {};
   M.exp = () => mod(svgI(CI.bag), "Toplam gider", "g:e", '<div class="mod-n inl"><b>' + f0(te) + '</b>' + delta(te, pe, true) + '</div>' + chartBox("line", cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp), lbl) + leg);
   M.inc = () => mod(svgI(CI.coin), "Toplam gelir", "g:i", '<div class="mod-n inl"><b>' + f0(ti) + '</b>' + delta(ti, pi) + '</div>' + chartBox("line", cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp), lbl) + leg);
-  M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + (salDay() > 1 ? salDay() + "'ine kadar" : "bu ay sonu") + '</span></div>' + chartBox("line", pl.map(p => p.kalan), null, [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]]) ); };
+  M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + (salDay() > 1 ? salDay() + "'ine kadar" : "bu ay sonu") + '</span></div>' + chartBox("line", pl.map(p => p.kalan), null, [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]], pl.map(p => mLabel(p.m) + ": " + f2(p.kalan))) ); };
   const tops = (arr) => { const o = {}; arr.filter(t => t.k === "e").forEach(t => catParts(t).forEach(pp => { const c = C.topCat(D.catMap, pp.cat); const k = c ? c.id : "_"; o[k] = (o[k] || 0) + pp.a; })); return o; };
   const tc = tops(cur), tp = tops(prev), rows = Object.entries(tc).sort((a, b) => b[1] - a[1]);
   M.cats = () => mod(svgI(CI.tag), "Dağılım", "pie", (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span class="cic kcic" style="--c:' + catColor(id === "_" ? null : id) + '">' + catIcon(id === "_" ? null : id) + '</span><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
