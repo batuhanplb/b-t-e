@@ -1157,7 +1157,13 @@ async function applyImport() {
       Object.entries(touched).forEach(([m, items]) => ops.push({ op: "set", path: ["tx", m], data: { items: items.sort((a, b) => (a.ts || 0) - (b.ts || 0)) } }));
     } else if (p.kind === "eiq") {
       const months = C.groupByMonth(p.conv.txs);
-      ops.push({ op: "set", path: ["meta", "main"], data: { accounts: p.conv.accounts, categories: p.conv.categories, ver: 1 } });
+      // Akıllı birleştirme: mevcut ayarları (kesim/ödeme günü, limit, düzenli ödemeler, düzen) koru
+      const old = meta(), nm = s => String(s || "").toLocaleLowerCase("tr-TR").trim(), idMap = {};
+      const accounts = p.conv.accounts.map(a => { const o = (old.accounts || []).find(x => nm(x.name) === nm(a.name)); if (!o) return a; idMap[o.id] = a.id; return { ...o, ...a, cut: o.cut, due: o.due, limit: o.limit, order: o.order, hidden: o.hidden, exclude: o.exclude, color: o.color || a.color }; });
+      (old.categories || []).forEach(o => { const c = p.conv.categories.find(x => x.type === o.type && nm(x.name) === nm(o.name)); if (c) idMap[o.id] = c.id; });
+      let rest = { ...old }; delete rest.accounts; delete rest.categories;
+      let js = JSON.stringify(rest); Object.entries(idMap).forEach(([o, n]) => { if (o !== n) js = js.split('"' + o + '"').join('"' + n + '"'); });
+      ops.push({ op: "set", path: ["meta", "main"], data: { ...JSON.parse(js), accounts, categories: p.conv.categories, ver: old.ver || 1 } });
       Object.keys(S.months).forEach(m => { if (!months[m]) ops.push({ op: "del", path: ["tx", m] }); });
       Object.entries(months).forEach(([m, items]) => ops.push({ op: "set", path: ["tx", m], data: { items } }));
     } else {
