@@ -740,9 +740,11 @@ function vCat() {
 function vPay() {
   const q = (S.payQ || "").trim().toLocaleLowerCase("tr");
   const sort = S.paySort || "isim";
-  const cmps = { isim: (a, b) => a.t.localeCompare(b.t, "tr"), n: (a, b) => b.n - a.n || a.t.localeCompare(b.t, "tr"), a: (a, b) => b.a - a.a || a.t.localeCompare(b.t, "tr") };
+  const dir = S.payDir === "cok" ? "cok" : S.payDir === "az" ? "az" : (sort === "isim" ? "az" : "cok");
+  const base = { isim: (a, b) => a.t.localeCompare(b.t, "tr"), n: (a, b) => a.n - b.n || a.t.localeCompare(b.t, "tr"), a: (a, b) => a.a - b.a || a.t.localeCompare(b.t, "tr") };
+  const bs = base[sort] || base.isim;
+  const cmp = (a, b) => dir === "az" ? bs(a, b) : -bs(a, b);
   const lbls = { isim: "İsme göre", n: "İşlem sayısı", a: "Hacim" };
-  const cmp = cmps[sort] || cmps.isim;
   const sec = (k, l) => { const rows = allPayees(k).filter(p => !q || p.t.toLocaleLowerCase("tr").includes(q)).sort(cmp); if (!rows.length) return ''; return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(p => '<li><div class="set-row catrow"><button class="grow" style="text-align:left" data-act="pay-tx" data-t="' + esc(p.t) + '">' + esc(p.t) + '<span class="small muted" style="display:block">' + p.n + ' işlem · ' + f2(p.a) + '</span></button><button class="ib pen" data-act="pay-ren" data-t="' + esc(p.t) + '" aria-label="Adını değiştir">' + ICON.pen + '</button></div></li>').join("") + '</ul></div>'; };
   const body = sec("e", "Gider lehdarları") + sec("i", "Gelir lehdarları");
   return '<div class="narrow"><div class="toolbar"><input class="search" type="search" placeholder="Lehdar ara" value="' + esc(S.payQ || "") + '" data-in="payq"><button class="btn sm" data-act="pay-sort" title="Sırala">' + lbls[sort] + '</button></div>' + (body || '<div class="card empty">Lehdar bulunamadı.</div>') + '</div>';
