@@ -1447,7 +1447,7 @@ function accDrag() {
   document.addEventListener("contextmenu", e => { if (e.target.closest("button.tx")) e.preventDefault(); });
 })();
 
-document.addEventListener("click", e => { const r = e.target.closest(".bhit"); const cb = r && r.closest(".chartbox[data-daym]"); if (!cb || document.body.classList.contains("dash-edit")) return;
+document.addEventListener("click", e => { const r = e.target.closest(".bhit"); const cb = r && r.closest(".chartbox[data-daym]"); if (!cb || S.dashEdit) return;
   const i = [...cb.querySelectorAll("rect.bhit")].indexOf(r); if (i < 0) return; e.stopPropagation(); e.preventDefault();
   S.view = "tx"; S.per = "d:" + cb.dataset.daym + "-" + String(i + 1).padStart(2, "0"); S.accFs = []; S.catF = null; S.payF = null; S.q = ""; S.showPastTx = true; S.showFutTx = true; S.showE = true; S.showI = true;
   if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); }, true);
