@@ -141,9 +141,14 @@ const DEFAULT_META = {
     { id: "kart", name: "Kredi kartı", type: "kart", color: "#d50000", start: 0, exclude: true, hidden: false, order: 2 }
   ],
   categories: [
+    { id: "c-araba", name: "Araba", parent: null, type: "E", color: "#6b7a5b" },
     { id: "c-ev", name: "Ev", parent: null, type: "E", color: "#84b17a" }, { id: "c-mutfak", name: "Mutfak", parent: "c-ev", type: "E", color: "#93a083" },
-    { id: "c-fatura", name: "Fatura", parent: "c-ev", type: "E", color: "#6b7f8c" }, { id: "c-araba", name: "Araba", parent: null, type: "E", color: "#6b7a5b" },
-    { id: "c-benzin", name: "Benzin", parent: "c-araba", type: "E", color: "#c98326" }, { id: "c-maas", name: "Maaş", parent: null, type: "I", color: "#1d7f47" }
+    { id: "c-aidat", name: "Aidat", parent: "c-ev", type: "E", color: "#6b7f8c" },
+    { id: "c-kirtasiye", name: "Kırtasiye", parent: null, type: "E", color: "#8e6bb1" },
+    { id: "c-ulasim", name: "Ulaşım", parent: null, type: "E", color: "#c98326" },
+    { id: "c-toplu", name: "Toplu taşıma", parent: "c-ulasim", type: "E", color: "#d49a4a" }, { id: "c-taksi", name: "Taksi", parent: "c-ulasim", type: "E", color: "#b8862e" },
+    { id: "c-ucak", name: "Uçak", parent: "c-ulasim", type: "E", color: "#a8742a" },
+    { id: "c-maas", name: "Maaş", parent: null, type: "I", color: "#1d7f47" }, { id: "c-yatirim", name: "Yatırım", parent: null, type: "I", color: "#2b6cb0" }
   ]
 };
 const S = {
