@@ -739,9 +739,13 @@ function vCat() {
 }
 function vPay() {
   const q = (S.payQ || "").trim().toLocaleLowerCase("tr");
-  const sec = (k, l) => { const rows = allPayees(k).filter(p => !q || p.t.toLocaleLowerCase("tr").includes(q)); if (!rows.length) return ''; return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(p => '<li><div class="set-row catrow"><button class="grow" style="text-align:left" data-act="pay-tx" data-t="' + esc(p.t) + '">' + esc(p.t) + '<span class="small muted" style="display:block">' + p.n + ' işlem · ' + f2(p.a) + '</span></button><button class="ib pen" data-act="pay-ren" data-t="' + esc(p.t) + '" aria-label="Adını değiştir">' + ICON.pen + '</button></div></li>').join("") + '</ul></div>'; };
+  const sort = S.paySort || "isim";
+  const cmps = { isim: (a, b) => a.t.localeCompare(b.t, "tr"), n: (a, b) => b.n - a.n || a.t.localeCompare(b.t, "tr"), a: (a, b) => b.a - a.a || a.t.localeCompare(b.t, "tr") };
+  const lbls = { isim: "İsme göre", n: "İşlem sayısı", a: "Hacim" };
+  const cmp = cmps[sort] || cmps.isim;
+  const sec = (k, l) => { const rows = allPayees(k).filter(p => !q || p.t.toLocaleLowerCase("tr").includes(q)).sort(cmp); if (!rows.length) return ''; return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(p => '<li><div class="set-row catrow"><button class="grow" style="text-align:left" data-act="pay-tx" data-t="' + esc(p.t) + '">' + esc(p.t) + '<span class="small muted" style="display:block">' + p.n + ' işlem · ' + f2(p.a) + '</span></button><button class="ib pen" data-act="pay-ren" data-t="' + esc(p.t) + '" aria-label="Adını değiştir">' + ICON.pen + '</button></div></li>').join("") + '</ul></div>'; };
   const body = sec("e", "Gider lehdarları") + sec("i", "Gelir lehdarları");
-  return '<div class="narrow"><div class="toolbar"><input class="search" type="search" placeholder="Lehdar ara" value="' + esc(S.payQ || "") + '" data-in="payq"></div>' + (body || '<div class="card empty">Lehdar bulunamadı.</div>') + '</div>';
+  return '<div class="narrow"><div class="toolbar"><input class="search" type="search" placeholder="Lehdar ara" value="' + esc(S.payQ || "") + '" data-in="payq"><button class="btn sm" data-act="pay-sort" title="Sırala">' + lbls[sort] + '</button></div>' + (body || '<div class="card empty">Lehdar bulunamadı.</div>') + '</div>';
 }
 function askText(msg, val) {
   return new Promise(res => {
@@ -1380,6 +1384,7 @@ document.addEventListener("click", e => {
     case "cat-tx": closeSheet(); S.view = "tx"; S.catF = ds.id; S.q = ""; S.accF = ""; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
     case "cat-exp": (S.catExp = S.catExp || {})[ds.id] = !S.catExp[ds.id]; render(); break;
     case "pay-tx": S.view = "tx"; S.payF = ds.t; S.catF = null; S.q = ""; S.accFs = []; S.fYear = null; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
+    case "pay-sort": S.paySort = S.paySort === "isim" ? "n" : S.paySort === "n" ? "a" : "isim"; render(); break;
     case "pay-ren": { const old = ds.t, ok = old.toLocaleLowerCase("tr"); askText("Lehdarın yeni adı", old).then(nv => { if (!nv || nv === old) return; const n = bulkTx(t => t.k !== "tr" && payName(t).toLocaleLowerCase("tr") === ok, t => { t.t = nv; return t; }); render(); toast(n + " işlem güncellendi"); }); break; }
     case "catf-clear": S.catF = null; S.payF = null; S.fYear = null; render(); break;
     case "accf-open": S.accOpen = !S.accOpen; render(); break;
