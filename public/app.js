@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.18.2";
+const APP_VERSION = "1.2.19.0";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -382,7 +382,7 @@ function packLayout(list, cols) {
   return list.map(it => out[it.id]);
 }
 // Modül boy seçenekleri: [genişlik, yükseklik]; genişlik 2 = tüm satır (telefon), küçükten büyüğe.
-const SZ = { debtcal: [[2, 1], [2, 2]], exp: [[1, 1]], inc: [[1, 1]], daily: [[1, 1], [2, 1]], cash: [[1, 1], [2, 1]], recent: [[1, 2], [2, 2]], cats: [[1, 1], [1, 2]], sub: [[1, 1], [1, 2]], tips: [[1, 1], [1, 2]], fav: [[2, 1]] };
+const SZ = { debtcal: [[2, 1], [2, 2]], exp: [[1, 1]], inc: [[1, 1]], daily: [[1, 1], [2, 1]], cash: [[1, 1], [2, 1]], recent: [[1, 2], [2, 2]], cats: [[1, 1], [1, 2]], sub: [[1, 1], [1, 2]], tips: [[1, 1], [1, 2]], fav: [[1, 1], [2, 1]] };
 const szOpts = id => SZ[id] || [[1, 1]];
 const szNames = id => { const n = (SZ[id] || [[1, 1]]).length; return n === 1 ? ["Tek boy"] : n === 2 ? ["Küçük", "Büyük"] : ["Küçük", "Orta", "Büyük"]; };
 // Herkes için varsayılan sıra (kayıt yokken ve "Varsayılana dön" sonrası kullanılır).
@@ -395,7 +395,7 @@ const dashCfg = () => { const mobile = dashMobile(), own = (S.dashEdit && S.dash
   if (md.v !== 3) saved = saved.slice().sort((a, b) => ((a.g && a.g.y) || 99) - ((b.g && b.g.y) || 99) || ((a.g && a.g.x) || 0) - ((b.g && b.g.x) || 0));
   const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id), opts = szOpts(id), sz = f && Number.isInteger(f.sz) ? clampN(f.sz, 0, opts.length - 1) : 0, [w, hh] = opts[sz];
     const px = !mobile && f && f.x >= 1 && f.y >= 1 ? { x: f.x, y: f.y } : {};
-    return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "fav"].includes(id), sz, dyn, ...px, g: { w: mobile ? w : w * 2, h: id === "fav" ? 1 : hh === 1 ? 2 : (mobile ? 4 : 3), ...px } }; });
+    return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "fav"].includes(id), sz, dyn, ...px, g: { w: mobile ? (id === "fav" ? 2 : w) : w * 2, h: id === "fav" ? 1 : hh === 1 ? 2 : (mobile ? 4 : 3), ...px } }; });
   if (saved.length) out.sort((a, b) => { const i = saved.findIndex(x => x.id === a.id), j = saved.findIndex(x => x.id === b.id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
   return out; };
 const modName = id => (MODS.find(m => m[0] === id) || [, id])[1];
@@ -416,7 +416,7 @@ function vHome() {
   const M = {};
   M.exp = () => mod(svgI(CI.bag), "Toplam gider", "g:e", '<div class="mod-n inl"><b>' + f0(te) + '</b>' + delta(te, pe, true) + '</div>' + chartBox("line", cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp), lbl, cumTips(cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp))) + leg);
   M.inc = () => mod(svgI(CI.coin), "Toplam gelir", "g:i", '<div class="mod-n inl"><b>' + f0(ti) + '</b>' + delta(ti, pi) + '</div>' + chartBox("line", cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp), lbl, cumTips(cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp))) + leg);
-  M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + (salDay() > 1 ? salDay() + "'ine kadar" : "bu ay sonu") + '</span></div>' + chartBox("line", pl.map(p => p.kalan), null, [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]], pl.map(p => mLabel(p.m) + ": " + f2(p.kalan))) ); };
+  M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + (salDay() > 1 ? salDay() + "'ine kadar" : "bu ay sonu") + '</span></div>' + chartBox("bar", pl.map(p => Math.max(0, p.kalan)), [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]], pl.map(p => mLabel(p.m) + ": " + f2(p.kalan)), 0) ); };
   const tops = (arr) => { const o = {}; arr.filter(t => t.k === "e").forEach(t => catParts(t).forEach(pp => { const c = C.topCat(D.catMap, pp.cat); const k = c ? c.id : "_"; o[k] = (o[k] || 0) + pp.a; })); return o; };
   const tc = tops(cur), tp = tops(prev), rows = Object.entries(tc).sort((a, b) => b[1] - a[1]);
   M.cats = () => mod(svgI(CI.tag), "Dağılım", "pie", (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span class="cic kcic" style="--c:' + catColor(id === "_" ? null : id) + '">' + catIcon(id === "_" ? null : id) + '</span><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
@@ -455,7 +455,7 @@ function vHome() {
   const wrap = (x, out, pos) => { const cls = (edit ? "editing " : "") + (out.indexOf('class="mod-n"') < 0 ? "nn " : "");
     const attrs = 'data-id="' + x.id + '" data-x="' + pos.x + '" data-y="' + pos.y + '" data-w="' + pos.w + '" data-h="' + pos.h + '" style="--gx:' + pos.x + ';--gy:' + pos.y + ';--gw:' + pos.w + ';--gh:' + pos.h + '" ';
     let o = out.replace('<section class="mod ', '<section ' + (edit && desk ? 'draggable="true" ' : '') + attrs + 'class="mod ' + cls);
-    if (edit) { const names = szNames(x.id); o = o.replace(/<\/section>$/, '<div class="ed-bar"><button class="ed-b" data-act="dg-mv" data-id="' + x.id + '" data-d="-1" aria-label="Öne al">' + ICON.l + '</button>' + (names.length > 1 ? '<button class="ed-b ed-sz" data-act="dg-sz" data-id="' + x.id + '">' + names[x.sz] + '</button>' : '') + '<button class="ed-b" data-act="dg-mv" data-id="' + x.id + '" data-d="1" aria-label="Arkaya al">' + ICON.r + '</button><button class="ed-b ed-rm" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button></div></section>'); }
+    if (edit) { const names = szNames(x.id); o = o.replace(/<\/section>$/, '<div class="ed-bar">' + (names.length > 1 ? '<button class="ed-b ed-sz" data-act="dg-sz" data-id="' + x.id + '">' + names[x.sz] + '</button>' : '') + '<button class="ed-b ed-rm" data-act="dg-hide" data-id="' + x.id + '" aria-label="Kaldır">' + ICON.x + '</button></div></section>'); }
     return o; };
   const section = list => { const rendered = list.map(x => [x, M[x.id] ? M[x.id](x) : ""]).filter(([, o]) => o);
     const lay = packLayout(rendered.map(([x]) => ({ id: x.id, g: { w: x.g.w, h: x.g.h, x: desk ? x.g.x : 0, y: desk ? x.g.y : 0 } })), gridCols);
@@ -1409,13 +1409,13 @@ document.addEventListener("dragstart", e => { const m = e.target.closest && e.ta
 document.addEventListener("dragend", () => { document.querySelectorAll(".dg-dragging").forEach(x => x.classList.remove("dg-dragging")); });
 document.addEventListener("dragover", e => { if (dgDrag && e.target.closest && e.target.closest(".manual-grid")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } });
 document.addEventListener("drop", e => { const g = dgDrag && e.target.closest && e.target.closest(".manual-grid"); if (!g) return; e.preventDefault(); const dd = dgDrag; dgDrag = null;
-  const r = g.getBoundingClientRect(), cs = getComputedStyle(g), gap = parseFloat(cs.columnGap) || 12, rh = parseFloat(cs.gridAutoRows) || 80, cw = (r.width - gap * 5) / 6;
+  const r = g.getBoundingClientRect(), cs = getComputedStyle(g), gap = parseFloat(cs.columnGap) || 12, rh = parseFloat(cs.gridAutoRows) || 80, C8 = dashCols(), cw = (r.width - gap * (C8 - 1)) / C8;
   const pos = {}; g.querySelectorAll(".mod[data-id]").forEach(el => { pos[el.dataset.id] = { x: +el.dataset.x, y: +el.dataset.y, w: +el.dataset.w, h: +el.dataset.h }; });
   const me = pos[dd.id]; if (!me) return;
-  const x = clampN((e.clientX - dd.ox - r.left) / (cw + gap) + 1, 1, 7 - me.w), y = Math.max(1, Math.round((e.clientY - dd.oy - r.top) / (rh + gap) + 1));
+  const x = clampN((e.clientX - dd.ox - r.left) / (cw + gap) + 1, 1, C8 + 1 - me.w), y = Math.max(1, Math.round((e.clientY - dd.oy - r.top) / (rh + gap) + 1));
   dgSave(items => { items.forEach(it => { const p = pos[it.id]; if (p) { it.x = p.x; it.y = p.y; } });
     const ov = p => x < p.x + p.w && x + me.w > p.x && y < p.y + p.h && y + me.h > p.y;
-    items.forEach(it => { const p = pos[it.id]; if (it.id !== dd.id && p && ov(p)) { delete it.x; delete it.y; } });
+    items.forEach(it => { const p = pos[it.id]; if (it.id !== dd.id && p && ov(p)) { if (p.w <= me.w || me.x + p.w - 1 <= C8) { it.x = me.x; it.y = me.y; } else { it.x = p.x; it.y = y + me.h; } } });
     const k = items.findIndex(it => it.id === dd.id), it = items.splice(k, 1)[0]; it.x = x; it.y = y; items.unshift(it); });
   render(); });
 let wasCols = dashCols();
