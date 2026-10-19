@@ -1,6 +1,6 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
-const APP_VERSION = "1.2.12.0";
+const APP_VERSION = "1.2.13.0";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -329,6 +329,7 @@ function smoothPath(pts) {
 const CH = {}; let chSeq = 0;
 function chartBox(kind, ...args) { const id = "c" + (++chSeq); CH[id] = { kind, args }; return '<div class="chartbox" data-cid="' + id + '"></div>'; }
 function thinLabels(labels, xf, minGap) { let last = -1e9; const out = []; (labels || []).forEach(([i, t]) => { const xx = xf(i); if (xx - last >= minGap) { out.push([i, t, xx]); last = xx; } }); return out; }
+function cumTips(a, b) { return a.map((v, i) => (i + 1) + ". gün: " + f0(v || 0) + (b && b[i] != null ? " · önceki: " + f0(b[i]) : "")); }
 function lineSvg(a, b, labels, W = 340, H = 170, tips) {
   const pr = W < 230 ? 34 : 46, pl = 6, pt = 10, pb = H < 90 ? 8 : 26, gn = H < 90 ? 2 : 3, n = Math.max(a.length, (b || []).length);
   const vals = a.concat(b || []).filter(v => v != null), lo = Math.min(0, ...vals), hi = Math.max(1, ...vals), rg = hi - lo || 1;
@@ -409,8 +410,8 @@ function vHome() {
   const accsT = visibleAccs(), netT = accsT.filter(a => !a.exclude).reduce((s, a) => s + (D.bal[a.id] || 0), 0);
   const cfgM = dashCfg(), on = cfgM.filter(x => x.on);
   const M = {};
-  M.exp = () => mod(svgI(CI.bag), "Toplam gider", "g:e", '<div class="mod-n inl"><b>' + f0(te) + '</b>' + delta(te, pe, true) + '</div>' + chartBox("line", cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp), lbl) + leg);
-  M.inc = () => mod(svgI(CI.coin), "Toplam gelir", "g:i", '<div class="mod-n inl"><b>' + f0(ti) + '</b>' + delta(ti, pi) + '</div>' + chartBox("line", cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp), lbl) + leg);
+  M.exp = () => mod(svgI(CI.bag), "Toplam gider", "g:e", '<div class="mod-n inl"><b>' + f0(te) + '</b>' + delta(te, pe, true) + '</div>' + chartBox("line", cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp), lbl, cumTips(cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp))) + leg);
+  M.inc = () => mod(svgI(CI.coin), "Toplam gelir", "g:i", '<div class="mod-n inl"><b>' + f0(ti) + '</b>' + delta(ti, pi) + '</div>' + chartBox("line", cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp), lbl, cumTips(cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp))) + leg);
   M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + (salDay() > 1 ? salDay() + "'ine kadar" : "bu ay sonu") + '</span></div>' + chartBox("line", pl.map(p => p.kalan), null, [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]], pl.map(p => mLabel(p.m) + ": " + f2(p.kalan))) ); };
   const tops = (arr) => { const o = {}; arr.filter(t => t.k === "e").forEach(t => catParts(t).forEach(pp => { const c = C.topCat(D.catMap, pp.cat); const k = c ? c.id : "_"; o[k] = (o[k] || 0) + pp.a; })); return o; };
   const tc = tops(cur), tp = tops(prev), rows = Object.entries(tc).sort((a, b) => b[1] - a[1]);
