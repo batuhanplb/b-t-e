@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.16.0";
+const APP_VERSION = "1.2.16.1";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -383,11 +383,8 @@ function packLayout(list, cols) {
 }
 // Modül boy seçenekleri: [genişlik, yükseklik]; genişlik 2 = tüm satır (telefon), küçükten büyüğe.
 const SZ = { debtcal: [[2, 1], [2, 2]], exp: [[1, 1]], inc: [[1, 1]], daily: [[1, 1], [2, 1]], cash: [[1, 1], [2, 1]], recent: [[1, 2], [2, 2]], cats: [[1, 1], [1, 2]], sub: [[1, 1], [1, 2]], tips: [[1, 1], [1, 2]], fav: [[2, 1]] };
-// Masaüstü: 6 sütunlu ızgarada genişlik 2/3/4/6 × modülün yükseklikleri.
-const DSZ = id => { if (id === "fav") return [2, 3, 4, 6].map(w => [w, 1]); const hs = [...new Set((SZ[id] || [[1, 1]]).map(o => o[1]))]; return hs.flatMap(h => [2, 3, 4, 6].map(w => [w, h])); };
-const szOpts = id => dashMobile() ? (SZ[id] || [[1, 1]]) : DSZ(id);
-const szNames = id => { if (!dashMobile()) return DSZ(id).map(([w, h]) => (w === 6 ? "Tam" : w + "/6") + (id === "fav" ? "" : h > 1 ? " · Uzun" : " · Kısa"));
-  const n = (SZ[id] || [[1, 1]]).length; return n === 1 ? ["Tek boy"] : n === 2 ? ["Küçük", "Büyük"] : ["Küçük", "Orta", "Büyük"]; };
+const szOpts = id => SZ[id] || [[1, 1]];
+const szNames = id => { const n = (SZ[id] || [[1, 1]]).length; return n === 1 ? ["Tek boy"] : n === 2 ? ["Küçük", "Büyük"] : ["Küçük", "Orta", "Büyük"]; };
 // Herkes için varsayılan sıra (kayıt yokken ve "Varsayılana dön" sonrası kullanılır).
 const DEF_DASH = { v: 3, items: ["exp", "inc", "daily", "debtcal", "cash", "cats", "sub", "tips", "fav"].map(id => ({ id, on: true, sz: 0 })) };
 const dashMobile = () => !matchMedia("(min-width:900px)").matches;
@@ -397,7 +394,7 @@ const dashCfg = () => { const mobile = dashMobile(), own = meta()[dashKey()], md
   let saved = (md && md.items) || [];
   if (md.v !== 3) saved = saved.slice().sort((a, b) => ((a.g && a.g.y) || 99) - ((b.g && b.g.y) || 99) || ((a.g && a.g.x) || 0) - ((b.g && b.g.x) || 0));
   const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id), opts = szOpts(id), sz = f && Number.isInteger(f.sz) ? clampN(f.sz, 0, opts.length - 1) : 0, [w, hh] = opts[sz];
-    return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "fav"].includes(id), sz, dyn, g: { w, h: id === "fav" ? 1 : hh === 1 ? 2 : (mobile ? 4 : 3) } }; });
+    return { id, on: f ? f.on !== false : ["exp", "inc", "cash", "cats", "daily", "debtcal", "fav"].includes(id), sz, dyn, g: { w: mobile ? w : w * 2, h: id === "fav" ? 1 : hh === 1 ? 2 : (mobile ? 4 : 3) } }; });
   if (saved.length) out.sort((a, b) => { const i = saved.findIndex(x => x.id === a.id), j = saved.findIndex(x => x.id === b.id); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j); });
   return out; };
 const modName = id => (MODS.find(m => m[0] === id) || [, id])[1];
