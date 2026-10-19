@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.20.1";
+const APP_VERSION = "1.2.21.0";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -386,7 +386,7 @@ const SZ = { debtcal: [[2, 1], [2, 2]], exp: [[1, 1]], inc: [[1, 1]], daily: [[1
 const szOpts = id => SZ[id] || [[1, 1]];
 const szNames = id => { const n = (SZ[id] || [[1, 1]]).length; return n === 1 ? ["Tek boy"] : n === 2 ? ["Küçük", "Büyük"] : ["Küçük", "Orta", "Büyük"]; };
 // Herkes için varsayılan sıra (kayıt yokken ve "Varsayılana dön" sonrası kullanılır).
-const DEF_DASH = { v: 3, items: ["exp", "inc", "daily", "debtcal", "cash", "cats", "sub", "tips", "fav"].map(id => ({ id, on: true, sz: 0 })) };
+const DEF_DASH = { v: 3, items: [{ id: "cash", sz: 0, x: 5, y: 5 }, { id: "fav", sz: 0, x: 7, y: 6 }, { id: "tips", sz: 0, x: 7, y: 4 }, { id: "cats", sz: 2, x: 5, y: 1 }, { id: "daily", sz: 1, x: 1, y: 3 }, { id: "debtcal", sz: 1, x: 1, y: 5 }, { id: "sub", sz: 1, x: 7, y: 1 }, { id: "exp", sz: 0, x: 1, y: 1 }, { id: "inc", sz: 0, x: 3, y: 1 }].map(o => ({ ...o, on: true })) };
 const dashMobile = () => !matchMedia("(min-width:900px)").matches;
 const dashCols = () => dashMobile() ? (matchMedia("(max-width:359px)").matches ? 1 : 2) : 8;
 const dashKey = () => dashMobile() ? "dashMobile" : "dash";
@@ -449,7 +449,9 @@ function vHome() {
   M.accs = () => mod(svgI(CI.card), "Hesaplar", "acc", '<div class="mod-n"><b class="' + (netT < 0 ? "neg" : "") + '">' + f0(netT) + '</b><span class="muted small">net bakiye</span></div><div class="klist">' + accsT.map(a => '<button class="krow" data-act="acc-tx" data-id="' + esc(a.id) + '"><span><b>' + accIcon(a) + esc(a.name) + '</b></span><span class="r"><b class="' + ((D.bal[a.id] || 0) < 0 ? "neg" : "") + '">' + f2(D.bal[a.id] || 0) + '</b></span></button>').join("") + '</div>');
   M.recent = () => { const recent = D.all.filter(t => t.d <= tdy).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 20);
     return mod(svgI(CI.tag), "Son işlemler", "tx", recent.length ? '<ul class="list">' + recent.map(t => txRow(t)).join("") + '</ul>' : '<div class="empty">Henüz işlem yok.</div>', "mod-pad"); };
-  M.fav = () => D.favs.length ? mod(svgI(CI.bolt), "Hızlı ekle", null, '<div class="chips favchips" style="margin-top:6px">' + D.favs.slice(0, 5).map((f, i) => '<button class="chip" data-act="fav" data-i="' + i + '"><i style="background:' + catColor(f.cat) + '"></i>' + esc(f.t || catLabel(f.cat, true)) + '</button>').join("") + '</div>') : "";
+  M.fav = () => { if (!D.favs.length) return ""; const big = ((cfgM.find(x => x.id === "fav") || {}).sz || 0) > 0, rows = big ? 2 : 1; let h = "";
+    for (let r = 0; r < rows; r++) { const part = D.favs.slice(r * 5, r * 5 + 5); if (!part.length) break; h += '<div class="chips favchips" style="margin-top:6px">' + part.map((f, j) => '<button class="chip" data-act="fav" data-i="' + (r * 5 + j) + '"><i style="background:' + catColor(f.cat) + '"></i>' + esc(f.t || catLabel(f.cat, true)) + '</button>').join("") + '</div>'; }
+    return mod(svgI(CI.bolt), "Hızlı ekle", null, h); };
   let h = '<section class="card accstrip"><div class="net"><span class="muted small">Net bakiye</span><b class="' + (netT < 0 ? "neg" : "") + '">' + f2(netT) + '</b></div><div class="accs">' + accsT.map(a => '<button class="acc" data-act="acc-tx" data-id="' + esc(a.id) + '"><div class="n">' + (a.logo ? '<img class="alogo sm" style="margin:0" src="' + esc(a.logo) + '" alt="" onerror="this.style.display=\'none\'">' : '<i style="background:' + a.color + '"></i>') + esc(a.name) + '</div><div class="v ' + ((D.bal[a.id] || 0) < 0 ? "neg" : "") + '">' + f2(D.bal[a.id] || 0) + '</div></button>').join("") + '</div></section>';
   const desk = !dashMobile(), gridCols = dashCols(), edit = !!S.dashEdit;
   const wrap = (x, out, pos) => { const cls = (edit ? "editing " : "") + (out.indexOf('class="mod-n"') < 0 ? "nn " : "");
