@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.23.0";
+const APP_VERSION = "1.2.24.0";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -141,9 +141,14 @@ const DEFAULT_META = {
     { id: "kart", name: "Kredi kartı", type: "kart", color: "#d50000", start: 0, exclude: true, hidden: false, order: 2 }
   ],
   categories: [
+    { id: "c-araba", name: "Araba", parent: null, type: "E", color: "#6b7a5b" },
     { id: "c-ev", name: "Ev", parent: null, type: "E", color: "#84b17a" }, { id: "c-mutfak", name: "Mutfak", parent: "c-ev", type: "E", color: "#93a083" },
-    { id: "c-fatura", name: "Fatura", parent: "c-ev", type: "E", color: "#6b7f8c" }, { id: "c-araba", name: "Araba", parent: null, type: "E", color: "#6b7a5b" },
-    { id: "c-benzin", name: "Benzin", parent: "c-araba", type: "E", color: "#c98326" }, { id: "c-maas", name: "Maaş", parent: null, type: "I", color: "#1d7f47" }
+    { id: "c-aidat", name: "Aidat", parent: "c-ev", type: "E", color: "#6b7f8c" },
+    { id: "c-kirtasiye", name: "Kırtasiye", parent: null, type: "E", color: "#8e6bb1" },
+    { id: "c-ulasim", name: "Ulaşım", parent: null, type: "E", color: "#c98326" },
+    { id: "c-toplu", name: "Toplu taşıma", parent: "c-ulasim", type: "E", color: "#d49a4a" }, { id: "c-taksi", name: "Taksi", parent: "c-ulasim", type: "E", color: "#b8862e" },
+    { id: "c-ucak", name: "Uçak", parent: "c-ulasim", type: "E", color: "#a8742a" },
+    { id: "c-maas", name: "Maaş", parent: null, type: "I", color: "#1d7f47" }, { id: "c-yatirim", name: "Yatırım", parent: null, type: "I", color: "#2b6cb0" }
   ]
 };
 const S = {
@@ -440,8 +445,9 @@ function vHome() {
     const unc = cur.filter(t => t.k === "e" && !t.cat && !(t.sp && t.sp.length)).length;
     if (unc) tips.push(["info", unc + " işlem kategorisiz", "Kategori atarsanız raporlar daha doğru olur.", "tx"]);
     meta().accounts.filter(a => a.type === "kart" && a.cut && !a.hidden).forEach(a => { const r = stmtRange(a.cut), nd = (new Date(today()) - new Date(r[1])) / 864e5; if (nd >= 0 && nd <= 4) { const tot = derived().all.filter(t => t.acc === a.id && t.k === "e" && t.d >= r[0] && t.d <= r[1]).reduce((q, t) => q + t.a, 0); tips.unshift(["warn", a.name + " ekstresi kesildi", "Dönem toplamı " + f2(tot) + ". Kontrol için dokun.", "stmt:" + a.id]); } });
+    { const pm = prevM(CUR()); if (+today().slice(8) <= 5 && !(meta().reportSeen || {})[pm] && derived().all.some(t => t.d.startsWith(pm))) tips.unshift(["info", mLabel(pm) + " raporu hazır", "Geçen aya göre değişimleri görmek için dokun.", "rep:" + pm]); }
     if (!tips.length) tips.push(["ok", "Her şey yolunda", "Dikkat çeken bir durum görünmüyor.", null]);
-    return mod(svgI(CI.bolt), "Öneri ve dikkat", null, '<div class="tips">' + tips.slice(0, 8).map(([k, t, d, go]) => '<' + (go ? (go.startsWith("stmt:") ? 'button data-act="stmt" data-id="' + esc(go.slice(5)) + '"' : 'button data-act="nav" data-v="' + go + '"') : 'div') + ' class="tip ' + k + '"><b>' + esc(t) + '</b><span class="muted small">' + esc(d) + '</span></' + (go ? 'button' : 'div') + '>').join("") + '</div>'); };
+    return mod(svgI(CI.bolt), "Öneri ve dikkat", null, '<div class="tips">' + tips.slice(0, 8).map(([k, t, d, go]) => '<' + (go ? (go.startsWith("stmt:") ? 'button data-act="stmt" data-id="' + esc(go.slice(5)) + '"' : go.startsWith("rep:") ? 'button data-act="rep" data-m="' + esc(go.slice(4)) + '"' : 'button data-act="nav" data-v="' + go + '"') : 'div') + ' class="tip ' + k + '"><b>' + esc(t) + '</b><span class="muted small">' + esc(d) + '</span></' + (go ? 'button' : 'div') + '>').join("") + '</div>'); };
   const cols = debtCols();
   const cell = (d, mm) => (d.sched || []).filter(x => x.m === mm && !isPaid(d, x)).reduce((s, x) => s + x.a, 0);
   M.debtcal = x => { const nm = desk && x ? Math.max(6, 3 * Math.min(6, x.g.w)) : 6, hm = [...Array(nm)].map((_, i) => C.addM(CUR(), i)), gt = nm > 6 ? ' style="grid-template-columns:minmax(70px,1.3fr) repeat(' + nm + ',1fr)"' : '';
@@ -546,16 +552,25 @@ function vStmt(items) {
   h += '<div class="card"><div class="sum"><div>Uygulamada<b class="neg">' + f2(tot) + '</b></div><div>Ekstre<b>' + (R ? f2(R.bankTot) : "–") + '</b></div><div>Fark<b>' + (R ? f2(R.bankTot - tot) : "–") + '</b></div></div></div>';
   h += '<div class="chips" style="margin:10px 0"><button class="btn sm" data-act="stmt-up">' + (st.busy ? "Okunuyor…" : R ? "Başka PDF yükle" : "Ekstre PDF yükle ve karşılaştır") + '</button><span style="flex:1"></span><button class="chip" data-act="stmt-close">Kapat ✕</button></div>';
   if (st.err) h += '<div class="empty">' + esc(st.err) + '</div>';
-  const row = (b, t, kind) => '<li><div class="set-row"><span class="grow"><b>' + esc(b ? b.t || "İşlem" : t.t || catLabel(t.cat, true)) + '</b><br><span class="muted small">' + dLabel((b || t).d) + (b && t && kind === "diff" ? " · uygulamada " + f2(t.a) : "") + '</span></span><b style="white-space:nowrap">' + f2((b || t).a) + '</b>' +
-    (kind === "miss" ? '<button class="btn sm" data-act="stmt-add" data-i="' + R.missing.indexOf(b) + '">Ekle</button>' : kind === "diff" ? '<button class="btn sm" data-act="stmt-fix" data-i="' + R.diff.findIndex(x => x.b === b) + '">Düzelt</button>' : kind === "extra" ? '<button class="btn sm" data-act="edit-tx" data-id="' + esc(t.id) + '" data-m="' + t.d.slice(0, 7) + '">Aç</button>' : '') + '</div></li>';
-  const sec = (title, list, kind) => list.length ? '<div class="day"><span>' + title + '</span><span>' + list.length + '</span></div><div class="card"><ul class="list">' + list.map(x => kind === "miss" ? row(x, null, kind) : kind === "extra" ? row(null, x, kind) : row(x.b, x.t, kind)).join("") + '</ul></div>' : '';
+  const pk = st.pick;
+  const tn = t => esc(t.t || catLabel(t.cat, true));
+  const row = (b, t, kind, x) => '<li><div class="set-row"><span class="grow"><b>' + esc(b ? b.t || "İşlem" : tn(t)) + '</b><br><span class="muted small">' + dLabel((b || t).d) + (b && t && kind === "diff" ? " · uygulamada " + f2(t.a) : "") + (kind === "ok" && x ? " · " + (x.manual ? "elle · " : x.split ? "bölünmüş · " : "") + x.ts.map(q => tn(q) + " " + f2(q.a)).join(" + ") : "") + '</span></span><b style="white-space:nowrap">' + f2((b || t).a) + '</b>' +
+    (kind === "miss" ? '<button class="btn sm ghost" data-act="stmt-pick" data-i="' + R.missing.indexOf(b) + '">Eşleştir</button><button class="btn sm" data-act="stmt-add" data-i="' + R.missing.indexOf(b) + '">Ekle</button>' : kind === "diff" ? '<button class="btn sm ghost" data-act="stmt-pick" data-di="' + R.diff.findIndex(y => y.b === b) + '">Eşleştir</button><button class="btn sm" data-act="stmt-fix" data-i="' + R.diff.findIndex(y => y.b === b) + '">Düzelt</button>' : kind === "extra" ? (pk ? '<input type="checkbox" class="stmt-ck" data-act="stmt-ck" data-id="' + esc(t.id) + '"' + (pk.ids.includes(t.id) ? ' checked' : '') + ' style="width:22px;height:22px">' : '<button class="btn sm" data-act="edit-tx" data-id="' + esc(t.id) + '" data-m="' + t.d.slice(0, 7) + '">Aç</button>') : kind === "ok" && x && x.manual ? '<button class="btn sm ghost" data-act="stmt-unlink" data-d="' + b.d + '" data-a="' + b.a + '">Ayır</button>' : '') + '</div></li>';
+  const sec = (title, list, kind) => list.length ? '<div class="day"><span>' + title + '</span><span>' + list.length + '</span></div><div class="card"><ul class="list">' + list.map(x => kind === "miss" ? row(x, null, kind) : kind === "extra" ? row(null, x, kind) : row(x.b, x.t, kind, x)).join("") + '</ul></div>' : '';
   if (R) {
-    h += sec("Ekstrede var, uygulamada yok", R.missing, "miss") + sec("Tutarı farklı", R.diff, "diff") + sec("Uygulamada var, ekstrede yok", R.extra, "extra") + sec("Eşleşenler ✓", R.ok, "ok");
-    if (!R.missing.length && !R.diff.length && !R.extra.length) h += '<div class="empty">Her şey eşleşiyor ✓</div>';
+    if (pk) {
+      const sum = R.extra.filter(t => pk.ids.includes(t.id)).reduce((q, t) => q + t.a, 0);
+      h += '<div class="card" style="padding:12px"><b>' + esc(pk.b.t || "İşlem") + ' · ' + f2(pk.b.a) + '</b><br><span class="muted small">' + dLabel(pk.b.d) + ' — aşağıdan bu satıra ait işlemleri seç. Seçilen: ' + f2(sum) + (Math.abs(sum - pk.b.a) < 0.01 ? ' ✓' : ' (fark ' + f2(pk.b.a - sum) + ')') + '</span><div class="chips" style="margin-top:8px"><button class="btn sm ghost" data-act="stmt-pick-x">Vazgeç</button><button class="btn sm" data-act="stmt-link"' + (pk.ids.length ? '' : ' disabled') + '>Eşleştir</button></div></div>';
+      h += sec("Uygulamada var, ekstrede yok", R.extra, "extra");
+      if (!R.extra.length) h += '<div class="empty">Eşleştirilecek boşta işlem yok.</div>';
+    } else {
+      h += sec("Ekstrede var, uygulamada yok", R.missing, "miss") + sec("Tutarı farklı", R.diff, "diff") + sec("Uygulamada var, ekstrede yok", R.extra, "extra") + sec("Eşleşenler ✓", R.ok, "ok");
+      if (!R.missing.length && !R.diff.length && !R.extra.length) h += '<div class="empty">Her şey eşleşiyor ✓</div>';
+    }
   } else h += items.length ? '<div class="card"><ul class="list">' + items.map(txRow).join("") + '</ul></div>' : '<div class="empty">Bu dönemde işlem yok.</div>';
   return h;
 }
-function stmtRun() { const st = S.stmt; if (!st || !st.bank) return; const mine = derived().all.filter(t => t.acc === st.acc && t.k === "e" && t.d >= C.ymd(new Date(new Date(st.r[0]) - 3 * 864e5)) && t.d <= C.ymd(new Date(new Date(st.r[1]).getTime() + 3 * 864e5))); const inR = st.bank.filter(b => !b.credit); st.res = { ...reconcile(st.bank, mine), bankTot: inR.reduce((q, b) => q + b.a, 0) }; st.res.extra = st.res.extra.filter(t => t.d >= st.r[0] && t.d <= st.r[1]); }
+function stmtRun() { const st = S.stmt; if (!st || !st.bank) return; const mine = derived().all.filter(t => t.acc === st.acc && t.k === "e" && t.d >= C.ymd(new Date(new Date(st.r[0]) - 3 * 864e5)) && t.d <= C.ymd(new Date(new Date(st.r[1]).getTime() + 3 * 864e5))); const inR = st.bank.filter(b => !b.credit); st.res = { ...reconcile(st.bank, mine, ((meta().stmtLinks || {})[st.acc]) || []), bankTot: inR.reduce((q, b) => q + b.a, 0) }; st.res.extra = st.res.extra.filter(t => t.d >= st.r[0] && t.d <= st.r[1]); if (st.pick) { const R = st.res, pb = st.pick.b; R.diff = R.diff.filter(x => { if (x.b.d === pb.d && x.b.a === pb.a && x.b.t === pb.t) { R.extra.push(x.t); return false; } return true; }); } }
 function selBar() {
   if (!S.sel) return "";
   const ids = Object.keys(S.sel), all = derived().all, tot = ids.reduce((s, id) => { const t = all.find(x => x.id === id); return !t || t.k === "tr" ? s : s + (t.k === "e" ? -t.a : t.a); }, 0);
@@ -1058,6 +1073,22 @@ function payList() {
     '<div class="card paylist">' + cols.map(([id, d]) => { const on = !exd.includes(id);
       return '<div class="payrow' + (on ? '' : ' off') + '"><button class="ck' + (on ? ' on' : '') + '" data-act="ci-debt" data-id="' + esc(id) + '" role="checkbox" aria-checked="' + on + '" aria-label="' + esc(d.name) + '"></button><span class="grow">' + esc(d.name) + '<span class="small muted" style="display:block">' + (d.kind === "kart" ? "Kredi kartı" : "Kredi") + ', ayın ' + (d.day || 1) + '’i</span></span><span class="small muted">' + (nextAmt(d) ? f2(nextAmt(d)) : "") + '</span></div>'; }).join("") + '</div>';
 }
+function prevM(m) { const d = new Date(+m.slice(0, 4), +m.slice(5, 7) - 2, 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
+function repHtml(m) {
+  const pm = prevM(m), all = derived().all.filter(t => t.k !== "tr");
+  const agg = mm => { const r = { e: 0, i: 0, c: {}, n: 0, big: null }; all.filter(t => t.d.startsWith(mm)).forEach(t => { if (t.k === "e") { r.e += t.a; r.n++; const k = t.cat || "_"; r.c[k] = (r.c[k] || 0) + t.a; if (!r.big || t.a > r.big.a) r.big = t; } else if (t.k === "i") r.i += t.a; }); return r; };
+  const A = agg(m), B = agg(pm), pct = (x, y) => y ? ((x - y) / y * 100).toLocaleString("tr-TR", { maximumFractionDigits: 0 }) + "%" : "–";
+  const cl = (x, y, inv) => (x > y) !== !!inv ? "neg" : "pos";
+  const ch = [...new Set([...Object.keys(A.c), ...Object.keys(B.c)])].map(k => [k, (A.c[k] || 0) - (B.c[k] || 0), A.c[k] || 0]).filter(x => Math.abs(x[1]) >= 1).sort((x, y) => y[1] - x[1]);
+  const nm = k => k === "_" ? "Kategorisiz" : catLabel(k, true);
+  const li = x => '<li><div class="set-row"><span class="grow"><b>' + esc(nm(x[0])) + '</b><br><span class="muted small">Bu ay ' + f2(x[2]) + '</span></span><b class="' + (x[1] > 0 ? "neg" : "pos") + '" style="white-space:nowrap">' + (x[1] > 0 ? "+" : "") + f2(x[1]) + '</b></div></li>';
+  const up = ch.filter(x => x[1] > 0).slice(0, 5), dn = ch.filter(x => x[1] < 0).reverse().slice(0, 5);
+  return '<div class="card"><div class="sum"><div>Gider<b class="neg">' + f2(A.e) + '</b><span class="small muted">' + mLabel(pm) + ': ' + f2(B.e) + ' (' + pct(A.e, B.e) + ')</span></div><div>Gelir<b class="pos">' + f2(A.i) + '</b><span class="small muted">' + f2(B.i) + ' (' + pct(A.i, B.i) + ')</span></div><div>Net<b class="' + (A.i - A.e < 0 ? "neg" : "pos") + '">' + f2(A.i - A.e) + '</b><span class="small muted">' + f2(B.i - B.e) + '</span></div></div></div>' +
+    '<p class="small muted" style="margin:10px 2px">' + A.n + ' harcama' + (A.big ? ' · en büyük: ' + esc(A.big.t || nm(A.big.cat || "_")) + ' ' + f2(A.big.a) : '') + '</p>' +
+    (up.length ? '<div class="day"><span>Artan harcamalar</span></div><div class="card"><ul class="list">' + up.map(li).join("") + '</ul></div>' : '') +
+    (dn.length ? '<div class="day"><span>Azalan harcamalar</span></div><div class="card"><ul class="list">' + dn.map(li).join("") + '</ul></div>' : '') +
+    (!up.length && !dn.length ? '<div class="empty">Geçen aya göre değişim yok.</div>' : '');
+}
 function renderSettings() {
   const v = D.view, Dd = derived();
   let h;
@@ -1073,9 +1104,12 @@ function renderSettings() {
       '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">İçe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
       '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
       '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Başka bütçe uygulamalarının (Money Manager, Spendee, Wallet, YNAB, Monefy, Toshl, Bluecoins, Mint, 1Money, Cashew, Money Lover vb.) ve bankaların CSV, Excel (.xlsx), QIF ve OFX dosyaları mevcut verilere eklenir; aynı işlemler tekrar eklenmez. Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler.</p></div>';
+    { const ms = [...new Set(Dd.all.map(t => t.d.slice(0, 7)))].filter(m => m < CUR()).sort().reverse().slice(0, 24); if (ms.length) h += '<div class="sec-h" style="margin-top:20px"><h2>Aylık raporlar</h2></div><div class="card"><ul class="list">' + ms.map(m => '<li><button class="set-row" data-act="rep" data-m="' + m + '" data-back="1"><span class="grow">' + mLabel(m) + '</span>' + ICON.r + '</button></li>').join("") + '</ul></div>'; }
     if (NATIVE) h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">Sürüm: ' + esc(OTA.cur || "…") + '<br><span id="ota-msg" class="muted">' + esc(OTA.msg || "") + '</span></span><button class="btn sm ghost" data-act="ota-check">Güncellemeleri kontrol et</button></div>';
     h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div>';
     h += '<p class="small muted" style="text-align:center;margin:20px 0 4px">Bütçe v' + APP_VERSION + '</p></div>';
+  } else if (v === "rep") {
+    h = head(mLabel(D.m) + " raporu", "", D.back ? "set-back" : null) + '<div class="sh-bd">' + repHtml(D.m) + '</div>';
   } else if (v === "acc") {
     const a = D.acc;
     h = head(a._new ? "Hesap ekle" : "Hesabı düzenle") + '<div class="sh-bd">' +
@@ -1114,7 +1148,8 @@ function renderSettings() {
     const p = D.imp, body = p.kind === "tab" ? impTabHtml(p) : p.summary, n = p.kind === "tab" ? p.res.add.length : 1;
     h = head("İçe aktarma", "", "set-back") + '<div class="sh-bd">' + body + '</div><div class="sh-ft"><button class="btn ghost" data-act="set-back">Vazgeç</button><button class="btn" data-act="imp-go"' + (n ? '' : ' disabled') + '>İçe aktar' + (p.kind === "tab" && n ? ' (' + n + ')' : '') + '</button></div>';
   }
-  openSheet(h);
+  const same = dlg.open && renderSettings._v === v; renderSettings._v = v;
+  openSheet(h, same);
 }
 function catTree() {
   const cats = meta().categories, out = [];
@@ -1232,6 +1267,12 @@ document.addEventListener("click", e => {
     case "stmt": { const a = meta().accounts.find(x => x.id === ds.id); if (!a) break; S.stmt = { acc: a.id, off: 0, r: stmtRange(a.cut || 1) }; S.view = "tx"; S.sel = null; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break; }
     case "stmt-per": { const a = meta().accounts.find(x => x.id === S.stmt.acc); S.stmt.off += +ds.v; S.stmt.r = stmtRange(a.cut || 1, new Date(), S.stmt.off); stmtRun(); render(); break; }
     case "stmt-close": S.stmt = null; render(); break;
+    case "rep": { const m = ds.m; D = { view: "rep", m, back: !!ds.back }; renderSettings(); if (!(meta().reportSeen || {})[m] && S.loaded.meta) saveMetaChange(x => { x.reportSeen = { ...(x.reportSeen || {}), [m]: 1 }; }); break; }
+    case "stmt-pick": { const R = S.stmt.res; let b; if (ds.di != null) { const x = R.diff[+ds.di]; b = x.b; S.stmt.pick = { b, ids: [x.t.id] }; } else { b = R.missing[+ds.i]; S.stmt.pick = { b, ids: [] }; } render(); window.scrollTo(0, 0); break; }
+    case "stmt-pick-x": S.stmt.pick = null; stmtRun(); render(); break;
+    case "stmt-ck": { const pk = S.stmt.pick; if (!pk) break; const k = pk.ids.indexOf(ds.id); k >= 0 ? pk.ids.splice(k, 1) : pk.ids.push(ds.id); render(); break; }
+    case "stmt-link": { const pk = S.stmt.pick, acc = S.stmt.acc; if (!pk || !pk.ids.length) break; const L = { d: pk.b.d, a: pk.b.a, ids: pk.ids.slice() }; S.stmt.pick = null; saveMetaChange(m => { m.stmtLinks = m.stmtLinks || {}; m.stmtLinks[acc] = (m.stmtLinks[acc] || []).filter(l => !(l.d === L.d && Math.abs(l.a - L.a) < 0.01)).concat(L); }); stmtRun(); render(); toast("Eşleştirildi"); break; }
+    case "stmt-unlink": { const acc = S.stmt.acc, d = ds.d, a0 = +ds.a; saveMetaChange(m => { if (m.stmtLinks && m.stmtLinks[acc]) m.stmtLinks[acc] = m.stmtLinks[acc].filter(l => !(l.d === d && Math.abs(l.a - a0) < 0.01)); }); stmtRun(); render(); break; }
     case "stmt-up": { const inp = document.createElement("input"); inp.type = "file"; inp.accept = "application/pdf,.pdf"; inp.onchange = async () => { const f = inp.files[0]; if (!f || !S.stmt) return; S.stmt.busy = true; S.stmt.err = null; render(); try { const bank = parseStatementLines(await pdfLines(f)); if (!bank.length) throw new Error("PDF'te işlem satırı bulunamadı."); S.stmt.bank = bank.filter(b => b.d >= S.stmt.r[0] && b.d <= S.stmt.r[1]).length ? bank.filter(b => b.d >= S.stmt.r[0] && b.d <= S.stmt.r[1]) : bank; stmtRun(); } catch (e) { console.error(e); S.stmt.err = e.message && e.message.includes("bulunamadı") ? e.message : "PDF okunamadı."; } S.stmt.busy = false; render(); }; inp.click(); break; }
     case "stmt-add": { const b = S.stmt.res.missing[+ds.i]; if (b) { S._stmtAdd = b; openTx({ k: "e", acc: S.stmt.acc, t: b.t, d: b.d, a: b.a }); } break; }
     case "stmt-fix": { const x = S.stmt.res.diff[+ds.i]; if (!x) break; const m = x.t.d.slice(0, 7), arr = monthItems(m).map(t => t.id === x.t.id ? { ...t, a: C.r2(x.b.a) } : t); S.months[m] = arr; saveMonth(m, arr); stmtRun(); render(); toast && toast("Tutar düzeltildi"); break; }

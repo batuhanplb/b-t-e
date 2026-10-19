@@ -58,20 +58,42 @@ const dayDiff = (a, b) => Math.abs((new Date(a) - new Date(b)) / 864e5);
 
 // Ekstre satırlarını uygulamadaki işlemlerle karşılaştırır.
 // ok: tarih±3 gün ve tutar aynı; diff: tarih±3 gün ve aynı açıklama/en yakın, tutar farklı; missing: bankada var bizde yok; extra: bizde var bankada yok
-export function reconcile(bank, mine) {
+export function reconcile(bank, mine, links = []) {
   const used = new Set(), ok = [], diff = [], missing = [];
   const rows = bank.filter(b => !b.credit);
+  const idx = new Map(mine.map((t, i) => [t.id, i]));
+  const near = (t, b, n) => dayDiff(t.d, b.d) <= n;
+  const rest = [];
+  // 1) Kullanıcının elle eşleştirdikleri
   for (const b of rows) {
+    const L = links.find(l => l.d === b.d && Math.abs(l.a - b.a) < 0.01 && l.ids.every(id => idx.has(id) && !used.has(idx.get(id))));
+    if (L) { const ts = L.ids.map(id => mine[idx.get(id)]); L.ids.forEach(id => used.add(idx.get(id))); ok.push({ b, t: ts[0], ts, manual: true }); }
+    else rest.push(b);
+  }
+  // 2) Birebir: tutar aynı, tarih ±3 gün
+  for (const b of rest) {
     let best = null;
-    mine.forEach((t, i) => { if (!used.has(i) && Math.abs(t.a - b.a) < 0.01 && dayDiff(t.d, b.d) <= 3 && (!best || dayDiff(t.d, b.d) < best.dd)) best = { i, dd: dayDiff(t.d, b.d) }; });
-    if (best) { used.add(best.i); ok.push({ b, t: mine[best.i] }); continue; }
+    mine.forEach((t, i) => { if (!used.has(i) && Math.abs(t.a - b.a) < 0.01 && near(t, b, 3) && (!best || dayDiff(t.d, b.d) < best.dd)) best = { i, dd: dayDiff(t.d, b.d) }; });
+    if (best) { used.add(best.i); ok.push({ b, t: mine[best.i], ts: [mine[best.i]] }); continue; }
     missing.push(b);
   }
-  // Tutar farkı: kalan bankadaki satırı, aynı gün (±2) kalan işlemle eşleştir
-  const still = [];
+  // 3) Bölünmüş: ±2 gündeki 2-3 işlemin toplamı ekstre satırına eşit
+  const left = [];
   for (const b of missing) {
+    const c = mine.map((t, i) => i).filter(i => !used.has(i) && near(mine[i], b, 2) && mine[i].a < b.a + 0.01);
+    let hit = null;
+    for (let x = 0; x < c.length && !hit; x++) for (let y = x + 1; y < c.length && !hit; y++) {
+      const s2 = mine[c[x]].a + mine[c[y]].a;
+      if (Math.abs(s2 - b.a) < 0.01) { hit = [c[x], c[y]]; break; }
+      for (let z = y + 1; z < c.length; z++) if (Math.abs(s2 + mine[c[z]].a - b.a) < 0.01) { hit = [c[x], c[y], c[z]]; break; }
+    }
+    if (hit) { hit.forEach(i => used.add(i)); ok.push({ b, t: mine[hit[0]], ts: hit.map(i => mine[i]), split: true }); } else left.push(b);
+  }
+  // 4) Tutar farkı: aynı gün (±2) kalan işlemle
+  const still = [];
+  for (const b of left) {
     let best = null;
-    mine.forEach((t, i) => { if (!used.has(i) && dayDiff(t.d, b.d) <= 2) { const r = Math.abs(t.a - b.a) / Math.max(t.a, b.a); if (r < 0.5 && (!best || r < best.r)) best = { i, r }; } });
+    mine.forEach((t, i) => { if (!used.has(i) && near(t, b, 2)) { const r = Math.abs(t.a - b.a) / Math.max(t.a, b.a); if (r < 0.5 && (!best || r < best.r)) best = { i, r }; } });
     if (best) { used.add(best.i); diff.push({ b, t: mine[best.i] }); } else still.push(b);
   }
   const extra = mine.filter((_, i) => !used.has(i));
