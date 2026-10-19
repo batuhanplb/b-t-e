@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.14.0";
+const APP_VERSION = "1.2.15.0";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -419,7 +419,7 @@ function vHome() {
   const tc = tops(cur), tp = tops(prev), rows = Object.entries(tc).sort((a, b) => b[1] - a[1]);
   M.cats = () => mod(svgI(CI.tag), "Dağılım", "pie", (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span class="cic kcic" style="--c:' + catColor(id === "_" ? null : id) + '">' + catIcon(id === "_" ? null : id) + '</span><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
   const curAll = monthItems(m), daily = []; for (let d = 1; d <= dm; d++) daily.push(curAll.filter(t => t.k === "e" && Number(t.d.slice(8, 10)) === d).reduce((s, t) => s + t.a, 0));
-  M.daily = () => mod(svgI(CI.cart), "Günlük harcama", "g:e", '<div class="mod-n"><b>' + f0(isCur ? daily[lastDay - 1] || 0 : (lastDay ? te / lastDay : 0)) + '</b></div>' + chartBox("bar", daily, daily.map((_, i) => [i, String(i + 1)]).filter(([i]) => i % 2 === 0), daily.map((v, i) => (i + 1) + " " + C.TR_M[Number(m.slice(5)) - 1] + ": " + f2(v)), isCur ? lastDay - 1 : -1));
+  M.daily = () => mod(svgI(CI.cart), "Günlük harcama", "g:e", '<div class="mod-n"><b>' + f0(isCur ? daily[lastDay - 1] || 0 : (lastDay ? te / lastDay : 0)) + '</b></div>' + chartBox("bar", daily, daily.map((_, i) => [i, String(i + 1)]).filter(([i]) => i % 2 === 0), daily.map((v, i) => (i + 1) + " " + C.TR_M[Number(m.slice(5)) - 1] + ": " + f2(v)), isCur ? lastDay - 1 : -1)).replace('class="chartbox"', 'class="chartbox" data-daym="' + m + '"');
   M.top = () => { const big = cur.filter(t => t.k === "e").sort((a, b) => b.a - a.a).slice(0, 20);
     return mod(svgI(CI.bag), "En büyük harcamalar", "tx", big.length ? '<div class="klist">' + big.map(t => '<button class="krow" data-act="edit-tx" data-id="' + esc(t.id) + '" data-m="' + t.d.slice(0, 7) + '"><span><b>' + esc(t.t || catLabel(t.cat, true)) + '</b><span class="muted small">' + dLabel(t.d) + '</span></span><span class="r"><b>' + f0(t.a) + '</b></span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'); };
   M.ratio = () => { const r = ti ? te / ti * 100 : 0, sav = ti - te;
@@ -741,6 +741,7 @@ function extendRecs() {
 }
 function perRange() {
   const cm = CUR(), y = cm.slice(0, 4), t = today();
+  if (S.per && S.per.startsWith("d:")) return [S.per.slice(2), S.per.slice(2)];
   if (S.per === "30") { const d = new Date(); d.setDate(d.getDate() - 29); return [C.ymd(d), t]; }
   if (S.per === "m") return [cm + "-01", cm + "-" + C.daysIn(cm)];
   if (S.per === "pm") { const p = C.addM(cm, -1); return [p + "-01", p + "-" + C.daysIn(p)]; }
@@ -1445,3 +1446,8 @@ function accDrag() {
   document.addEventListener("pointerup", cancel); document.addEventListener("pointercancel", cancel);
   document.addEventListener("contextmenu", e => { if (e.target.closest("button.tx")) e.preventDefault(); });
 })();
+
+document.addEventListener("click", e => { const r = e.target.closest(".bhit"); const cb = r && r.closest(".chartbox[data-daym]"); if (!cb || document.body.classList.contains("dash-edit")) return;
+  const i = [...cb.querySelectorAll("rect.bhit")].indexOf(r); if (i < 0) return; e.stopPropagation(); e.preventDefault();
+  S.view = "tx"; S.per = "d:" + cb.dataset.daym + "-" + String(i + 1).padStart(2, "0"); S.accFs = []; S.catF = null; S.payF = null; S.q = ""; S.showPastTx = true; S.showFutTx = true; S.showE = true; S.showI = true;
+  if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); }, true);
