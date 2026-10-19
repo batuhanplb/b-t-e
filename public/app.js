@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.24.3";
+const APP_VERSION = "1.2.24.4";
 const applyTheme = t => { t = t === "dark" ? "dark" : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -173,7 +173,7 @@ const catOf = id => derived().catMap[id];
 function catLabel(id, short) {
   const c = catOf(id); if (!c) return "Kategorisiz";
   const p = c.parent ? catOf(c.parent) : null;
-  return p && !short ? p.name + " › " + c.name : c.name;
+  return p && !short ? p.name + ":" + c.name : c.name;
 }
 const payName = t => (t.t || (t.k !== "tr" && t.cat ? catLabel(t.cat, true) : "")).trim();
 function allPayees(k) { const m = new Map(); derived().all.forEach(t => { if (t.k === "tr" || (k && t.k !== k)) return; const n = payName(t); if (!n) return; const key = n.toLocaleLowerCase("tr"); const e = m.get(key) || { t: n, n: 0, a: 0, k: t.k }; e.n++; e.a += t.a; m.set(key, e); }); return [...m.values()].sort((a, b) => a.t.localeCompare(b.t, "tr")); }
@@ -182,6 +182,11 @@ const accName = id => (derived().accMap[id] || {}).name || "Hesap yok";
 const visibleAccs = () => meta().accounts.filter(a => !a.hidden).sort((a, b) => (a.order || 0) - (b.order || 0));
 const monthItems = m => S.months[m] || [];
 function saveMonth(m, items) { S.months[m] = items; if (!items.length) delete S.months[m]; bump(); return S.store.setMonth(m, items); }
+
+function fixSep() {
+  const re = /\s*(?:›|>|»)\s*/g;
+  Object.keys(S.months).forEach(m => { let ch = false; const it = S.months[m].map(t => { if (t.t && re.test(t.t)) { re.lastIndex = 0; ch = true; return { ...t, t: t.t.replace(re, ":") }; } re.lastIndex = 0; return t; }); if (ch) saveMonth(m, it); });
+}
 
 /* ============ boot ============ */
 async function boot() {
@@ -204,7 +209,7 @@ async function boot() {
       S.loaded = { meta: false, months: false, debts: false };
       S.store.listen({
         meta: m => { S.meta = m; S.loaded.meta = true; bump(); render(); },
-        months: (o) => { S.months = o; S.loaded.months = true; bump(); render(); if (!S._recDone && S.loaded.meta) { S._recDone = true; extendRecs(); } },
+        months: (o) => { S.months = o; S.loaded.months = true; bump(); fixSep(); render(); if (!S._recDone && S.loaded.meta) { S._recDone = true; extendRecs(); } },
         debts: o => { S.debts = o; S.loaded.debts = true; render(); },
         err: e => { console.error(e); toast("Veri bağlantısı kesildi, tekrar deneniyor."); }
       });
