@@ -13,3 +13,13 @@ describe("ekstre", () => {
     expect(r.ok.length).toBe(1); expect(r.diff.length).toBe(1); expect(r.missing.length).toBe(0); expect(r.extra.map(t => t.id)).toEqual(["3"]);
   });
 });
+describe("bölünmüş ve elle eşleştirme", () => {
+  it("2000 TL satırını 500 + 1500 girişleriyle otomatik eşler", () => {
+    const r = reconcile([{ d: "2026-10-12", a: 2000, t: "MARKET" }], [{ id: "a", d: "2026-10-12", a: 500 }, { id: "b", d: "2026-10-13", a: 1500 }]);
+    expect(r.ok.length).toBe(1); expect(r.ok[0].ts.map(t => t.id)).toEqual(["a", "b"]); expect(r.extra.length).toBe(0);
+  });
+  it("elle eşleştirilenleri eşleşmiş sayar", () => {
+    const r = reconcile([{ d: "2026-10-12", a: 1000, t: "X" }], [{ id: "a", d: "2026-10-12", a: 500 }, { id: "b", d: "2026-10-20", a: 400 }], [{ d: "2026-10-12", a: 1000, ids: ["a", "b"] }]);
+    expect(r.ok[0].manual).toBe(true); expect(r.missing.length).toBe(0); expect(r.extra.length).toBe(0);
+  });
+});
