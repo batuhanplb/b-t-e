@@ -1114,7 +1114,8 @@ function renderSettings() {
     const p = D.imp, body = p.kind === "tab" ? impTabHtml(p) : p.summary, n = p.kind === "tab" ? p.res.add.length : 1;
     h = head("İçe aktarma", "", "set-back") + '<div class="sh-bd">' + body + '</div><div class="sh-ft"><button class="btn ghost" data-act="set-back">Vazgeç</button><button class="btn" data-act="imp-go"' + (n ? '' : ' disabled') + '>İçe aktar' + (p.kind === "tab" && n ? ' (' + n + ')' : '') + '</button></div>';
   }
-  openSheet(h);
+  const same = dlg.open && renderSettings._v === v; renderSettings._v = v;
+  openSheet(h, same);
 }
 function catTree() {
   const cats = meta().categories, out = [];
