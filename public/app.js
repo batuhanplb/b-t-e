@@ -900,11 +900,11 @@ function gtList(kind, g, q) {
   return m.length ? m.map(x => '<button class="tx-catoption" role="option" data-act="gt-add" data-g="' + g + '" data-v="' + esc(x.v) + '"><i style="background:' + x.col + '"></i><span>' + esc(x.l) + '</span></button>').join("") : '<p class="small muted cat-noresults">Eşleşen yok.</p>';
 }
 function catList(k, q) {
-  const cats = meta().categories.filter(c => c.type === (k === "i" ? "I" : "E"));
+  const own = k === "i" ? "I" : "E", cats = k === "i" ? meta().categories.slice() : meta().categories.filter(c => c.type === own);
   const selected = D.spPick != null ? D.sp[D.spPick].cat : D.cat;
   const row = c => '<button class="tx-catoption" role="option" data-act="tx-cat" data-id="' + esc(c.id) + '" aria-selected="' + (selected === c.id) + '"><i style="background:' + c.color + '"></i><span>' + esc(catLabel(c.id)) + '</span>' + (selected === c.id ? '<span class="cat-check">✓</span>' : '') + '</button>';
   q = (q || "").trim().toLocaleLowerCase("tr");
-  const matches = cats.filter(c => !q || catLabel(c.id).toLocaleLowerCase("tr").includes(q)).sort((a, b) => catLabel(a.id).localeCompare(catLabel(b.id), "tr"));
+  const matches = cats.filter(c => !q || catLabel(c.id).toLocaleLowerCase("tr").includes(q)).sort((a, b) => ((a.type !== own) - (b.type !== own)) || catLabel(a.id).localeCompare(catLabel(b.id), "tr"));
   return matches.length ? matches.map(row).join("") : '<p class="small muted cat-noresults">' + (q ? 'Eşleşen kategori yok.' : 'Henüz kategori yok.') + '</p>';
 }
 function buildPlan() {
