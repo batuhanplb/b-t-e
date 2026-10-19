@@ -1473,6 +1473,10 @@ document.addEventListener("change", e => {
   if (D && t.id === "f-t") { D.t = t.value; setTimeout(() => { if (D && dlg.open && applyPayee()) { const a = document.activeElement, id = a && a.id; renderTx(true); id && document.getElementById(id)?.focus(); } }, 180); }
   if (["pFrom", "pTo", "pCat"].includes(t.dataset.ch)) { S[t.dataset.ch] = t.value; render(); }
 });
+document.addEventListener("focusout", e => {
+  if (e.target.id !== "f-t") return;
+  setTimeout(() => { const el = $("#f-t"); if (D && dlg.open && el && !el.value.trim() && !D.t && D.cat && D.k !== "tr") { D.t = catLabel(D.cat, true); el.value = D.t; } }, 220);
+});
 document.addEventListener("keydown", e => {
   if (D && (e.target.id === "cq" || e.target.closest(".tx-catlist"))) {
     if (e.key === "Escape" && D.catOpen) { e.preventDefault(); D.catOpen = false; D.cq = ""; renderTx(true); dlgIn.querySelector('[data-act="cat-open"]')?.focus(); return; }

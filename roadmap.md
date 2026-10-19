@@ -18,4 +18,4 @@
 - [ ] Uygulama içinde Google girişi (uygulamaya geri dönüş bağlantısı gerekiyor)
 - [ ] Yeni APK kurmadan anında güncelleme (OTA)
 - [x] Alt kategori ayracı ":" (geçmiş lehdarlar dahil)
-- [ ] Lehdar boşsa, alan terk edilince kategori adını yaz (2. seçenek)
+- [x] Lehdar boşsa, alan terk edilince kategori adını yaz (2. seçenek)
