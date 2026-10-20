@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.27.0";
+const APP_VERSION = "1.2.28.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -699,14 +699,15 @@ const logoUrl = dom => "https://www.google.com/s2/favicons?sz=128&domain=" + enc
 function guessDomain(name) { const n = (name || "").toLocaleLowerCase("tr"); for (const k in BANKS) if (n.includes(k)) return BANKS[k]; return ""; }
 const LOGO_DB = [["Ziraat Bankası", "ziraatbank.com.tr"], ["Garanti BBVA", "garantibbva.com.tr"], ["Akbank", "akbank.com"], ["Yapı Kredi", "yapikredi.com.tr"], ["İş Bankası", "isbank.com.tr"], ["VakıfBank", "vakifbank.com.tr"], ["Halkbank", "halkbank.com.tr"], ["QNB", "qnb.com.tr"], ["DenizBank", "denizbank.com"], ["TEB", "teb.com.tr"], ["ING", "ing.com.tr"], ["HSBC", "hsbc.com.tr"], ["Enpara", "enpara.com"], ["Papara", "papara.com"], ["ininal", "ininal.com"], ["Paycell", "paycell.com.tr"], ["Şekerbank", "sekerbank.com.tr"], ["Odeabank", "odeabank.com.tr"], ["Kuveyt Türk", "kuveytturk.com.tr"], ["Albaraka", "albaraka.com.tr"], ["Emlak Katılım", "emlakkatilim.com.tr"], ["Fibabanka", "fibabanka.com.tr"], ["Anadolubank", "anadolubank.com.tr"], ["Burgan", "burgan.com.tr"], ["Alternatif Bank", "alternatifbank.com.tr"], ["Aktif Bank / N Kolay", "aktifbank.com.tr"], ["Ziraat Katılım", "ziraatkatilim.com.tr"], ["Vakıf Katılım", "vakifkatilim.com.tr"], ["Türkiye Finans", "turkiyefinans.com.tr"], ["Midas", "getmidas.com"], ["Revolut", "revolut.com"], ["Wise", "wise.com"], ["PayPal", "paypal.com"], ["Binance", "binance.com"], ["BtcTurk", "btcturk.com"], ["Paribu", "paribu.com"], ["Tosla", "tosla.com"], ["Colendi", "colendi.com"]];
 let lgT = null;
-async function logoSearch(q) {
-  const box = $("#lgres"); if (!box) return; q = (q || "").trim(); const ql = q.toLocaleLowerCase("tr");
+async function logoSearch(q, bid, act, qid) {
+  bid = bid || "lgres"; act = act || "acc-logo"; qid = qid || "lgq";
+  const box = $("#" + bid); if (!box) return; q = (q || "").trim(); const ql = q.toLocaleLowerCase("tr");
   if (!q) { box.innerHTML = ""; return; }
   let res = LOGO_DB.filter(([n, d]) => n.toLocaleLowerCase("tr").includes(ql) || d.includes(ql)).map(([n, d]) => ({ n, d }));
-  const draw = () => { box.innerHTML = res.length ? res.slice(0, 12).map(r => '<button class="lgopt" data-act="acc-logo" data-d="' + esc(r.d) + '" title="' + esc(r.d) + '"><img src="' + logoUrl(r.d) + '" alt=""><span>' + esc(r.n) + '</span></button>').join("") : '<span class="small muted">Sonuç yok. Kurumun site adresini yazabilirsiniz, örn. ornek.com</span>'; };
+  const draw = () => { box.innerHTML = res.length ? res.slice(0, 12).map(r => '<button class="lgopt" data-act="' + act + '" data-d="' + esc(r.d) + '" title="' + esc(r.d) + '"><img src="' + logoUrl(r.d) + '" alt=""><span>' + esc(r.n) + '</span></button>').join("") : '<span class="small muted">Sonuç yok. Kurumun site adresini yazabilirsiniz, örn. ornek.com</span>'; };
   if (/\.[a-z]{2,}/i.test(q) && !res.some(r => r.d === q)) res.unshift({ n: q, d: q.replace(/^https?:\/\//, "").replace(/\/.*$/, "") });
   draw();
-  try { const r = await fetch("https://autocomplete.clearbit.com/v1/companies/suggest?query=" + encodeURIComponent(q)); if (r.ok) { const j = await r.json(); if ($("#lgq") && $("#lgq").value.trim() === q) { j.forEach(c => { if (c.domain && !res.some(x => x.d === c.domain)) res.push({ n: c.name, d: c.domain }); }); draw(); } } } catch (e) { }
+  try { const r = await fetch("https://autocomplete.clearbit.com/v1/companies/suggest?query=" + encodeURIComponent(q)); if (r.ok) { const j = await r.json(); if ($("#" + qid) && $("#" + qid).value.trim() === q) { j.forEach(c => { if (c.domain && !res.some(x => x.d === c.domain)) res.push({ n: c.name, d: c.domain }); }); draw(); } } } catch (e) { }
 }
 function accIcon(a) { return a.logo ? '<img class="alogo" src="' + esc(a.logo) + '" alt="" onerror="this.style.display=\'none\'">' : '<i class="dotc" style="background:' + a.color + '"></i>'; }
 const stripAct = h => (h || "").replace(/ data-act="[^"]*"/g, "");
@@ -1147,7 +1148,7 @@ function renderSettings() {
     h = head(c._new ? "Kategori ekle" : "Kategoriyi düzenle") + '<div class="sh-bd">' +
       '<label class="fld"><span>Ad</span><input class="in" data-c="name" value="' + esc(c.name) + '"></label>' +
       '<div class="row2"><label class="fld"><span>Tür</span><select class="in" data-c="type"><option value="E"' + (c.type === "E" ? " selected" : "") + '>Gider</option><option value="I"' + (c.type === "I" ? " selected" : "") + '>Gelir</option></select></label><label class="fld"><span>Renk</span><input class="in" type="color" data-c="color" value="' + esc(c.color) + '" style="height:46px;padding:4px"></label></div>' +
-      '<div class="fld"><span>İkon</span><div class="icgrid">' + ["", ...Object.keys(CI).filter(k => k !== "swap")].map(k => '<button class="icb" data-act="cat-icon" data-v="' + k + '" style="--c:' + c.color + '" aria-pressed="' + (!c.img && (c.icon || "") === k) + '">' + (k ? svgI(CI[k]) : "Oto") + '</button>').join("") + '</div><div style="display:flex;gap:8px;align-items:center;margin-top:10px">' + (c.img ? '<span class="cic" style="--c:' + c.color + '"><img src="' + c.img + '" alt=""></span><button class="btn sm ghost" data-act="cat-img-rm">Görseli kaldır</button>' : '') + '<label class="btn sm ghost" style="display:inline-flex;align-items:center">Kendi görselini yükle<input type="file" accept="image/*" id="cat-img" hidden></label></div></div>' +
+      '<div class="fld"><span>İkon</span><div class="icgrid">' + ["", ...Object.keys(CI).filter(k => k !== "swap")].map(k => '<button class="icb" data-act="cat-icon" data-v="' + k + '" style="--c:' + c.color + '" aria-pressed="' + (!c.img && (c.icon || "") === k) + '">' + (k ? svgI(CI[k]) : "Oto") + '</button>').join("") + '</div><div style="display:flex;gap:8px;align-items:center;margin-top:10px">' + (c.img ? '<span class="cic" style="--c:' + c.color + '"><img src="' + c.img + '" alt=""></span><button class="btn sm ghost" data-act="cat-img-rm">Görseli kaldır</button>' : '') + '<input class="in" id="cq" autocomplete="off" placeholder="İnternette logo ara, örn. netflix" style="flex:1;min-width:0"><label class="btn sm ghost" style="display:inline-flex;align-items:center;white-space:nowrap">Görsel yükle<input type="file" accept="image/*" id="cat-img" hidden></label></div><div id="cqres" class="lgres"></div></div>' +
       '<label class="fld"><span>Üst kategori</span><select class="in" data-c="parent"><option value="">Yok (ana kategori)</option>' + parents.map(p => '<option value="' + esc(p.id) + '"' + (c.parent === p.id ? " selected" : "") + '>' + esc(p.name) + '</option>').join("") + '</select></label><div id="s-err"></div></div>' +
       '<div class="sh-ft">' + (c._new ? '' : '<button class="btn danger" data-act="cat-del">Sil</button>') + '<button class="btn" data-act="cat-save">Kaydet</button></div>';
   } else if (v === "gt") {
@@ -1421,6 +1422,7 @@ document.addEventListener("click", e => {
     case "pie-drill": S.pCat = ds.id; render(); break;
     case "pie-tog": S.pOpen = S.pOpen || {}; S.pOpen[ds.id] = !S.pOpen[ds.id]; render(); break;
     case "acc-logo": { const d = (ds.d || "").trim(); if (!d) break; D.acc.dom = d; D.acc.logo = logoUrl(d); D.lgq = ""; renderSettings(); break; }
+    case "cat-logo": { const d = (ds.d || "").trim(); if (!d) break; D.cat.img = logoUrl(d); D.cat.icon = null; renderSettings(); break; }
     case "acc-logo-rm": D.acc.logo = null; renderSettings(); break;
     case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (!confirm("Hesap silinsin mi?")) break; saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
     case "cat-del": { const id = D.cat.id; if (derived().all.some(t => t.cat === id) || meta().categories.some(x => x.parent === id)) { $("#s-err").innerHTML = '<p class="err">Bu kategori kullanılıyor veya alt kategorisi var.</p>'; break; } if (!confirm("Kategori silinsin mi?")) break; saveMetaChange(m => { m.categories = m.categories.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
@@ -1455,6 +1457,7 @@ document.addEventListener("input", e => {
   if (t.dataset.f) { const k = t.dataset.num; let v = t.value; if (k === "amt") { v = v.trim() === "" ? null : C.parseAmt(v); if (v !== null && isNaN(v)) return; } else if (k === "int") v = v === "" ? null : parseInt(v); D[t.dataset.f] = v; }
   if (D && (t.dataset.gtq || t.dataset.gtpq)) { const g = t.dataset.gtq || t.dataset.gtpq, kd = t.dataset.gtq ? "c" : "p"; $("#gtl-" + kd + "-" + g).innerHTML = gtList(kd, g, t.value); return; }
   if (t.id === "cq") { D.cq = t.value; $("#catlist").innerHTML = catList(D.k, D.cq); return; }
+  if (t.id === "cq" && D) { clearTimeout(lgT); lgT = setTimeout(() => logoSearch(t.value, "cqres", "cat-logo", "cq"), 250); return; }
   if (t.id === "lgq" && D) { D.lgq = t.value; clearTimeout(lgT); lgT = setTimeout(() => logoSearch(t.value), 250); return; }
   if (t.dataset.gn) D[t.dataset.gn] = t.value;
   if (D && D.ci && t.dataset.ci) D.ci[t.dataset.ci] = t.value;
