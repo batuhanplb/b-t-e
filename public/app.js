@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.26.2";
+const APP_VERSION = "1.2.27.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -533,7 +533,8 @@ function vTx() {
   const nPast = items.filter(t => t.d < tdy).length, nFut = items.filter(t => t.d > tdy).length;
   let h = '<div class="toolbar"><input class="search" type="search" placeholder="Ara: açıklama, kategori, not" value="' + esc(S.q) + '" data-in="q"><button class="sel accbtn" data-act="accf-open">' + (S.accFs.length ? S.accFs.length + " hesap" : "Tüm hesaplar") + ' ▾</button></div>';
   if (S.accOpen) h += '<div class="card" style="padding:10px 12px;margin-bottom:10px"><div class="chips">' + meta().accounts.map(a => '<button class="chip" data-act="accf-t" data-id="' + esc(a.id) + '" aria-pressed="' + S.accFs.includes(a.id) + '"><i style="background:' + a.color + '"></i>' + esc(a.name) + '</button>').join("") + (S.accFs.length ? '<button class="chip" data-act="accf-clear">Temizle ✕</button>' : '') + '</div></div>';
-  if (!qs && !S.catF && !S.payF) h += '<div class="scroll-x" style="margin-bottom:10px">' + [["30", "Son 30 gün"], ["m", "Bu ay"], ["pm", "Geçen ay"], ["3", "Son 3 ay"], ["6", "Son 6 ay"], ["y", "Bu yıl"], ["all", "Tümü"]].map(([v, l]) => '<button class="chip" data-act="per" data-v="' + v + '" aria-pressed="' + (S.per === v) + '">' + l + '</button>').join("") + (S.per && S.per.startsWith("d:") ? '<button class="chip" data-act="per" data-v="all" aria-pressed="true">' + dLabel(S.per.slice(2)) + ' ✕</button>' : '') + '</div>';
+  if (!qs && !S.catF && !S.payF) h += '<div class="scroll-x" style="margin-bottom:10px">' + [["30", "Son 30 gün"], ["m", "Bu ay"], ["pm", "Geçen ay"], ["3", "Son 3 ay"], ["6", "Son 6 ay"], ["y", "Bu yıl"], ["all", "Tümü"], ["c", "Özel aralık"]].map(([v, l]) => '<button class="chip" data-act="per" data-v="' + v + '" aria-pressed="' + (S.per === v) + '">' + l + '</button>').join("") + (S.per && S.per.startsWith("d:") ? '<button class="chip" data-act="per" data-v="all" aria-pressed="true">' + dLabel(S.per.slice(2)) + ' ✕</button>' : '') + '</div>';
+  if (S.per === "c" && !qs && !S.catF && !S.payF) h += '<div class="chips" style="margin-bottom:10px;align-items:center"><input class="search" type="date" style="flex:1;min-width:0" data-in="cfrom" value="' + (S.cFrom || "") + '"><span class="muted">–</span><input class="search" type="date" style="flex:1;min-width:0" data-in="cto" value="' + (S.cTo || "") + '"></div>';
   const dirty = S.per !== "m" || S.q || S.catF || S.payF || S.fYear || S.accFs.length || !S.showPastTx || S.showFutTx || !S.showE || !S.showI;
   h += '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tgl-past" aria-pressed="' + S.showPastTx + '">Geçmiş</button><button class="chip" data-act="tgl-fut" aria-pressed="' + S.showFutTx + '">Gelecek</button><span style="flex:1"></span><button class="chip" data-act="tgl-e" aria-pressed="' + S.showE + '">Gider</button><button class="chip" data-act="tgl-i" aria-pressed="' + S.showI + '">Gelir</button></div>' + (dirty ? '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tx-reset">Seçimleri kaldır ✕</button></div>' : '');
   if (S.catF || S.payF) h += '<div class="chips" style="margin-bottom:10px"><button class="chip" aria-pressed="true" data-act="catf-clear">' + esc(S.payF ? S.payF : catLabel(S.catF)) + (S.fYear ? " · " + S.fYear : "") + ' ✕</button></div>';
@@ -796,6 +797,7 @@ function extendRecs() {
 function perRange() {
   const cm = CUR(), y = cm.slice(0, 4), t = today();
   if (S.per && S.per.startsWith("d:")) return [S.per.slice(2), S.per.slice(2)];
+  if (S.per === "c") return [S.cFrom || "0000-01-01", S.cTo || "9999-12-31"];
   if (S.per === "30") { const d = new Date(); d.setDate(d.getDate() - 29); return [C.ymd(d), t]; }
   if (S.per === "m") return [cm + "-01", cm + "-" + C.daysIn(cm)];
   if (S.per === "pm") { const p = C.addM(cm, -1); return [p + "-01", p + "-" + C.daysIn(p)]; }
@@ -1407,7 +1409,7 @@ document.addEventListener("click", e => {
     case "accf-t": { const i = S.accFs.indexOf(ds.id); i >= 0 ? S.accFs.splice(i, 1) : S.accFs.push(ds.id); render(); break; }
     case "accf-clear": S.accFs = []; render(); break;
     case "per": S.per = ds.v; render(); break;
-    case "tx-reset": S.per = "m"; S.q = ""; S.catF = null; S.payF = null; S.fYear = null; S.accFs = []; S.accOpen = false; S.stmt = null; S.showPastTx = true; S.showFutTx = false; S.showE = true; S.showI = true; render(); break;
+    case "tx-reset": S.per = "m"; S.cFrom = ""; S.cTo = ""; S.q = ""; S.catF = null; S.payF = null; S.fYear = null; S.accFs = []; S.accOpen = false; S.stmt = null; S.showPastTx = true; S.showFutTx = false; S.showE = true; S.showI = true; render(); break;
     case "tgl-past": S.showPastTx = !S.showPastTx; render(); break;
     case "tgl-e": S.showE = !S.showE; render(); break;
     case "tgl-i": S.showI = !S.showI; render(); break;
@@ -1444,6 +1446,7 @@ document.addEventListener("click", e => {
 document.addEventListener("input", e => {
   const t = e.target;
   if (t.dataset.in === "payq") { S.payQ = t.value; const pos = t.selectionStart; render(); const n = document.querySelector('[data-in="payq"]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } return; }
+  if (t.dataset.in === "cfrom" || t.dataset.in === "cto") { S[t.dataset.in === "cfrom" ? "cFrom" : "cTo"] = t.value; render(); return; }
   if (t.dataset.in === "q") { S.q = t.value; const pos = t.selectionStart; render(); const n = document.querySelector('[data-in="q"]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } return; }
   if (!D) return;
   if (t.dataset.d === "aStr" || t.dataset.sa != null || t.dataset.pa != null || t.dataset.si != null || t.id === "p-a" || (t.dataset.num === "amt" && t.dataset.f !== "rate")) formatAmountField(t);
