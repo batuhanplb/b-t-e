@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.28.0";
+const APP_VERSION = "1.2.29.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -199,9 +199,9 @@ async function boot() {
     return;
   }
   const VIEWS = ["home", "tx", "debt", "cash", "table", "pie", "inv", "acc", "cat", "pay", "subs"];
-  const hv = location.hash.slice(1);
-  if (VIEWS.includes(hv)) S.view = hv;
-  addEventListener("hashchange", () => { const h = location.hash.slice(1); if (VIEWS.includes(h) && h !== S.view) { S.view = h; S.catF = null; S.payF = null; render(); window.scrollTo(0, 0); } });
+  const hv = location.hash.slice(1).split("?")[0];
+  if (VIEWS.includes(hv)) { S.view = hv; try { const u = new URLSearchParams(location.hash.split("?")[1] || ""); if (u.get("per")) S.per = u.get("per"); if (u.get("from")) S.cFrom = u.get("from"); if (u.get("to")) S.cTo = u.get("to"); if (u.get("acc")) S.accFs = u.get("acc").split(","); if (u.get("cat")) S.catF = u.get("cat"); if (u.get("pay")) S.payF = u.get("pay"); if (u.get("q")) S.q = u.get("q"); } catch (e) { } }
+  addEventListener("hashchange", () => { const h = location.hash.slice(1).split("?")[0]; if (VIEWS.includes(h) && h !== S.view) { S.view = h; S.catF = null; S.payF = null; render(); window.scrollTo(0, 0); } });
   const onUser = (u, err) => {
     if (err !== undefined) { S.authErr = err; render(); return; }
     S.user = u;
@@ -221,7 +221,14 @@ async function boot() {
 }
 
 /* ============ render ============ */
+function syncUrl() {
+  if (!S.user || !S.view) return; const u = new URLSearchParams();
+  if (S.view === "tx") { if (S.per && S.per !== "m") u.set("per", S.per); if (S.per === "c") { if (S.cFrom) u.set("from", S.cFrom); if (S.cTo) u.set("to", S.cTo); } if (S.accFs && S.accFs.length) u.set("acc", S.accFs.join(",")); if (S.catF) u.set("cat", S.catF); if (S.payF) u.set("pay", S.payF); if (S.q) u.set("q", S.q); }
+  const qs = u.toString(), h = "#" + S.view + (qs ? "?" + qs : "");
+  if (location.hash !== h) try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) { }
+}
 function render() {
+  setTimeout(syncUrl, 0);
   if (S.stmt && S.stmt.bank && S.months) try { stmtRun(); } catch (e) { console.error(e); }
   if (S.meta && S.meta.theme) applyTheme(S.meta.theme);
   const root = $("#root");
@@ -709,6 +716,22 @@ async function logoSearch(q, bid, act, qid) {
   draw();
   try { const r = await fetch("https://autocomplete.clearbit.com/v1/companies/suggest?query=" + encodeURIComponent(q)); if (r.ok) { const j = await r.json(); if ($("#" + qid) && $("#" + qid).value.trim() === q) { j.forEach(c => { if (c.domain && !res.some(x => x.d === c.domain)) res.push({ n: c.name, d: c.domain }); }); draw(); } } } catch (e) { }
 }
+const ICO_TR = { ev: "home", araba: "car", oto: "car", araç: "car", benzin: "gas station", yakıt: "fuel", mutfak: "kitchen", market: "shopping cart", alışveriş: "shopping", yemek: "food", restoran: "restaurant", kafe: "coffee", kahve: "coffee", su: "water", elektrik: "lightning", fatura: "receipt", doğalgaz: "fire", internet: "wifi", telefon: "phone", sağlık: "health", ilaç: "pill", hastane: "hospital", eczane: "pharmacy", ulaşım: "bus", otobüs: "bus", taksi: "taxi", metro: "train", tren: "train", uçak: "airplane", tatil: "beach", seyahat: "travel", kırtasiye: "pencil", kitap: "book", eğitim: "school", okul: "school", maaş: "wallet", para: "money", yatırım: "chart", borsa: "chart line", altın: "gold", kredi: "credit card", kart: "credit card", borç: "bank", banka: "bank", hediye: "gift", giyim: "shirt", ayakkabı: "shoe", spor: "dumbbell", oyun: "gamepad", müzik: "music", film: "movie", dizi: "tv", sigara: "cigarette", alkol: "beer", bira: "beer", evcil: "paw", kedi: "cat", köpek: "dog", bebek: "baby", çocuk: "child", aile: "family", arkadaş: "people", aidat: "building", kira: "key", tamir: "wrench", tadilat: "hammer", eşya: "sofa", teknoloji: "laptop", bilgisayar: "laptop", yazılım: "code", abonelik: "repeat", sigorta: "shield", vergi: "receipt tax", bağış: "heart", kuaför: "scissors", güzellik: "lipstick", temizlik: "broom", otopark: "parking", ceza: "alert", gelir: "cash plus", nakit: "cash", transfer: "swap" };
+let icT = 0;
+async function iconSearch(q) {
+  const box = $("#cqres"); if (!box) return; q = (q || "").trim(); const my = ++icT;
+  if (!q) { box.innerHTML = ""; return; }
+  const ql = q.toLocaleLowerCase("tr"), col = encodeURIComponent((D.cat && D.cat.color) || "#3b5bdb");
+  let key = ICO_TR[ql]; if (!key) for (const k in ICO_TR) if (k.startsWith(ql) || ql.startsWith(k)) { key = ICO_TR[k]; break; }
+  box.innerHTML = '<span class="small muted">Aranıyor…</span>';
+  let icons = [];
+  try { const r = await fetch("https://api.iconify.design/search?limit=32&prefixes=mdi,tabler,lucide,ph&query=" + encodeURIComponent(key || q)); if (r.ok) icons = (await r.json()).icons || []; } catch (e) { }
+  if (my !== icT) return;
+  let h = icons.slice(0, 24).map(n => { const [pf, nm] = n.split(":"); const u = "https://api.iconify.design/" + pf + "/" + nm + ".svg?color=" + col; return '<button class="lgopt" data-act="cat-svg" data-u="' + esc(u) + '" title="' + esc(nm) + '"><img src="' + esc(u) + '" alt=""></button>'; }).join("");
+  box.innerHTML = h || '<span class="small muted">İkon bulunamadı.</span>';
+  const lb = document.createElement("div"); lb.id = "cqlogo"; lb.className = "lgres"; box.appendChild(lb);
+  logoSearch(q, "cqlogo", "cat-logo", "cimgq");
+}
 function accIcon(a) { return a.logo ? '<img class="alogo" src="' + esc(a.logo) + '" alt="" onerror="this.style.display=\'none\'">' : '<i class="dotc" style="background:' + a.color + '"></i>'; }
 const stripAct = h => (h || "").replace(/ data-act="[^"]*"/g, "");
 function buildShare() {
@@ -1148,7 +1171,7 @@ function renderSettings() {
     h = head(c._new ? "Kategori ekle" : "Kategoriyi düzenle") + '<div class="sh-bd">' +
       '<label class="fld"><span>Ad</span><input class="in" data-c="name" value="' + esc(c.name) + '"></label>' +
       '<div class="row2"><label class="fld"><span>Tür</span><select class="in" data-c="type"><option value="E"' + (c.type === "E" ? " selected" : "") + '>Gider</option><option value="I"' + (c.type === "I" ? " selected" : "") + '>Gelir</option></select></label><label class="fld"><span>Renk</span><input class="in" type="color" data-c="color" value="' + esc(c.color) + '" style="height:46px;padding:4px"></label></div>' +
-      '<div class="fld"><span>İkon</span><div class="icgrid">' + ["", ...Object.keys(CI).filter(k => k !== "swap")].map(k => '<button class="icb" data-act="cat-icon" data-v="' + k + '" style="--c:' + c.color + '" aria-pressed="' + (!c.img && (c.icon || "") === k) + '">' + (k ? svgI(CI[k]) : "Oto") + '</button>').join("") + '</div><div style="display:flex;gap:8px;align-items:center;margin-top:10px">' + (c.img ? '<span class="cic" style="--c:' + c.color + '"><img src="' + c.img + '" alt=""></span><button class="btn sm ghost" data-act="cat-img-rm">Görseli kaldır</button>' : '') + '<input class="in" id="cq" autocomplete="off" placeholder="İnternette logo ara, örn. netflix" style="flex:1;min-width:0"><label class="btn sm ghost" style="display:inline-flex;align-items:center;white-space:nowrap">Görsel yükle<input type="file" accept="image/*" id="cat-img" hidden></label></div><div id="cqres" class="lgres"></div></div>' +
+      '<div class="fld"><span>İkon</span><div class="icgrid">' + ["", ...Object.keys(CI).filter(k => k !== "swap")].map(k => '<button class="icb" data-act="cat-icon" data-v="' + k + '" style="--c:' + c.color + '" aria-pressed="' + (!c.img && (c.icon || "") === k) + '">' + (k ? svgI(CI[k]) : "Oto") + '</button>').join("") + '</div><div style="display:flex;gap:8px;align-items:center;margin-top:10px">' + (c.img ? '<span class="cic" style="--c:' + c.color + '"><img src="' + c.img + '" alt=""></span><button class="btn sm ghost" data-act="cat-img-rm">Görseli kaldır</button>' : '') + '<input class="in" id="cimgq" autocomplete="off" placeholder="İkon veya logo ara, örn. ev, araba, netflix" style="flex:1;min-width:0"><label class="btn sm ghost" style="display:inline-flex;align-items:center;white-space:nowrap">Görsel yükle<input type="file" accept="image/*" id="cat-img" hidden></label></div><div id="cqres" class="lgres"></div></div>' +
       '<label class="fld"><span>Üst kategori</span><select class="in" data-c="parent"><option value="">Yok (ana kategori)</option>' + parents.map(p => '<option value="' + esc(p.id) + '"' + (c.parent === p.id ? " selected" : "") + '>' + esc(p.name) + '</option>').join("") + '</select></label><div id="s-err"></div></div>' +
       '<div class="sh-ft">' + (c._new ? '' : '<button class="btn danger" data-act="cat-del">Sil</button>') + '<button class="btn" data-act="cat-save">Kaydet</button></div>';
   } else if (v === "gt") {
@@ -1422,6 +1445,7 @@ document.addEventListener("click", e => {
     case "pie-drill": S.pCat = ds.id; render(); break;
     case "pie-tog": S.pOpen = S.pOpen || {}; S.pOpen[ds.id] = !S.pOpen[ds.id]; render(); break;
     case "acc-logo": { const d = (ds.d || "").trim(); if (!d) break; D.acc.dom = d; D.acc.logo = logoUrl(d); D.lgq = ""; renderSettings(); break; }
+    case "cat-svg": { if (!ds.u) break; D.cat.img = ds.u; D.cat.icon = null; renderSettings(); break; }
     case "cat-logo": { const d = (ds.d || "").trim(); if (!d) break; D.cat.img = logoUrl(d); D.cat.icon = null; renderSettings(); break; }
     case "acc-logo-rm": D.acc.logo = null; renderSettings(); break;
     case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (!confirm("Hesap silinsin mi?")) break; saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
@@ -1457,7 +1481,7 @@ document.addEventListener("input", e => {
   if (t.dataset.f) { const k = t.dataset.num; let v = t.value; if (k === "amt") { v = v.trim() === "" ? null : C.parseAmt(v); if (v !== null && isNaN(v)) return; } else if (k === "int") v = v === "" ? null : parseInt(v); D[t.dataset.f] = v; }
   if (D && (t.dataset.gtq || t.dataset.gtpq)) { const g = t.dataset.gtq || t.dataset.gtpq, kd = t.dataset.gtq ? "c" : "p"; $("#gtl-" + kd + "-" + g).innerHTML = gtList(kd, g, t.value); return; }
   if (t.id === "cq") { D.cq = t.value; $("#catlist").innerHTML = catList(D.k, D.cq); return; }
-  if (t.id === "cq" && D) { clearTimeout(lgT); lgT = setTimeout(() => logoSearch(t.value, "cqres", "cat-logo", "cq"), 250); return; }
+  if (t.id === "cimgq" && D) { clearTimeout(lgT); lgT = setTimeout(() => iconSearch(t.value), 250); return; }
   if (t.id === "lgq" && D) { D.lgq = t.value; clearTimeout(lgT); lgT = setTimeout(() => logoSearch(t.value), 250); return; }
   if (t.dataset.gn) D[t.dataset.gn] = t.value;
   if (D && D.ci && t.dataset.ci) D.ci[t.dataset.ci] = t.value;
