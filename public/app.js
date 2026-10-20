@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.26.1";
+const APP_VERSION = "1.2.26.2";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -533,8 +533,9 @@ function vTx() {
   const nPast = items.filter(t => t.d < tdy).length, nFut = items.filter(t => t.d > tdy).length;
   let h = '<div class="toolbar"><input class="search" type="search" placeholder="Ara: açıklama, kategori, not" value="' + esc(S.q) + '" data-in="q"><button class="sel accbtn" data-act="accf-open">' + (S.accFs.length ? S.accFs.length + " hesap" : "Tüm hesaplar") + ' ▾</button></div>';
   if (S.accOpen) h += '<div class="card" style="padding:10px 12px;margin-bottom:10px"><div class="chips">' + meta().accounts.map(a => '<button class="chip" data-act="accf-t" data-id="' + esc(a.id) + '" aria-pressed="' + S.accFs.includes(a.id) + '"><i style="background:' + a.color + '"></i>' + esc(a.name) + '</button>').join("") + (S.accFs.length ? '<button class="chip" data-act="accf-clear">Temizle ✕</button>' : '') + '</div></div>';
-  if (!qs && !S.catF && !S.payF) h += '<div class="scroll-x" style="margin-bottom:10px">' + [["30", "Son 30 gün"], ["m", "Bu ay"], ["pm", "Geçen ay"], ["3", "Son 3 ay"], ["6", "Son 6 ay"], ["y", "Bu yıl"], ["all", "Tümü"]].map(([v, l]) => '<button class="chip" data-act="per" data-v="' + v + '" aria-pressed="' + (S.per === v) + '">' + l + '</button>').join("") + '</div>';
-  h += '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tgl-past" aria-pressed="' + S.showPastTx + '">Geçmiş</button><button class="chip" data-act="tgl-fut" aria-pressed="' + S.showFutTx + '">Gelecek</button><span style="flex:1"></span><button class="chip" data-act="tgl-e" aria-pressed="' + S.showE + '">Gider</button><button class="chip" data-act="tgl-i" aria-pressed="' + S.showI + '">Gelir</button></div>';
+  if (!qs && !S.catF && !S.payF) h += '<div class="scroll-x" style="margin-bottom:10px">' + [["30", "Son 30 gün"], ["m", "Bu ay"], ["pm", "Geçen ay"], ["3", "Son 3 ay"], ["6", "Son 6 ay"], ["y", "Bu yıl"], ["all", "Tümü"]].map(([v, l]) => '<button class="chip" data-act="per" data-v="' + v + '" aria-pressed="' + (S.per === v) + '">' + l + '</button>').join("") + (S.per && S.per.startsWith("d:") ? '<button class="chip" data-act="per" data-v="all" aria-pressed="true">' + dLabel(S.per.slice(2)) + ' ✕</button>' : '') + '</div>';
+  const dirty = S.per !== "m" || S.q || S.catF || S.payF || S.fYear || S.accFs.length || !S.showPastTx || S.showFutTx || !S.showE || !S.showI;
+  h += '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tgl-past" aria-pressed="' + S.showPastTx + '">Geçmiş</button><button class="chip" data-act="tgl-fut" aria-pressed="' + S.showFutTx + '">Gelecek</button><span style="flex:1"></span><button class="chip" data-act="tgl-e" aria-pressed="' + S.showE + '">Gider</button><button class="chip" data-act="tgl-i" aria-pressed="' + S.showI + '">Gelir</button></div>' + (dirty ? '<div class="chips" style="margin-bottom:10px"><button class="chip" data-act="tx-reset">Seçimleri kaldır ✕</button></div>' : '');
   if (S.catF || S.payF) h += '<div class="chips" style="margin-bottom:10px"><button class="chip" aria-pressed="true" data-act="catf-clear">' + esc(S.payF ? S.payF : catLabel(S.catF)) + (S.fYear ? " · " + S.fYear : "") + ' ✕</button></div>';
   h += '<div class="card"><div class="sum"><div>Gider<b class="neg">' + f2(te) + '</b></div><div>Gelir<b class="pos">' + f2(ti) + '</b></div><div>' + (qy ? "Sonuç" : "Fark") + '<b>' + (qy ? items.length : f2(ti - te)) + '</b></div></div></div>';
   if (!items.length) return h + '<div class="empty">' + "Eşleşen işlem yok." + '</div>';
@@ -1406,6 +1407,7 @@ document.addEventListener("click", e => {
     case "accf-t": { const i = S.accFs.indexOf(ds.id); i >= 0 ? S.accFs.splice(i, 1) : S.accFs.push(ds.id); render(); break; }
     case "accf-clear": S.accFs = []; render(); break;
     case "per": S.per = ds.v; render(); break;
+    case "tx-reset": S.per = "m"; S.q = ""; S.catF = null; S.payF = null; S.fYear = null; S.accFs = []; S.accOpen = false; S.stmt = null; S.showPastTx = true; S.showFutTx = false; S.showE = true; S.showI = true; render(); break;
     case "tgl-past": S.showPastTx = !S.showPastTx; render(); break;
     case "tgl-e": S.showE = !S.showE; render(); break;
     case "tgl-i": S.showI = !S.showI; render(); break;
