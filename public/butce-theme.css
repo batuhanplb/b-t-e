@@ -219,3 +219,8 @@ button.tx.picked{background:color-mix(in oklab,var(--primary,#3b5bdb) 14%,transp
 @media(min-width:900px){main .mods,main .manual-grid{grid-template-columns:repeat(8,minmax(0,1fr))!important}}
 
 .pay-dir{min-width:36px;padding:0 10px;justify-content:center}.pay-dir svg{width:15px;height:15px;display:block}
+.set-row>svg{width:18px;height:18px;flex:none;color:var(--muted)}
+html[data-theme=soft]{
+ --bg:oklch(.925 .008 85);--surface:oklch(.955 .006 85);--sunk:oklch(.9 .009 85);--line:oklch(.86 .01 85);
+ --ink:oklch(.3 .012 85);--muted:oklch(.5 .012 85);--faint:oklch(.6 .01 85);color-scheme:light;
+}
