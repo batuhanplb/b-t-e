@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.31.0";
+const APP_VERSION = "1.2.31.1";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -319,7 +319,18 @@ function catIcon(id) {
     for (const [k, kws] of CI_MAP) if (kws.some(w => w[0] === "=" ? n === w.slice(1) : n.includes(w))) return svgI(CI[k]); }
   return svgI(CI.tag);
 }
-function txRow(t, m) {
+let _rbK = null, _rbV = null;
+function runBal() {
+  const Dd = derived(); if (_rbK === Dd) return _rbV;
+  const bal = {}, out = {}; meta().accounts.forEach(a => bal[a.id] = a.start || 0);
+  Dd.all.slice().sort((a, b) => a.d.localeCompare(b.d) || (a.ts || 0) - (b.ts || 0)).forEach(t => {
+    if (t.k === "e") bal[t.acc] = (bal[t.acc] || 0) - t.a; else if (t.k === "i") bal[t.acc] = (bal[t.acc] || 0) + t.a;
+    else if (t.k === "tr") { bal[t.acc] = (bal[t.acc] || 0) - t.a; bal[t.to] = (bal[t.to] || 0) + t.a; }
+    out[t.id] = { f: C.r2(bal[t.acc] || 0), t: t.to ? C.r2(bal[t.to] || 0) : null };
+  });
+  _rbK = Dd; _rbV = out; return out;
+}
+function txRow(t, m, rb) {
   const fut = t.d > today();
   let title, sub, amt, cls, color;
   const spc = t.sp && t.sp.length ? t.sp.slice().sort((x, y) => y.a - x.a)[0].cat : t.cat;
@@ -334,7 +345,7 @@ function txRow(t, m) {
   }
   if (t.ins) sub += ", taksit " + t.ins;
   if (t.n) sub += ", " + t.n;
-  return '<li><button class="tx' + (fut ? " future" : "") + (S.sel && S.sel[t.id] ? " picked" : "") + '" data-act="edit-tx" data-id="' + esc(t.id) + '" data-m="' + (m || t.d.slice(0, 7)) + '"><span class="cic" style="--c:' + color + '">' + (t.k === "tr" ? svgI(CI.swap) : catIcon(spc)) + '</span><span class="m"><span class="t">' + esc(title) + '</span><span class="s">' + (((derived().accMap[t.acc] || {}).logo) ? '<img class="alogo xs" src="' + esc(derived().accMap[t.acc].logo) + '" alt="">' : '') + esc(sub) + '</span></span><span class="a ' + cls + '">' + amt + '</span></button></li>';
+  return '<li><button class="tx' + (fut ? " future" : "") + (S.sel && S.sel[t.id] ? " picked" : "") + '" data-act="edit-tx" data-id="' + esc(t.id) + '" data-m="' + (m || t.d.slice(0, 7)) + '"><span class="cic" style="--c:' + color + '">' + (t.k === "tr" ? svgI(CI.swap) : catIcon(spc)) + '</span><span class="m"><span class="t">' + esc(title) + '</span><span class="s">' + (((derived().accMap[t.acc] || {}).logo) ? '<img class="alogo xs" src="' + esc(derived().accMap[t.acc].logo) + '" alt="">' : '') + esc(sub) + '</span></span><span class="a ' + cls + '">' + amt + (rb && rb[t.id] ? '<span class="small muted" style="display:block;font-weight:400;font-size:11px;margin-top:2px">' + f2(t.k === "tr" && S.accFs.length && S.accFs.includes(t.to) && !S.accFs.includes(t.acc) ? rb[t.id].t : rb[t.id].f) + '</span>' : '') + '</span></button></li>';
 }
 
 const LOGO = '<span class="lgw"><img class="lgi" src="/icons/icon-192.png" alt=""><span class="lgt">Bütçe</span></span>';
@@ -548,13 +559,14 @@ function vTx() {
   h += '<div class="card"><div class="sum"><div>Gider<b class="neg">' + f2(te) + '</b></div><div>Gelir<b class="pos">' + f2(ti) + '</b></div><div>' + (qy ? "Sonuç" : "Fark") + '<b>' + (qy ? items.length : f2(ti - te)) + '</b></div></div></div>';
   if (!items.length) return h + '<div class="empty">' + "Eşleşen işlem yok." + '</div>';
   let day = null, out = "";
+  const rbm = runBal();
   for (const t of items) {
     if (t.d !== day) {
       if (day) out += '</ul></div>';
       day = t.d; const dt = items.filter(x => x.d === day && x.k === "e").reduce((s, x) => s + x.a, 0);
       out += '<div class="day"><span>' + dLabel(day) + (qy ? " " + day.slice(0, 4) : "") + (day > today() ? ", planlı" : "") + '</span><span>' + (dt ? "-" + f2(dt) : "") + '</span></div><div class="card"><ul class="list">';
     }
-    out += txRow(t);
+    out += txRow(t, null, rbm);
   }
   return h + out + '</ul></div>' + selBar();
 }
