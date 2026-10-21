@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.29.0";
+const APP_VERSION = "1.2.30.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -656,6 +656,10 @@ function tCat() {
 function cashAmt(it, m) {
   if (it.rep === "once") return it.date && it.date.slice(0, 7) === m ? (it.amts[0] || {}).a || 0 : 0;
   if (!it.start || m < it.start || (it.end && m > it.end)) return 0;
+  if (it.act && it.act[m] != null) return it.act[m];
+  return cashPlanAmt(it, m);
+}
+function cashPlanAmt(it, m) {
   let a = 0, f = ""; (it.amts || []).forEach(x => { if (x.from <= m && x.from >= f) { f = x.from; a = x.a; } }); return a;
 }
 const salDay = () => Math.min(31, Math.max(1, parseInt(meta().salaryDay) || 1));
@@ -674,7 +678,7 @@ function cashPlan() {
     items.forEach(it => { const day = it.rep === "once" ? Number((it.date || "").slice(8, 10)) : (it.day || 1);
       const am = it.rep === "once" ? (it.date ? cycKey(it.date.slice(0, 7), day) === m ? it.date.slice(0, 7) : null : null) : (day >= sd ? m : C.addM(m, 1));
       if (!am) return; const a = cashAmt(it, am); if (!a) return;
-      lines.push({ k: it.k === "inc" ? "+" : "-", n: it.name, a, day, id: it.id, on: !(it.skip || []).includes(m), ref: "ci|" + it.id + "|" + m }); });
+      lines.push({ k: it.k === "inc" ? "+" : "-", n: it.name, a, day, id: it.id, am, plan: it.rep !== "once" && it.act && it.act[am] != null ? cashPlanAmt(it, am) : null, on: !(it.skip || []).includes(m), ref: "ci|" + it.id + "|" + m }); });
     cols.forEach(([id, d]) => { (d.sched || []).forEach((x, xi) => { if (cycKey(x.m, d.day || 1) !== m || !(x.a > 0)) return; const pd = isPaid(d, x);
       lines.push({ k: "-", n: d.name + (d.kind === "kart" ? " ekstresi" : " taksiti"), a: C.r2(x.a), day: d.day || 1, debt: true, on: !pd, ref: "debt|" + id + "|" + d.src + "|" + xi }); }); });
     const plan = Dd.all.filter(t => cycKey(t.d.slice(0, 7), Number(t.d.slice(8, 10))) === m && t.d > tdy && t.k !== "tr" && ids.has(t.acc));
@@ -694,7 +698,7 @@ function vCash() {
   const mx = Math.max(1, ...pl.map(p => Math.abs(p.kalan)));
   let h = '<p class="small muted" style="margin:0 0 10px">Önümüzdeki 12 ayın tahmini: her ay elimizde ne kalacak. Bir aya dokunun, o ayın gelir ve giderini görün.</p><div class="card cashbars">' + pl.map(p => '<button class="cb" data-act="cash-open" data-m="' + p.m + '" title="' + mLabel(p.m) + ': ' + f2(p.kalan) + '"><i style="height:' + Math.max(3, Math.abs(p.kalan) / mx * 100).toFixed(1) + '%;background:' + (p.kalan < 0 ? "var(--exp)" : "var(--primary)") + '"></i><span class="cbv">' + f0(p.kalan) + '</span><span>' + C.TR_M[Number(p.m.slice(5)) - 1].slice(0, 3) + '</span></button>').join("") + '</div>';
   h += '<div class="toolbar" style="margin-top:16px"><span style="flex:1"></span><button class="btn sm ghost" data-act="ci-new" data-k="inc">Gelir ekle</button><button class="btn sm" data-act="ci-new" data-k="exp">Gider ekle</button></div>';
-  h += pl.map((p, i) => { const row = l => '<div class="crow' + (l.on ? '' : ' off') + '"><button class="ck' + (l.on ? '' : ' on') + '" data-act="cash-tick" data-ref="' + esc(l.ref) + '" aria-label="Gerçekleşti / gerçekleşmedi"></button><' + (l.id ? 'button data-act="ci-edit" data-id="' + esc(l.id) + '"' : 'span') + ' class="cl"><span>' + esc(l.n) + (l.day ? ' <span class="small muted">' + dayTxt(l.day) + '</span>' : '') + '</span><span class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + '</span></' + (l.id ? 'button' : 'span') + '></div>'; const incL = p.lines.filter(l => l.k === "+"), expL = p.lines.filter(l => l.k === "-");
+  h += pl.map((p, i) => { const row = l => '<div class="crow' + (l.on ? '' : ' off') + '"><button class="ck' + (l.on ? '' : ' on') + '" data-act="cash-tick" data-ref="' + esc(l.ref) + '" aria-label="Gerçekleşti / gerçekleşmedi"></button>' + (l.id ? '<span class="cl"><button data-act="ci-edit" data-id="' + esc(l.id) + '" style="text-align:left;flex:1">' + esc(l.n) + (l.day ? ' <span class="small muted">' + dayTxt(l.day) + '</span>' : '') + '</button><button data-act="ci-actual" data-id="' + esc(l.id) + '" data-m="' + l.am + '" title="Bu ayın gerçek tutarı" style="text-align:right" class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + (l.plan != null ? '<span class="small muted" style="display:block">plan ' + f0(l.plan) + '</span>' : '') + '</button></span>' : '<span class="cl"><span>' + esc(l.n) + '</span><span class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + '</span></span>') + '</div>'; const incL = p.lines.filter(l => l.k === "+"), expL = p.lines.filter(l => l.k === "-");
     return '<details class="card mcard" id="cm-' + p.m + '"' + (i === 0 || S.cashOpen === p.m ? " open" : "") + '><summary><span><b>' + cycLabel(p) + '</b><span class="small muted" style="display:block">Elde ' + f2(p.elde) + ', giriş ' + f2(p.inc) + ', çıkış ' + f2(p.exp) + '</span></span><b class="' + (p.kalan < 0 ? "neg" : "pos") + '">' + f2(p.kalan) + '</b></summary>' +
     '<div class="cash-cols"><div><div class="cash-colh">Gelir</div><div class="crow elde-row"><span>Elde</span><span>' + f2(p.elde) + '</span></div>' + (incL.length ? incL.map(row).join("") : '<div class="crow muted"><span>—</span></div>') + '</div><div><div class="cash-colh">Gider</div>' + (expL.length ? expL.map(row).join("") : '<div class="crow muted"><span>—</span></div>') + '</div></div>' +
     '<div class="crow tot"><span>Ay sonu kalan</span><span class="' + (p.kalan < 0 ? "neg" : "") + '">' + f2(p.kalan) + '</span></div></details>'; }).join("");
@@ -1394,6 +1398,9 @@ document.addEventListener("click", e => {
     case "sh-copy": { const u = $("#shurl").value; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast("Bağlantı kopyalandı"), () => { $("#shurl").select(); toast("Bağlantıyı seçip kopyalayın"); }); break; }
     case "sh-now": scheduleShare(true); break;
     case "sh-off": { if (!confirm("Paylaşım kapatılsın mı? Bağlantı artık açılmayacak.")) break; const t = (meta().share || {}).token; if (t) S.store.delShare(t); saveMetaChange(mm => { delete mm.share; }); renderSettings(); toast("Paylaşım kapatıldı"); break; }
+    case "ci-actual": { const id = ds.id, m = ds.m, it0 = ((meta().cash || {}).items || []).find(x => x.id === id); if (!it0) break;
+      askText("<b>" + esc(it0.name) + "</b> – " + mLabel(m) + " gerçek tutarı<br><span class=\"small muted\">Sadece bu ayı değiştirir. Plan: " + f0(cashPlanAmt(it0, m)) + ". Boş bırakırsan plana döner.</span>", it0.act && it0.act[m] != null ? String(it0.act[m]).replace(".", ",") : "").then(v => { if (v == null) return;
+        const n = parseFloat(v.replace(/\./g, "").replace(",", ".")); saveMetaChange(mm => { const it = ((mm.cash || {}).items || []).find(x => x.id === id); if (!it) return; it.act = it.act || {}; if (v === "" || !isFinite(n)) delete it.act[m]; else it.act[m] = C.r2(n); }); render(); }); break; }
     case "cash-tick": { const r = ds.ref.split("|");
       if (r[0] === "ci") { saveMetaChange(mm => { const it = ((mm.cash || {}).items || []).find(x => x.id === r[1]); if (!it) return; it.skip = it.skip || []; const k = it.skip.indexOf(r[2]); k >= 0 ? it.skip.splice(k, 1) : it.skip.push(r[2]); }); render(); break; }
       if (r[0] === "plan") { saveMetaChange(mm => { mm.cash = mm.cash || { items: [] }; mm.cash.skip = mm.cash.skip || {}; const k = r[1] + "|" + r[2]; if (mm.cash.skip[k]) delete mm.cash.skip[k]; else mm.cash.skip[k] = true; }); render(); break; }
