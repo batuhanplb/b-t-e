@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.30.0";
+const APP_VERSION = "1.2.31.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -817,7 +817,7 @@ function dayTxt(n) { n = n || 1; const o = n % 10, t = Math.floor(n / 10); const
 function extendRecs() {
   const recs = meta().recs || [], hz = C.addM(CUR(), 12); if (!recs.length) return;
   const add = {}, upd = {};
-  recs.forEach(r => { let m = C.addM(r.last.slice(0, 7), 1); while (m <= hz) { const d = m + "-" + C.pad(Math.min(r.day, C.daysIn(m))); (add[m] = add[m] || []).push({ ...r.tpl, id: C.rid(), d, ts: new Date(d + "T12:00").getTime(), grp: r.grp }); upd[r.grp] = d; m = C.addM(m, 1); } });
+  recs.forEach(r => { const ev = r.ev || "m", base = ev === "w" ? r.last : r.last.slice(0, 8) + C.pad(r.day); for (let i = 1; i < 400; i++) { const d = repDate(base, ev, i), m = d.slice(0, 7); if (m > hz) break; (add[m] = add[m] || []).push({ ...r.tpl, id: C.rid(), d, ts: new Date(d + "T12:00").getTime(), grp: r.grp }); upd[r.grp] = d; } });
   if (!Object.keys(upd).length) return;
   Object.entries(add).forEach(([m, arr]) => saveMonth(m, monthItems(m).concat(arr)));
   saveMetaChange(mm => { mm.recs.forEach(r => { if (upd[r.grp]) r.last = upd[r.grp]; }); });
@@ -916,8 +916,9 @@ function renderTx(keep) {
   h += '<label class="fld"><span>Not</span><input class="in" maxlength="120" value="' + esc(D.n) + '" data-d="n" placeholder="İsteğe bağlı"></label>';
   if (D._new) {
     h += '<div class="fld"><span>Tekrar</span><div class="seg" style="display:flex">' + [["one", "Tek sefer"], ["inst", "Taksit"], ["mon", "Abonelik"]].map(([v, l]) => '<button style="flex:1" data-act="tx-rep" data-v="' + v + '" aria-pressed="' + (D.rep === v) + '">' + l + '</button>').join("") + '</div></div>';
+    if (D.rep === "mon") h += '<div class="fld"><span>Sıklık</span><div class="seg" style="display:flex">' + REP_EV.map(([v, l]) => '<button style="flex:1" data-act="tx-ev" data-v="' + v + '" aria-pressed="' + ((D.ev || "m") === v) + '">' + l + '</button>').join("") + '</div></div>';
     if (D.rep === "mon") h += '<label class="fld" style="display:flex;gap:10px;align-items:center"><input type="checkbox" data-open' + (D.open ? " checked" : "") + '> Ben iptal edene kadar (abonelik)</label>';
-    if (D.rep !== "one" && !(D.rep === "mon" && D.open)) h += '<label class="fld"><span>' + (D.rep === "inst" ? "Taksit sayısı" : "Kaç ay") + '</span><input class="in" type="number" min="2" max="60" value="' + D.cnt + '" data-d="cnt"></label>';
+    if (D.rep !== "one" && !(D.rep === "mon" && D.open)) h += '<label class="fld"><span>' + (D.rep === "inst" ? "Taksit sayısı" : "Kaç kez") + '</span><input class="in" type="number" min="2" max="60" value="' + D.cnt + '" data-d="cnt"></label>';
     if (D.rep !== "one") h += '<div id="planlist"></div>';
   } else if (D.ins) h += '<p class="small muted">Taksit ' + esc(D.ins) + '. Bu değişiklik sadece bu taksiti etkiler.</p>';
   else if (D.grp) { h += '<p class="small muted">Abonelik. Durdurmak için Sil → "Gelecek işlemleri de sil".</p>';
@@ -948,11 +949,17 @@ function catList(k, q) {
   const matches = cats.filter(c => !q || catLabel(c.id).toLocaleLowerCase("tr").includes(q)).sort((a, b) => ((a.type !== own) - (b.type !== own)) || catLabel(a.id).localeCompare(catLabel(b.id), "tr"));
   return matches.length ? matches.map(row).join("") : '<p class="small muted cat-noresults">' + (q ? 'Eşleşen kategori yok.' : 'Henüz kategori yok.') + '</p>';
 }
+const REP_EV = [["w", "Haftalık"], ["m", "Aylık"], ["q", "3 ayda bir"], ["y", "Yıllık"]];
+function repDate(start, ev, i) {
+  if (ev === "w") { const t = new Date(start.slice(0, 10) + "T12:00"); t.setDate(t.getDate() + 7 * i); return t.getFullYear() + "-" + C.pad(t.getMonth() + 1) + "-" + C.pad(t.getDate()); }
+  const st = ev === "q" ? 3 : ev === "y" ? 12 : 1, [y, m, d] = start.split("-").map(Number), mm = C.addM(y + "-" + C.pad(m), i * st);
+  return mm + "-" + C.pad(Math.min(d, C.daysIn(mm)));
+}
 function buildPlan() {
-  const a = C.parseAmt(D.aStr), n = D.rep === "mon" && D.open ? 12 : Math.max(2, Math.min(60, parseInt(D.cnt) || 2));
+  const a = C.parseAmt(D.aStr), ev = D.rep === "mon" ? (D.ev || "m") : "m", n = D.rep === "mon" && D.open ? ({ w: 52, m: 12, q: 4, y: 2 })[ev] : Math.max(2, Math.min(60, parseInt(D.cnt) || 2));
   if (!(a > 0) || !D.d) return [];
   const per = D.rep === "inst" ? Math.floor(a / n * 100) / 100 : C.r2(a), [y0, m0, d0] = D.d.split("-").map(Number);
-  return [...Array(n)].map((_, i) => { const m = C.addM(y0 + "-" + C.pad(m0), i); return { d: m + "-" + C.pad(Math.min(d0, C.daysIn(m))), a: D.rep === "inst" && i === n - 1 ? C.r2(a - per * (n - 1)) : per }; });
+  return [...Array(n)].map((_, i) => { return { d: repDate(D.d, ev, i), a: D.rep === "inst" && i === n - 1 ? C.r2(a - per * (n - 1)) : per }; });
 }
 function renderPlanBox() {
   const box = $("#planlist"); if (!box || !D || D.rep === "one") return;
@@ -1030,7 +1037,7 @@ function saveTx(more) {
         saveTx(more); }); return; }
   }
   const txs = genTxs(), touched = new Set(), touched2 = new Set();
-  if (D._new && D.rep === "mon" && D.open && txs.length) { const l = txs[txs.length - 1]; saveMetaChange(m => { (m.recs = m.recs || []).push({ grp: l.grp, last: l.d, day: Number(D.d.slice(8, 10)), tpl: { k: l.k, acc: l.acc, cat: l.cat || null, t: l.t || "", n: l.n || "", a: l.a, to: l.to || null } }); }); }
+  if (D._new && D.rep === "mon" && D.open && txs.length) { const l = txs[txs.length - 1]; saveMetaChange(m => { (m.recs = m.recs || []).push({ grp: l.grp, last: l.d, day: Number(D.d.slice(8, 10)), ev: D.ev || "m", tpl: { k: l.k, acc: l.acc, cat: l.cat || null, t: l.t || "", n: l.n || "", a: l.a, to: l.to || null } }); }); }
   if (!D._new && D._m !== D.d.slice(0, 7)) { saveMonth(D._m, monthItems(D._m).filter(x => x.id !== D.id)); }
   txs.forEach(t => { const m = t.d.slice(0, 7); const arr = (touched.has(m) ? S.months[m] : monthItems(m)).filter(x => x.id !== t.id); arr.push(t); arr.sort((x, y) => (x.ts || 0) - (y.ts || 0)); S.months[m] = arr; touched.add(m); });
   if (!D._new && D.gl) D.gl.forEach(g => { if (g.d + "|" + g.a === g.o || !g.d || !(g.a > 0)) return; const t0 = monthItems(g.m).find(x => x.id === g.id); if (!t0) return; const nm = g.d.slice(0, 7);
