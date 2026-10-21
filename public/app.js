@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.31.1";
+const APP_VERSION = "1.2.32.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -510,7 +510,7 @@ function vHome() {
   return h;
 }
 function subList() {
-  const g = {}; derived().all.filter(t => t.k === "e" && t.grp && !t.ins).forEach(t => (g[t.grp] = g[t.grp] || []).push(t));
+  const g = {}; derived().all.filter(t => t.k === "e" && t.grp && !t.ins && !t.reg).forEach(t => (g[t.grp] = g[t.grp] || []).push(t));
   const recs = meta().recs || [];
   return Object.entries(g).map(([grp, items]) => { items.sort((a, b) => a.d.localeCompare(b.d)); const l = items[items.length - 1]; return { grp, items, name: l.t || catLabel(l.cat, true), cat: l.cat, open: recs.some(r => r.grp === grp) }; });
 }
@@ -927,13 +927,13 @@ function renderTx(keep) {
   else h += dateF;
   h += '<label class="fld"><span>Not</span><input class="in" maxlength="120" value="' + esc(D.n) + '" data-d="n" placeholder="İsteğe bağlı"></label>';
   if (D._new) {
-    h += '<div class="fld"><span>Tekrar</span><div class="seg" style="display:flex">' + [["one", "Tek sefer"], ["inst", "Taksit"], ["mon", "Abonelik"]].map(([v, l]) => '<button style="flex:1" data-act="tx-rep" data-v="' + v + '" aria-pressed="' + (D.rep === v) + '">' + l + '</button>').join("") + '</div></div>';
-    if (D.rep === "mon") h += '<div class="fld"><span>Sıklık</span><div class="seg" style="display:flex">' + REP_EV.map(([v, l]) => '<button style="flex:1" data-act="tx-ev" data-v="' + v + '" aria-pressed="' + ((D.ev || "m") === v) + '">' + l + '</button>').join("") + '</div></div>';
-    if (D.rep === "mon") h += '<label class="fld" style="display:flex;gap:10px;align-items:center"><input type="checkbox" data-open' + (D.open ? " checked" : "") + '> Ben iptal edene kadar (abonelik)</label>';
-    if (D.rep !== "one" && !(D.rep === "mon" && D.open)) h += '<label class="fld"><span>' + (D.rep === "inst" ? "Taksit sayısı" : "Kaç kez") + '</span><input class="in" type="number" min="2" max="60" value="' + D.cnt + '" data-d="cnt"></label>';
+    h += '<div class="fld"><span>Tekrar</span><div class="seg" style="display:flex">' + [["one", "Tek sefer"], ["inst", "Taksit"], ["mon", "Abonelik"], ["reg", "Düzenli"]].map(([v, l]) => '<button style="flex:1" data-act="tx-rep" data-v="' + v + '" aria-pressed="' + (D.rep === v) + '">' + l + '</button>').join("") + '</div></div>';
+    if ((D.rep === "mon" || D.rep === "reg")) h += '<div class="fld"><span>Sıklık</span><div class="seg" style="display:flex">' + REP_EV.map(([v, l]) => '<button style="flex:1" data-act="tx-ev" data-v="' + v + '" aria-pressed="' + ((D.ev || "m") === v) + '">' + l + '</button>').join("") + '</div></div>';
+    if ((D.rep === "mon" || D.rep === "reg")) h += '<label class="fld" style="display:flex;gap:10px;align-items:center"><input type="checkbox" data-open' + (D.open ? " checked" : "") + '> Ben iptal edene kadar</label>';
+    if (D.rep !== "one" && !((D.rep === "mon" || D.rep === "reg") && D.open)) h += '<label class="fld"><span>' + (D.rep === "inst" ? "Taksit sayısı" : "Kaç kez") + '</span><input class="in" type="number" min="2" max="60" value="' + D.cnt + '" data-d="cnt"></label>';
     if (D.rep !== "one") h += '<div id="planlist"></div>';
   } else if (D.ins) h += '<p class="small muted">Taksit ' + esc(D.ins) + '. Bu değişiklik sadece bu taksiti etkiler.</p>';
-  else if (D.grp) { h += '<p class="small muted">Abonelik. Durdurmak için Sil → "Gelecek işlemleri de sil".</p>';
+  else if (D.grp) { h += '<p class="small muted">' + (D.reg ? "Düzenli işlem" : "Abonelik") + '. Durdurmak için Sil → "Gelecek işlemleri de sil".</p>';
     if (D.gl && D.gl.length) { const tdy = today(), all = D.gl.concat([{ me: 1, d: D.d, a: C.parseAmt(D.aStr) }]).sort((a, b) => a.d.localeCompare(b.d));
       h += '<div class="fld"><span>Tüm ödemeler</span></div><div class="schedwrap" id="glwrap" style="max-height:232px;overflow-y:auto;position:relative"><table class="sched"><tbody>' + all.map(p => p.me ? '<tr class="gl-me"><td class="muted small" style="white-space:nowrap;width:1%">Bu işlem</td><td colspan="2" class="small"><b>' + dLabel(p.d) + ' · ' + f2(p.a) + '</b></td></tr>' : (i => '<tr' + (p.d < tdy ? ' style="opacity:.7"' : '') + '><td class="muted small" style="white-space:nowrap;width:1%">' + (p.d < tdy ? "Geçmiş" : "Gelecek") + '</td><td><input type="date" data-gd="' + i + '" value="' + p.d + '" style="text-align:left"></td><td><input inputmode="decimal" data-ga="' + i + '" value="' + esc(amtIn(p.a)) + '"></td></tr>')(D.gl.indexOf(p))).join("") + '</tbody></table></div>'; } }
   h += '<div id="e-gen"></div></div><div class="sh-ft">';
@@ -968,7 +968,7 @@ function repDate(start, ev, i) {
   return mm + "-" + C.pad(Math.min(d, C.daysIn(mm)));
 }
 function buildPlan() {
-  const a = C.parseAmt(D.aStr), ev = D.rep === "mon" ? (D.ev || "m") : "m", n = D.rep === "mon" && D.open ? ({ w: 52, m: 12, q: 4, y: 2 })[ev] : Math.max(2, Math.min(60, parseInt(D.cnt) || 2));
+  const a = C.parseAmt(D.aStr), ev = (D.rep === "mon" || D.rep === "reg") ? (D.ev || "m") : "m", n = (D.rep === "mon" || D.rep === "reg") && D.open ? ({ w: 52, m: 12, q: 4, y: 2 })[ev] : Math.max(2, Math.min(60, parseInt(D.cnt) || 2));
   if (!(a > 0) || !D.d) return [];
   const per = D.rep === "inst" ? Math.floor(a / n * 100) / 100 : C.r2(a), [y0, m0, d0] = D.d.split("-").map(Number);
   return [...Array(n)].map((_, i) => { return { d: repDate(D.d, ev, i), a: D.rep === "inst" && i === n - 1 ? C.r2(a - per * (n - 1)) : per }; });
@@ -1005,7 +1005,7 @@ function genTxs() {
   const nowT = new Date(); const tsOf = d => { const [y, m, dd] = d.split("-").map(Number); return new Date(y, m - 1, dd, nowT.getHours(), nowT.getMinutes(), nowT.getSeconds()).getTime(); };
   if (!D._new || D.rep === "one") return [{ ...base, id: D.id, d: D.d, ts: D._new ? tsOf(D.d) : (D.d === D._origD ? D.ts : tsOf(D.d)), a: C.r2(a), ...(D.ins ? { ins: D.ins, grp: D.grp } : {}) }];
   const pl = D.plan && D.plan.length ? D.plan : buildPlan(), grp = C.rid();
-  return pl.map((p, i) => ({ ...base, id: C.rid(), d: p.d, ts: tsOf(p.d), a: C.r2(p.a), ...(D.rep === "inst" ? { ins: (i + 1) + "/" + pl.length } : {}), grp }));
+  return pl.map((p, i) => ({ ...base, id: C.rid(), d: p.d, ts: tsOf(p.d), a: C.r2(p.a), ...(D.rep === "inst" ? { ins: (i + 1) + "/" + pl.length } : {}), ...(D.rep === "reg" ? { reg: 1 } : {}), grp }));
   const n = Math.max(2, Math.min(60, parseInt(D.cnt) || 2)), out = [];
   const per = D.rep === "inst" ? Math.floor(a / n * 100) / 100 : C.r2(a);
   const [y0, m0, d0] = D.d.split("-").map(Number);
@@ -1049,7 +1049,7 @@ function saveTx(more) {
         saveTx(more); }); return; }
   }
   const txs = genTxs(), touched = new Set(), touched2 = new Set();
-  if (D._new && D.rep === "mon" && D.open && txs.length) { const l = txs[txs.length - 1]; saveMetaChange(m => { (m.recs = m.recs || []).push({ grp: l.grp, last: l.d, day: Number(D.d.slice(8, 10)), ev: D.ev || "m", tpl: { k: l.k, acc: l.acc, cat: l.cat || null, t: l.t || "", n: l.n || "", a: l.a, to: l.to || null } }); }); }
+  if (D._new && (D.rep === "mon" || D.rep === "reg") && D.open && txs.length) { const l = txs[txs.length - 1]; saveMetaChange(m => { (m.recs = m.recs || []).push({ grp: l.grp, last: l.d, day: Number(D.d.slice(8, 10)), ev: D.ev || "m", tpl: { k: l.k, acc: l.acc, cat: l.cat || null, t: l.t || "", n: l.n || "", a: l.a, to: l.to || null, ...(l.reg ? { reg: 1 } : {}) } }); }); }
   if (!D._new && D._m !== D.d.slice(0, 7)) { saveMonth(D._m, monthItems(D._m).filter(x => x.id !== D.id)); }
   txs.forEach(t => { const m = t.d.slice(0, 7); const arr = (touched.has(m) ? S.months[m] : monthItems(m)).filter(x => x.id !== t.id); arr.push(t); arr.sort((x, y) => (x.ts || 0) - (y.ts || 0)); S.months[m] = arr; touched.add(m); });
   if (!D._new && D.gl) D.gl.forEach(g => { if (g.d + "|" + g.a === g.o || !g.d || !(g.a > 0)) return; const t0 = monthItems(g.m).find(x => x.id === g.id); if (!t0) return; const nm = g.d.slice(0, 7);
