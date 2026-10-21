@@ -928,6 +928,7 @@ function renderTx(keep) {
   h += '<label class="fld"><span>Not</span><input class="in" maxlength="120" value="' + esc(D.n) + '" data-d="n" placeholder="İsteğe bağlı"></label>';
   if (D._new) {
     h += '<div class="fld"><span>Tekrar</span><div class="seg" style="display:flex">' + [["one", "Tek sefer"], ["inst", "Taksit"], ["mon", "Abonelik"], ["reg", "Düzenli"]].map(([v, l]) => '<button style="flex:1" data-act="tx-rep" data-v="' + v + '" aria-pressed="' + (D.rep === v) + '">' + l + '</button>').join("") + '</div></div>';
+    if (D.rep === "mon") h += '<p class="small muted" style="margin:-2px 0 8px">Buraya eklenen işlemler Abonelikler modülüne düşer.</p>';
     if ((D.rep === "mon" || D.rep === "reg")) h += '<div class="fld"><span>Sıklık</span><div class="seg" style="display:flex">' + REP_EV.map(([v, l]) => '<button style="flex:1" data-act="tx-ev" data-v="' + v + '" aria-pressed="' + ((D.ev || "m") === v) + '">' + l + '</button>').join("") + '</div></div>';
     if ((D.rep === "mon" || D.rep === "reg")) h += '<label class="fld" style="display:flex;gap:10px;align-items:center"><input type="checkbox" data-open' + (D.open ? " checked" : "") + '> Ben iptal edene kadar</label>';
     if (D.rep !== "one" && !((D.rep === "mon" || D.rep === "reg") && D.open)) h += '<label class="fld"><span>' + (D.rep === "inst" ? "Taksit sayısı" : "Kaç kez") + '</span><input class="in" type="number" min="2" max="60" value="' + D.cnt + '" data-d="cnt"></label>';
