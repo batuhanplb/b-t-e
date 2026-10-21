@@ -933,7 +933,7 @@ function renderTx(keep) {
     if (D.rep !== "one" && !((D.rep === "mon" || D.rep === "reg") && D.open)) h += '<label class="fld"><span>' + (D.rep === "inst" ? "Taksit sayısı" : "Kaç kez") + '</span><input class="in" type="number" min="2" max="60" value="' + D.cnt + '" data-d="cnt"></label>';
     if (D.rep !== "one") h += '<div id="planlist"></div>';
   } else if (D.ins) h += '<p class="small muted">Taksit ' + esc(D.ins) + '. Bu değişiklik sadece bu taksiti etkiler.</p>';
-  else if (D.grp) { h += '<p class="small muted">Abonelik. Durdurmak için Sil → "Gelecek işlemleri de sil".</p>';
+  else if (D.grp) { h += '<p class="small muted">' + (D.reg ? "Düzenli işlem" : "Abonelik") + '. Durdurmak için Sil → "Gelecek işlemleri de sil".</p>';
     if (D.gl && D.gl.length) { const tdy = today(), all = D.gl.concat([{ me: 1, d: D.d, a: C.parseAmt(D.aStr) }]).sort((a, b) => a.d.localeCompare(b.d));
       h += '<div class="fld"><span>Tüm ödemeler</span></div><div class="schedwrap" id="glwrap" style="max-height:232px;overflow-y:auto;position:relative"><table class="sched"><tbody>' + all.map(p => p.me ? '<tr class="gl-me"><td class="muted small" style="white-space:nowrap;width:1%">Bu işlem</td><td colspan="2" class="small"><b>' + dLabel(p.d) + ' · ' + f2(p.a) + '</b></td></tr>' : (i => '<tr' + (p.d < tdy ? ' style="opacity:.7"' : '') + '><td class="muted small" style="white-space:nowrap;width:1%">' + (p.d < tdy ? "Geçmiş" : "Gelecek") + '</td><td><input type="date" data-gd="' + i + '" value="' + p.d + '" style="text-align:left"></td><td><input inputmode="decimal" data-ga="' + i + '" value="' + esc(amtIn(p.a)) + '"></td></tr>')(D.gl.indexOf(p))).join("") + '</tbody></table></div>'; } }
   h += '<div id="e-gen"></div></div><div class="sh-ft">';
