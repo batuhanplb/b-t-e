@@ -1359,6 +1359,7 @@ document.addEventListener("click", e => {
     case "sp-rm": D.sp.splice(+ds.i, 1); if (!D.sp.length) D.sp = null; renderTx(true); break;
     case "sp-cat": D.spPick = +ds.i; D.catOpen = false; renderTx(true); break;
     case "tx-day": D.d = C.ymd(new Date(Date.now() + Number(ds.v) * 864e5)); renderTx(true); break;
+    case "tx-ev": D.ev = ds.v; D.plan = null; D.planEdited = false; renderTx(true); break;
     case "tx-rep": D.rep = ds.v; D.plan = null; D.planEdited = false; if (ds.v !== "one" && D.cnt < 2) D.cnt = 2; renderTx(true); break;
     case "sugg": { const p = derived().payees.find(x => x.t === ds.t); if (p) { D.t = p.t; if (p.cat) D.cat = p.cat; if (p.acc && !D.accTouched) D.acc = p.acc; } renderTx(true); setTimeout(() => $("#f-amt") && !$("#f-amt").value && $("#f-amt").focus(), 30); break; }
     case "tx-save": saveTx(!!ds.more); break;
