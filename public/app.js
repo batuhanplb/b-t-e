@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.33.0";
+const APP_VERSION = "1.2.33.1";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1029,7 +1029,7 @@ function applyPayee() {
   const p = derived().payees.find(x => x.k === D.k && x.t.toLocaleLowerCase("tr") === q);
   const cat = p && p.cat ? p.cat : (meta().categories.find(c => c.type === (D.k === "i" ? "I" : "E") && nz(catLabel(c.id)) === nz(q)) || {}).id;
   let ch = false;
-  if (cat && cat !== D.cat && !(D.sp && D.sp.length)) { D.cat = cat; ch = true; }
+  if (cat && cat !== D.cat && !(D.sp && D.sp.length) && D._new && !D.catTouched && !D.cat) { D.cat = cat; ch = true; }
   if (p && p.acc && !D.accTouched && p.acc !== D.acc) { D.acc = p.acc; ch = true; }
   return ch;
 }
@@ -1371,7 +1371,7 @@ document.addEventListener("click", e => {
     case "tx-acc": D[ds.f] = ds.id; if (ds.f === "acc") D.accTouched = true; dlgIn.querySelectorAll('[data-act="tx-acc"][data-f="' + ds.f + '"]').forEach(b => b.setAttribute("aria-pressed", b.dataset.id === ds.id)); break;
     case "cat-open": D.catOpen = !D.catOpen; D.cq = ""; D.spPick = null; renderTx(true); if (D.catOpen) $("#cq")?.focus(); break;
     case "gt-add": if (!D[ds.g].includes(ds.v)) D[ds.g].push(ds.v); renderSettings(); break;
-    case "tx-cat": if (D.spPick != null) { D.sp[D.spPick].cat = ds.id; D.spPick = null; renderTx(true); break; } D.cat = ds.id; D.catOpen = false; D.cq = ""; renderTx(true); dlgIn.querySelector('[data-act="cat-open"]')?.focus(); break;
+    case "tx-cat": if (D.spPick != null) { D.sp[D.spPick].cat = ds.id; D.spPick = null; renderTx(true); break; } D.cat = ds.id; D.catTouched = true; D.catOpen = false; D.cq = ""; renderTx(true); dlgIn.querySelector('[data-act="cat-open"]')?.focus(); break;
     case "sp-toggle": if (D.sp && D.sp.length) D.sp = null; else { const a = C.parseAmt(D.aStr) || 0; D.sp = [{ cat: D.cat, a: a ? amtIn(a) : "" }, { cat: null, a: "" }]; } D.spPick = null; renderTx(true); break;
     case "sp-add": D.sp.push({ cat: null, a: "" }); renderSpBox(); break;
     case "sp-rm": D.sp.splice(+ds.i, 1); if (!D.sp.length) D.sp = null; renderTx(true); break;
