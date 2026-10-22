@@ -186,8 +186,14 @@ const monthItems = m => S.months[m] || [];
 function saveMonth(m, items) { S.months[m] = items; if (!items.length) delete S.months[m]; bump(); return S.store.setMonth(m, items); }
 
 function fixSep() {
-  const re = /\s*(?:›|>|»)\s*/g;
-  Object.keys(S.months).forEach(m => { let ch = false; const it = S.months[m].map(t => { if (t.t && re.test(t.t)) { re.lastIndex = 0; ch = true; return { ...t, t: t.t.replace(re, ":") }; } re.lastIndex = 0; return t; }); if (ch) saveMonth(m, it); });
+  if (!S.loaded.meta || !S.loaded.months) return;
+  const re = /\s*(?:›|>|»)\s*/g, cm = Object.fromEntries((meta().categories || []).map(c => [c.id, c])), lc = s => String(s || "").trim().toLocaleLowerCase("tr");
+  Object.keys(S.months).forEach(m => { let ch = false; const it = S.months[m].map(t => {
+    let n = t.t; if (n && re.test(n)) { n = n.replace(re, ":"); } re.lastIndex = 0;
+    // Lehdar sadece alt kategori adıysa (örn "hediye") → "Hatun:hediye". Özel adlara dokunma.
+    const c = t.k !== "tr" && cm[t.cat], p = c && c.parent && cm[c.parent];
+    if (p && n && lc(n) === lc(c.name)) n = p.name + ":" + c.name;
+    if (n !== t.t) { ch = true; return { ...t, t: n }; } return t; }); if (ch) saveMonth(m, it); });
 }
 
 /* ============ boot ============ */
