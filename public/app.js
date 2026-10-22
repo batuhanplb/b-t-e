@@ -113,9 +113,20 @@ function landingHtml() {
     '<section class="ld-hero"><p class="ld-eyebrow">Kişisel finans, sade haliyle</p><h1>Paran nereye gidiyor,<br>ay sonunda ne kalacak.</h1>' +
     '<p class="ld-lead">Harcamalar, hesaplar, kredi kartı ekstreleri ve taksitler tek ekranda. Excel tablolarının yerini tutan, telefonda rahat kullanılan bir bütçe defteri.</p>' + btn + err + '</section>' +
     '<section class="ld-shots">' + shot1 + shot2 + shot3 + '</section>' +
-    '<section class="ld-feat"><div><b>Ekstre eşleştirme</b><p>Banka PDF\'ini yükle, girdiğin işlemlerle karşılaştırsın. Veri telefonundan çıkmaz.</p></div>' +
-    '<div><b>Düzenli ödemeler</b><p>Kira, abonelik, maaş; haftalık, aylık ya da yıllık tekrar.</p></div>' +
-    '<div><b>Aylık rapor</b><p>Her ayın başında geçen aya göre neyin arttığını yüzdelerle görürsün.</p></div></section>' +
+    '<h2 class="ld-h2">Neler yapabilirsin</h2><section class="ld-feat">' +
+    [["Nakit akışı", "Önümüzdeki 12 ayı tek tek gör. Maaş, kira, kart ödemesi dahil her ayın girişi, çıkışı ve ay sonu kalanı hazır. Paranın eksiye düşeceği ay önceden uyarılır."],
+     ["Değişken tutarlar", "Faturan bazen 450 bazen 550 mi? Planı 500 bırak, o ayın gerçek tutarını ayrıca yaz; sonraki aylar bozulmaz."],
+     ["Ekstre eşleştirme", "Banka PDF'ini yükle; aynı gün ve tutardaki işlemler kendiliğinden eşleşir. 500 + 1500 gibi bölünmüş girişleri de tek ekstre satırına bağlarsın. Veri telefonundan çıkmaz, yapay zekâ kullanılmaz."],
+     ["Kart kesim uyarısı", "Kartının hesap kesim günü gelince Öneri ve Dikkat alanına not düşer; dokununca o dönemin işlemleri açılır."],
+     ["Borç takvimi", "Krediler, taksitler ve kart ödemeleri tarih sırasıyla. Taksit tutarını değiştirince toplam kendiliğinden güncellenir."],
+     ["Düzenli ve abonelik", "Kira, maaş, Netflix; haftalık, aylık, 3 ayda bir ya da yıllık. Abonelikler ayrı sayfada yıllık maliyetiyle görünür."],
+     ["Aylık rapor", "Her ayın 1'inde geçen aya göre hangi kategoride ne kadar arttığın ya da azaldığın yüzdelerle gelir; tasarruf oranı ve günlük ortalama dahil."],
+     ["Günlük harcama", "Ayın her gününü çubuklarla gör, bir güne dokun ve o günün işlemlerine git. Gelecek kayıtlı harcamalar da grafikte."],
+     ["Toplu işlem", "İşleme basılı tut, çoklu seç; seçilenlerin toplamını gör, tek seferde sil."],
+     ["Kendi ana sayfan", "Modülleri istediğin yere taşı, küçük ya da büyük yap. Telefon ve bilgisayar için ayrı düzen saklanır."],
+     ["Paylaşım linki", "Borç takvimi, nakit akışı ya da gider tablosundan sadece seçtiklerini bir linkle paylaş."],
+     ["Kolay geçiş", "Expense IQ yedeğini veya Excel/CSV dosyanı içe aktar; kart kesim günlerin ve ayarların korunur. Koyu ve yumuşak açık tema da var."]
+    ].map(f => '<div><b>' + f[0] + '</b><p>' + f[1] + '</p></div>').join("") + '</section>' +
     '<footer class="ld-foot">Bütçe · Verilerin hesabına özel saklanır</footer></div>';
 }
 
