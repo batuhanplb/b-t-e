@@ -95,7 +95,9 @@ const ICON = {
 
 let toastT;
 function toast(msg) {
-  let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+  const dl = document.querySelector("dialog[open]:last-of-type") || [...document.querySelectorAll("dialog[open]")].pop(), host = dl || document.body;
+  let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); }
+  if (t.parentNode !== host) host.appendChild(t);
   t.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2600);
 }
 
