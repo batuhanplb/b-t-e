@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.32.1";
+const APP_VERSION = "1.2.33.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -752,20 +752,25 @@ function accIcon(a) { return a.logo ? '<img class="alogo" src="' + esc(a.logo) +
 const stripAct = h => (h || "").replace(/ data-act="[^"]*"/g, "");
 function buildShare() {
   const yr = Number(CUR().slice(0, 4)), sy = S.year; S.year = yr;
-  const g = { debt: stripAct(tDebt(debtCols())), cash: stripAct(vCash()), table: stripAct(tCat()), year: yr, ts: Date.now(), name: (S.user && S.user.name) || "" };
+  const pg = (meta().share && meta().share.pages) || ["debt", "cash", "table"];
+  const g = { pages: pg, debt: pg.includes("debt") ? stripAct(tDebt(debtCols())) : "", cash: pg.includes("cash") ? stripAct(vCash()) : "", table: pg.includes("table") ? stripAct(tCat()) : "", year: yr, ts: Date.now(), name: (S.user && S.user.name) || "" };
   S.year = sy; return g;
 }
 let shT = null, shLast = "", shNow = false;
 function scheduleShare(now) {
   const sh = meta().share; if (!sh || !sh.token || !S.store || !S.store.setShare) return;
   if (!now && shNow) return; if (now) shNow = true;
-  clearTimeout(shT); shT = setTimeout(() => { shNow = false; try { const g = buildShare(); const key = g.debt.length + ":" + g.cash.length + ":" + g.table.length + ":" + g.debt.slice(-200) + g.cash.slice(-200);
+  clearTimeout(shT); shT = setTimeout(() => { shNow = false; try { const g = buildShare(); const key = g.pages.join() + ":" + g.debt.length + ":" + g.cash.length + ":" + g.table.length + ":" + g.debt.slice(-200) + g.cash.slice(-200);
     if (!now && key === shLast) return; shLast = key; S.store.setShare(sh.token, g); if (now) toast("Paylaşılan sayfa güncellendi"); } catch (e) { console.error(e); } }, now ? 50 : 4000);
 }
+window.setShPage = (k, on) => { saveMetaChange(mm => { const p = new Set(mm.share.pages || ["debt", "cash", "table"]); on ? p.add(k) : p.delete(k); mm.share.pages = ["debt", "cash", "table"].filter(x => p.has(x)); }); scheduleShare(true); };
 function renderShare() {
   const d = S.share, root = $("#root");
   if (!d) { root.innerHTML = '<div class="boot">Bu bağlantı geçersiz ya da paylaşım kapatılmış.</div>'; return; }
-  const tabs = [["debt", "Borç takvimi"], ["cash", "Nakit akışı"], ["table", "Gider " + d.year]];
+  const pg = d.pages || ["debt", "cash", "table"];
+  const tabs = [["debt", "Borç takvimi"], ["cash", "Nakit akışı"], ["table", "Gider " + d.year]].filter(([k]) => pg.includes(k));
+  if (!tabs.length) { root.innerHTML = '<div class="boot">Paylaşılan sayfa yok.</div>'; return; }
+  if (!pg.includes(S.shTab)) S.shTab = tabs[0][0];
   root.innerHTML = '<div class="shareview"><header class="shtop"><span class="lgw"><img class="lgi" src="/icons/icon-192.png" alt=""><span class="lgt">Bütçe</span></span><span class="small muted">' + (d.name ? esc(d.name) + " paylaştı, " : "") + 'son güncelleme ' + new Date(d.ts).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + '</span></header>' +
     '<div class="chips shtabs">' + tabs.map(([k, l]) => '<button class="chip" data-sh="' + k + '" aria-pressed="' + (S.shTab === k) + '">' + l + '</button>').join("") + '</div><div class="shbody">' + d[S.shTab] + '</div><p class="small muted">Bu sayfa salt okunurdur.</p></div>';
   root.querySelectorAll("[data-sh]").forEach(b => b.onclick = () => { S.shTab = b.dataset.sh; renderShare(); });
@@ -1164,8 +1169,8 @@ function renderSettings() {
   if (v === "main") {
     h = head("Ayarlar") + '<div class="sh-bd">';
     const shr = meta().share, shUrl = shr && shr.token ? SITE + "/?s=" + shr.token : "";
-    h += '<div class="sec-h"><h2>Paylaşım</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0 0 10px">Ödemeler, Nakit akışı ve Gider sayfalarınızı bağlantıya sahip kişilerle salt okunur paylaşın. Verileriniz değiştikçe paylaşılan sayfa kendiliğinden güncellenir.</p>' +
-      (shUrl ? '<input class="in" readonly id="shurl" value="' + esc(shUrl) + '" style="margin-bottom:10px"><div class="chips"><button class="btn sm" data-act="sh-copy">Bağlantıyı kopyala</button><button class="btn sm ghost" data-act="sh-now">Şimdi güncelle</button><button class="btn sm ghost danger" data-act="sh-off">Paylaşımı kapat</button></div>'
+    h += '<div class="sec-h"><h2>Paylaşım</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0 0 10px">Seçtiğiniz sayfaları bağlantıya sahip kişilerle salt okunur paylaşın. Verileriniz değiştikçe paylaşılan sayfa kendiliğinden güncellenir.</p>' +
+      (shUrl ? '<div class="chips" style="margin-bottom:10px">' + [["debt", "Borç takvimi"], ["cash", "Nakit akışı"], ["table", "Gider tablosu"]].map(([k, l]) => '<label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" onchange="setShPage(\'' + k + '\',this.checked)"' + ((shr.pages || ["debt", "cash", "table"]).includes(k) ? " checked" : "") + '>' + l + '</label>').join("") + '</div><input class="in" readonly id="shurl" value="' + esc(shUrl) + '" style="margin-bottom:10px"><div class="chips"><button class="btn sm" data-act="sh-copy">Bağlantıyı kopyala</button><button class="btn sm ghost" data-act="sh-now">Şimdi güncelle</button><button class="btn sm ghost danger" data-act="sh-off">Paylaşımı kapat</button></div>'
         : '<button class="btn sm" data-act="sh-on">Paylaşım bağlantısı oluştur</button>') + '</div>';
     h += '<div class="sec-h"><h2>Görünüm</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><label class="fld" style="margin:0"><span>Tema</span><select class="in" onchange="setTheme(this.value)"><option value="light"' + (!["dark","soft"].includes(document.documentElement.dataset.theme) ? " selected" : "") + '>Açık</option><option value="soft"' + (document.documentElement.dataset.theme === "soft" ? " selected" : "") + '>Yumuşak açık</option><option value="dark"' + (document.documentElement.dataset.theme === "dark" ? " selected" : "") + '>Koyu</option></select></label></div>';
     h += '<div class="sec-h"><h2>Nakit akışı</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><label class="fld" style="margin:0"><span>Maaş / dönem başlangıcı</span><select class="in" onchange="setSalDay(this.value)">' + [...Array(31)].map((_, i) => '<option value="' + (i + 1) + '"' + (salDay() === i + 1 ? " selected" : "") + '>' + (i ? "Ayın " + (i + 1) + "’i" : "Ayın 1’i (takvim ayı)") + '</option>').join("") + '</select></label><p class="small muted" style="margin:8px 0 0">Nakit akışındaki kalan para, bir sonraki maaş gününden önceki güne kadar hesaplanır.</p></div>';
