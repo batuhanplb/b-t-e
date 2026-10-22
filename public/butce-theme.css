@@ -271,3 +271,5 @@ html[data-theme=soft]{
 @media(max-width:820px){.ld-feat{grid-template-columns:1fr;gap:16px}}.ld-feat b{font-size:15px}.ld-feat p{color:var(--muted);font-size:13px;line-height:1.5;margin:6px 0 0}
 .ld-foot{margin-top:40px;font-size:12px;color:var(--muted)}
 .ld-h2{font-size:20px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--line)}.ld-feat{border-top:0!important;padding-top:0!important}
+
+.rep-chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}.rep-chips::-webkit-scrollbar{display:none}.rep-chips .chip{flex:0 0 auto;white-space:nowrap;font-size:12px;padding:6px 10px}

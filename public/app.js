@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.35.0";
+const APP_VERSION = "1.2.35.1";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1226,7 +1226,7 @@ function renderSettings() {
       '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">İçe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
       '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
       '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Başka bütçe uygulamalarının (Money Manager, Spendee, Wallet, YNAB, Monefy, Toshl, Bluecoins, Mint, 1Money, Cashew, Money Lover vb.) ve bankaların CSV, Excel (.xlsx), QIF ve OFX dosyaları mevcut verilere eklenir; aynı işlemler tekrar eklenmez. Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler.</p></div>';
-    { const ms = [...new Set(Dd.all.map(t => t.d.slice(0, 7)))].filter(m => m < CUR()).sort().reverse().slice(0, 24); if (ms.length) h += '<div class="sec-h" style="margin-top:20px"><h2>Aylık raporlar</h2></div><div class="card"><ul class="list">' + ms.map(m => '<li><button class="set-row" data-act="rep" data-m="' + m + '" data-back="1"><span class="grow">' + mLabel(m) + '</span>' + ICON.r + '</button></li>').join("") + '</ul></div>'; }
+    { const ms = [...new Set(Dd.all.map(t => t.d.slice(0, 7)))].filter(m => m < CUR()).sort().reverse().slice(0, 24); if (ms.length) h += '<div class="sec-h" style="margin-top:20px"><h2>Aylık raporlar</h2></div><div class="rep-chips">' + ms.map(m => '<button class="chip" data-act="rep" data-m="' + m + '" data-back="1">' + mLabel(m) + '</button>').join("") + '</div>'; }
     if (NATIVE) h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">Sürüm: ' + esc(OTA.cur || "…") + '<br><span id="ota-msg" class="muted">' + esc(OTA.msg || "") + '</span></span><button class="btn sm ghost" data-act="ota-check">Güncellemeleri kontrol et</button></div>';
     h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div>';
     h += '<p class="small muted" style="text-align:center;margin:20px 0 4px">Bütçe v' + APP_VERSION + '</p></div>';
