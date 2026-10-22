@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.34.0";
+const APP_VERSION = "1.2.35.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -94,6 +94,31 @@ const ICON = {
 };
 
 let toastT;
+function landingHtml() {
+  const btn = '<button class="btn" data-act="signin">' + ICON.g + 'Google ile başla</button>';
+  const err = S.authErr ? '<p class="neg small">' + esc(S.authErr) + '</p>' : '';
+  const row = (n, c, a, b) => '<div class="ld-tx"><div><b>' + n + '</b><small>' + c + '</small></div><div class="r"><b class="' + (a[0] === "+" ? "pos" : "neg") + '">' + a + '</b><small>' + b + '</small></div></div>';
+  const bars = (arr, hi) => '<div class="ld-bars">' + arr.map((h, i) => '<i style="height:' + h + '%"' + (i === hi ? ' class="on"' : '') + '></i>').join("") + '</div>';
+  const shot1 = '<figure class="ld-shot"><div class="ld-bar"><span>İşlemler</span><span>Ekim</span></div>' +
+    row("Migros", "Ev:Mutfak · Kredi kartı", "-1.284,50", "38.715,50") + row("Maaş", "Maaş · Vadesiz", "+62.000,00", "40.000,00") +
+    row("Shell", "Araba:Yakıt · Kredi kartı", "-2.150,00", "-21.940,00") + row("Kira", "Ev:Kira · Vadesiz", "-18.500,00", "21.500,00") +
+    row("Spotify", "Abonelik · Kredi kartı", "-99,99", "-19.790,00") + '<figcaption>Her işlemden sonra kalan bakiye</figcaption></figure>';
+  const shot2 = '<figure class="ld-shot"><div class="ld-bar"><span>Nakit akışı</span><span>Kasım</span></div>' +
+    '<div class="ld-sum"><div><small>Giriş</small><b class="pos">64.500</b></div><div><small>Çıkış</small><b class="neg">48.320</b></div><div><small>Ay sonu</small><b>16.180</b></div></div>' +
+    bars([62, 48, 70, 55, 40, 66, 52, 74, 58, 45, 68, 60], 1) + '<figcaption>12 ay ileriye net plan</figcaption></figure>';
+  const shot3 = '<figure class="ld-shot"><div class="ld-bar"><span>Borç takvimi</span><span>24.860 ₺</span></div>' +
+    '<div class="ld-debt"><span>05 Kas</span><b>Konut kredisi</b><em>12.400</em></div><div class="ld-debt"><span>12 Kas</span><b>Kredi kartı ekstresi</b><em>9.960</em></div><div class="ld-debt"><span>20 Kas</span><b>Telefon taksidi 7/12</b><em>2.500</em></div>' +
+    '<div class="ld-split"><span>Dağılım</span><div class="ld-stack"><i style="width:38%"></i><i style="width:24%"></i><i style="width:18%"></i><i style="width:20%"></i></div></div><figcaption>Taksit, kredi ve kart ödemeleri</figcaption></figure>';
+  return '<div class="landing"><header class="ld-top"><b>Bütçe</b>' + btn + '</header>' +
+    '<section class="ld-hero"><p class="ld-eyebrow">Kişisel finans, sade haliyle</p><h1>Paran nereye gidiyor,<br>ay sonunda ne kalacak.</h1>' +
+    '<p class="ld-lead">Harcamalar, hesaplar, kredi kartı ekstreleri ve taksitler tek ekranda. Excel tablolarının yerini tutan, telefonda rahat kullanılan bir bütçe defteri.</p>' + btn + err + '</section>' +
+    '<section class="ld-shots">' + shot1 + shot2 + shot3 + '</section>' +
+    '<section class="ld-feat"><div><b>Ekstre eşleştirme</b><p>Banka PDF\'ini yükle, girdiğin işlemlerle karşılaştırsın. Veri telefonundan çıkmaz.</p></div>' +
+    '<div><b>Düzenli ödemeler</b><p>Kira, abonelik, maaş; haftalık, aylık ya da yıllık tekrar.</p></div>' +
+    '<div><b>Aylık rapor</b><p>Her ayın başında geçen aya göre neyin arttığını yüzdelerle görürsün.</p></div></section>' +
+    '<footer class="ld-foot">Bütçe · Verilerin hesabına özel saklanır</footer></div>';
+}
+
 function toast(msg) {
   const dl = document.querySelector("dialog[open]:last-of-type") || [...document.querySelectorAll("dialog[open]")].pop(), host = dl || document.body;
   let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); }
@@ -242,7 +267,7 @@ function render() {
   const root = $("#root");
   if (!S.store) return;
   if (!S.user) {
-    root.innerHTML = '<div class="login"><h1>Bütçe</h1><p class="muted">Harcamalarınız, hesaplarınız ve kredileriniz tek yerde.</p><button class="btn" data-act="signin">' + ICON.g + 'Google ile giriş yap</button>' + (S.authErr ? '<p class="neg small">' + esc(S.authErr) + '</p>' : '') + '</div>';
+    root.innerHTML = landingHtml();
     return;
   }
   if (!S.loaded.months || !S.loaded.meta) { root.innerHTML = '<div class="boot">Veriler yükleniyor…</div>'; return; }
