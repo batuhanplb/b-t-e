@@ -267,6 +267,7 @@ html[data-theme=soft]{
 .ld-debt span{color:var(--muted);font-size:12px}.ld-debt b{font-weight:500}.ld-debt em{font-style:normal;font-weight:600}
 .ld-split{margin-top:12px;font-size:12px;color:var(--muted)}.ld-stack{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:6px;gap:2px}
 .ld-stack i{background:var(--primary)}.ld-stack i:nth-child(2){opacity:.7}.ld-stack i:nth-child(3){opacity:.45}.ld-stack i:nth-child(4){opacity:.25}
-.ld-feat{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:56px;border-top:1px solid var(--line);padding-top:28px}
+.ld-feat{display:grid;grid-template-columns:repeat(3,1fr);gap:28px 24px;margin-top:20px;border-top:1px solid var(--line);padding-top:28px}
 @media(max-width:820px){.ld-feat{grid-template-columns:1fr;gap:16px}}.ld-feat b{font-size:15px}.ld-feat p{color:var(--muted);font-size:13px;line-height:1.5;margin:6px 0 0}
 .ld-foot{margin-top:40px;font-size:12px;color:var(--muted)}
+.ld-h2{font-size:20px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--line)}.ld-feat{border-top:0!important;padding-top:0!important}
