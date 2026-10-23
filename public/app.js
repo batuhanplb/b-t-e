@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.38.3";
+const APP_VERSION = "1.2.38.4";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1173,8 +1173,7 @@ function renderDebt(keep) {
   const d = D, kart = d.kind === "kart", m = CUR();
   let h = head(d._id ? esc(debtTitle(d)) : "Kredi ekle") + '<div class="sh-bd">';
   h += '<label class="fld"><span>Banka / ad</span><input class="in" data-f="name" maxlength="30" value="' + esc(d.name) + '" placeholder="Örn. Garanti"></label>';
-  h += '<label class="fld"><span>Ödeme günü</span><input class="in" type="number" min="1" max="31" data-f="day" data-num="int" value="' + (d.day || "") + '"></label>';
-  if (!kart) h += '<label class="fld"><span>Başlangıç ayı (ilk taksit)</span><input class="in" data-f="start" inputmode="numeric" maxlength="7" placeholder="AA.YYYY" value="' + esc(d.start || (d.sched.length ? d.sched.map(x => x.m).sort()[0].split("-").reverse().join(".") : "")) + '"></label><p class="small muted" style="margin:-4px 0 8px">Daha önce ödemeye başladığınız bir krediyi eklemek için ilk taksitin ayını yazın, sonra "Ay ekle" ile taksitleri ekleyin.</p>';
+  h += '<div class="row2"><label class="fld"><span>Ödeme günü</span><input class="in" type="number" min="1" max="31" data-f="day" data-num="int" value="' + (d.day || "") + '"></label>' + (kart ? '</div>' : '<label class="fld"><span>Başlangıç ayı</span><input class="in" data-f="start" inputmode="numeric" maxlength="7" placeholder="AA.YYYY" value="' + esc(d.start || (d.sched.length ? d.sched.map(x => x.m).sort()[0].split("-").reverse().join(".") : "")) + '"></label></div><p class="small muted" style="margin:-4px 0 8px">İlk taksitin ayı; "Ay ekle" bu aydan başlar.</p>');
   h += '<div class="row2"><label class="fld"><span>' + (kart ? "Limit" : "Çekilen tutar") + '</span><input class="in" inputmode="decimal" data-f="principal" data-num="amt" value="' + esc(amtIn(d.principal)) + '"></label></div>';
   if (!kart) h += '<div class="row2"><label class="fld"><span>Aylık faiz (%)</span><input class="in" inputmode="decimal" data-f="rate" data-num="amt" value="' + esc(d.rate != null ? nfp.format(d.rate) : "") + '"></label><label class="fld"><span>Geri ödeme toplamı</span><input class="in" inputmode="decimal" data-f="total" data-num="amt" value="' + esc(amtIn(d.total)) + '" placeholder="Boşsa taksitlerden"></label></div>';
   const kal = debtKalan(d);
@@ -1483,7 +1482,7 @@ document.addEventListener("click", e => {
     case "d-payer": D.payer = ds.v; el.parentNode.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === ds.v)); break;
     case "d-paid": { const it = D.sched[+ds.i]; it.p = !isPaid(D, it); refreshSched(); break; }
     case "d-delrow": D.sched.splice(+ds.i, 1); updDebtTotal(); refreshSched(); break;
-    case "d-addrow": { const last = D.sched[D.sched.length - 1]; let m0 = CUR(); if (!last) { const mm = String(D.start || "").match(/^(\d{1,2})\.(\d{4})$/); if (mm && +mm[1] >= 1 && +mm[1] <= 12) m0 = mm[2] + "-" + mm[1].padStart(2, "0"); } D.sched.push({ m: last ? C.addM(last.m, 1) : m0, a: last ? last.a : 0 }); updDebtTotal(); refreshSched(); const w = $("#schedwrap"); w.scrollTop = w.scrollHeight; break; }
+    case "d-addrow": { let m0 = null; const mm = String(D.start || "").match(/^(\d{1,2})\.(\d{4})$/); if (mm && +mm[1] >= 1 && +mm[1] <= 12) m0 = mm[2] + "-" + mm[1].padStart(2, "0"); if (!D.sched.length) D.sched.push({ m: m0 || CUR(), a: 0 }); else if (m0 && m0 < D.sched[0].m) { const a0 = D.sched[0].a; for (let m = C.addM(D.sched[0].m, -1); m >= m0; m = C.addM(m, -1)) D.sched.unshift({ m, a: a0 }); } else { const last = D.sched[D.sched.length - 1]; D.sched.push({ m: C.addM(last.m, 1), a: last.a }); } updDebtTotal(); refreshSched(); const w = $("#schedwrap"); w.scrollTop = w.scrollHeight; break; }
     case "d-plan": $("#planbox").innerHTML = planHtml(); break;
     case "d-plan-go": if (applyPlan()) renderDebt(true); break;
     case "d-save": saveDebt(); break;
