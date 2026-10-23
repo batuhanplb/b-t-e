@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.38.2";
+const APP_VERSION = "1.2.38.3";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1174,6 +1174,7 @@ function renderDebt(keep) {
   let h = head(d._id ? esc(debtTitle(d)) : "Kredi ekle") + '<div class="sh-bd">';
   h += '<label class="fld"><span>Banka / ad</span><input class="in" data-f="name" maxlength="30" value="' + esc(d.name) + '" placeholder="Örn. Garanti"></label>';
   h += '<label class="fld"><span>Ödeme günü</span><input class="in" type="number" min="1" max="31" data-f="day" data-num="int" value="' + (d.day || "") + '"></label>';
+  if (!kart) h += '<label class="fld"><span>Başlangıç ayı (ilk taksit)</span><input class="in" data-f="start" inputmode="numeric" maxlength="7" placeholder="AA.YYYY" value="' + esc(d.start || (d.sched.length ? d.sched.map(x => x.m).sort()[0].split("-").reverse().join(".") : "")) + '"></label><p class="small muted" style="margin:-4px 0 8px">Daha önce ödemeye başladığınız bir krediyi eklemek için ilk taksitin ayını yazın, sonra "Ay ekle" ile taksitleri ekleyin.</p>';
   h += '<div class="row2"><label class="fld"><span>' + (kart ? "Limit" : "Çekilen tutar") + '</span><input class="in" inputmode="decimal" data-f="principal" data-num="amt" value="' + esc(amtIn(d.principal)) + '"></label></div>';
   if (!kart) h += '<div class="row2"><label class="fld"><span>Aylık faiz (%)</span><input class="in" inputmode="decimal" data-f="rate" data-num="amt" value="' + esc(d.rate != null ? nfp.format(d.rate) : "") + '"></label><label class="fld"><span>Geri ödeme toplamı</span><input class="in" inputmode="decimal" data-f="total" data-num="amt" value="' + esc(amtIn(d.total)) + '" placeholder="Boşsa taksitlerden"></label></div>';
   const kal = debtKalan(d);
@@ -1189,6 +1190,7 @@ function schedRows() {
   return '<table class="sched"><tbody>' + d.sched.map((it, i) => { const p = isPaid(d, it); return '<tr' + (it.m === CUR() ? ' class="cur"' : '') + '><td style="white-space:nowrap">' + mShort(it.m) + '</td><td><input inputmode="decimal" data-si="' + i + '" value="' + esc(amtIn(it.a)) + '"></td><td style="width:1%"><button class="status ' + (p ? "paid" : "due") + '" data-act="d-paid" data-i="' + i + '">' + (p ? "Ödendi" : "Bekliyor") + '</button></td><td style="width:1%"><button class="ib" style="width:32px;height:32px" data-act="d-delrow" data-i="' + i + '" aria-label="Satırı sil">' + ICON.x + '</button></td></tr>'; }).join("") + '</tbody></table>';
 }
 const refreshSched = () => { const w = $("#schedwrap"), st = w.scrollTop; w.innerHTML = schedRows(); w.scrollTop = st; };
+const updDebtTotal = () => { if (D.kind === "kart") return; D.total = C.r2(D.sched.reduce((s, x) => s + (x.a || 0), 0)); const te = document.querySelector('[data-f="total"]'); if (te) te.value = amtIn(D.total); };
 function planHtml() {
   const nd = new Date(); nd.setMonth(nd.getMonth() + 1);
   return '<div class="plan"><div class="row2"><label class="fld"><span>Kaç ay (taksit sayısı)</span><input class="in" type="number" id="p-n" min="1" max="120" value="' + (D.term || 12) + '"></label><label class="fld"><span>İlk ödeme tarihi</span><input class="in" id="p-date" inputmode="numeric" maxlength="10" placeholder="GG.AA.YYYY" value="' + C.ymd(nd).split("-").reverse().join(".") + '"></label></div><label class="fld"><span>Aylık taksit</span><input class="in" inputmode="decimal" id="p-a" placeholder="0,00"></label><div id="p-err"></div><button class="btn sm" data-act="d-plan-go">Taksitleri oluştur</button><p class="small muted" style="margin:8px 0 0">Oluşan taksitleri listeden tek tek düzenleyebilirsiniz.</p></div>';
@@ -1480,8 +1482,8 @@ document.addEventListener("click", e => {
     case "d-kind": D.kind = ds.v; renderDebt(true); break;
     case "d-payer": D.payer = ds.v; el.parentNode.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === ds.v)); break;
     case "d-paid": { const it = D.sched[+ds.i]; it.p = !isPaid(D, it); refreshSched(); break; }
-    case "d-delrow": D.sched.splice(+ds.i, 1); refreshSched(); break;
-    case "d-addrow": { const last = D.sched[D.sched.length - 1]; D.sched.push({ m: last ? C.addM(last.m, 1) : CUR(), a: last ? last.a : 0 }); refreshSched(); const w = $("#schedwrap"); w.scrollTop = w.scrollHeight; break; }
+    case "d-delrow": D.sched.splice(+ds.i, 1); updDebtTotal(); refreshSched(); break;
+    case "d-addrow": { const last = D.sched[D.sched.length - 1]; let m0 = CUR(); if (!last) { const mm = String(D.start || "").match(/^(\d{1,2})\.(\d{4})$/); if (mm && +mm[1] >= 1 && +mm[1] <= 12) m0 = mm[2] + "-" + mm[1].padStart(2, "0"); } D.sched.push({ m: last ? C.addM(last.m, 1) : m0, a: last ? last.a : 0 }); updDebtTotal(); refreshSched(); const w = $("#schedwrap"); w.scrollTop = w.scrollHeight; break; }
     case "d-plan": $("#planbox").innerHTML = planHtml(); break;
     case "d-plan-go": if (applyPlan()) renderDebt(true); break;
     case "d-save": saveDebt(); break;
