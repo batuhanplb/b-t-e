@@ -851,9 +851,10 @@ function renderShare() {
   const tTabs = (d.tables && d.tables.length ? d.tables.map(t => ["tbl:" + t.id, t.name]) : pg.includes("table") ? [["table", "Gider " + d.year]] : []);
   const tabs = [["debt", "Borç takvimi"], ["cash", "Nakit akışı"], ...tTabs].filter(([k]) => pg.includes(k) || k.startsWith("tbl:"));
   if (!tabs.length) { root.innerHTML = '<div class="boot">Paylaşılan sayfa yok.</div>'; return; }
-  if (!pg.includes(S.shTab)) S.shTab = tabs[0][0];
+  if (!tabs.some(([k]) => k === S.shTab)) S.shTab = tabs[0][0];
+  const shBody = () => S.shTab === "cash" && d.cashM && d.cashM[S.shM] ? d.cashM[S.shM] : S.shTab.startsWith("tbl:") && d.tables ? ((d.tables.find(t => "tbl:" + t.id === S.shTab) || {}).html || "") : d[S.shTab];
   root.innerHTML = '<div class="shareview"><header class="shtop"><span class="lgw"><img class="lgi" src="/icons/icon-192.png" alt=""><span class="lgt">Bütçe</span></span><span class="small muted">' + (d.name ? esc(d.name) + " paylaştı, " : "") + 'son güncelleme ' + new Date(d.ts).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + '</span></header>' +
-    '<div class="chips shtabs">' + tabs.map(([k, l]) => '<button class="chip" data-sh="' + k + '" aria-pressed="' + (S.shTab === k) + '">' + l + '</button>').join("") + '</div><div class="shbody">' + (S.shTab === "cash" && d.cashM && d.cashM[S.shM] ? d.cashM[S.shM] : d[S.shTab]) + '</div><p class="small muted">Bu sayfa salt okunurdur.</p></div>';
+    '<div class="chips shtabs">' + tabs.map(([k, l]) => '<button class="chip" data-sh="' + k + '" aria-pressed="' + (S.shTab === k) + '">' + l + '</button>').join("") + '</div><div class="shbody">' + shBody() + '</div><p class="small muted">Bu sayfa salt okunurdur.</p></div>';
   root.querySelectorAll("[data-sh]").forEach(b => b.onclick = () => { S.shTab = b.dataset.sh; renderShare(); });
   root.querySelectorAll('[data-act="cash-open"]').forEach(b => b.onclick = () => { if (!b.dataset.m || !d.cashM || !d.cashM[b.dataset.m]) return; S.shM = b.dataset.m; const y = window.scrollY; renderShare(); window.scrollTo(0, y); });
 }
