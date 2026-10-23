@@ -694,14 +694,14 @@ function tCat() {
   if (!cfg.g1.length && !cfg.g2.length) return '<div class="card empty">Tabloda gösterilecek kategorileri "Sütunları seç" ile belirleyin.</div>';
   const ms = [...Array(12)].map((_, i) => y + "-" + C.pad(i + 1)), sel = new Set([...cfg.g1, ...cfg.g2].filter(id => !hid.includes(id))), sums = {};
   const pays = {}; [...sel].filter(x => x.startsWith("p:")).forEach(x => pays[x.slice(2).toLocaleLowerCase("tr")] = x);
-  ms.forEach(m => { const o = sums[m] = {}; monthItems(m).forEach(t => { if (t.k !== "e") return; const pk = pays[payName(t).toLocaleLowerCase("tr")]; if (pk) o[pk] = (o[pk] || 0) + t.a;
-    catParts(t).forEach(pp => { let c = catOf(pp.cat), g = 0; while (c && g++ < 5) { if (sel.has(c.id)) o[c.id] = (o[c.id] || 0) + pp.a; c = c.parent ? catOf(c.parent) : null; } }); }); });
+  ms.forEach(m => { const o = sums[m] = {}; monthItems(m).forEach(t => { if (t.k !== "e" && t.k !== "i") return; const sg = t.k === "i" ? -1 : 1; const pk = pays[payName(t).toLocaleLowerCase("tr")]; if (pk) o[pk] = (o[pk] || 0) + sg * t.a;
+    catParts(t).forEach(pp => { let c = catOf(pp.cat), g = 0; while (c && g++ < 5) { if (sel.has(c.id)) o[c.id] = (o[c.id] || 0) + sg * pp.a; c = c.parent ? catOf(c.parent) : null; } }); }); });
   const grp = (m, g) => cfg[g].filter(id => !hid.includes(id)).reduce((s, id) => s + (sums[m][id] || 0), 0);
   const val = (m, c) => c.id ? (sums[m][c.id] || 0) : grp(m, c.st);
   const tot = m => grp(m, "g1") + grp(m, "g2");
-  const done = ms.filter(m => m < now && tot(m) > 0), n = done.length || 1;
+  const done = ms.filter(m => m < now && tot(m) !== 0), n = done.length || 1;
   let h = '<div class="tw"><table class="sh"><thead><tr><th>' + y + '</th>' + cols.map(c => c.id ? '<th class="click ' + c.g + '" data-act="gt-open" data-id="' + esc(c.id) + '" title="İşlemleri göster">' + esc(c.id.startsWith("p:") ? c.id.slice(2) : catOf(c.id).name) + '</th>' : '<th class="st ' + c.st + '">' + esc(cfg["n" + c.st.slice(1)] || "Ara toplam") + '</th>').join("") + '<th>Toplam</th></tr></thead><tbody>';
-  ms.forEach(m => { const fut = m > now, has = tot(m) > 0;
+  ms.forEach(m => { const fut = m > now, has = ms.some(()=>0) || cols.some(c => c.id && (sums[m][c.id] || 0) !== 0);
     h += '<tr><td>' + C.TR_M[Number(m.slice(5)) - 1] + '</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + (fut ? " fut" : "") + '">' + (has ? f0(val(m, c)) : "") + '</td>').join("") + '<td class="' + (fut ? "fut" : "") + '">' + (has ? f0(tot(m)) : "") + '</td></tr>'; });
   const sum = (c, set) => set.reduce((s, m) => s + val(m, c), 0);
   const fs = ' style="background:var(--c1)!important;color:var(--ink)!important"', fa = ' style="background:var(--c1)!important;color:var(--ink)!important;font-style:italic"';
