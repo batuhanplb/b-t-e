@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.38.4";
+const APP_VERSION = "1.2.38.5";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1601,7 +1601,7 @@ document.addEventListener("input", e => {
   if (t.dataset.in === "cfrom" || t.dataset.in === "cto") { S[t.dataset.in === "cfrom" ? "cFrom" : "cTo"] = t.value; render(); return; }
   if (t.dataset.in === "q") { S.q = t.value; const pos = t.selectionStart; render(); const n = document.querySelector('[data-in="q"]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } return; }
   if (!D) return;
-  if (t.dataset.d === "aStr" || t.dataset.sa != null || t.dataset.pa != null || t.dataset.si != null || t.id === "p-a" || (t.dataset.num === "amt" && t.dataset.f !== "rate")) formatAmountField(t);
+  if (t.dataset.d === "aStr" || t.dataset.sa != null || t.dataset.pa != null || t.dataset.si != null || t.dataset.ga != null || t.dataset.ci === "a" || t.id === "p-a" || t.dataset.a === "start" || t.dataset.a === "limit" || (t.dataset.num === "amt" && t.dataset.f !== "rate")) formatAmountField(t);
   if (t.id === "p-date") { const g = t.value.replace(/\D/g, "").slice(0, 8); t.value = g.length > 4 ? g.slice(0, 2) + "." + g.slice(2, 4) + "." + g.slice(4) : g.length > 2 ? g.slice(0, 2) + "." + g.slice(2) : g; return; }
   if (t.dataset.d) { D[t.dataset.d] = t.dataset.d === "cnt" ? parseInt(t.value) || 0 : t.value; if (t.dataset.d === "t") renderSugg(); if (["aStr", "cnt"].includes(t.dataset.d)) renderPlanBox(); if (t.dataset.d === "cnt" || (t.dataset.d === "aStr" && D.rep !== "one")) { /* preview updates on next render */ } }
   if (t.dataset.f) { const k = t.dataset.num; let v = t.value; if (k === "amt") { v = v.trim() === "" ? null : C.parseAmt(v); if (v !== null && isNaN(v)) return; } else if (k === "int") v = v === "" ? null : parseInt(v); D[t.dataset.f] = v; }
