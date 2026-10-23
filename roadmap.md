@@ -19,3 +19,7 @@
 - [ ] Yeni APK kurmadan anında güncelleme (OTA)
 - [x] Alt kategori ayracı ":" (geçmiş lehdarlar dahil)
 - [x] Lehdar boşsa, alan terk edilince kategori adını yaz (2. seçenek)
+
+# Daha sonra yapılacaklar
+- [ ] Dağılım sayfasının tasarımını yenile (kullanıcının isteğiyle sıraya alındı; henüz uygulanmayacak).
+- [ ] Eksik veya yanlış çalışan tıklamaları kontrol edip düzelt (kullanıcının isteğiyle sıraya alındı; henüz uygulanmayacak).
