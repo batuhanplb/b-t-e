@@ -276,12 +276,8 @@ html[data-theme=soft]{
 /* app hissi animasyonlar */
 #root.vin main{animation:vin .22s cubic-bezier(.2,.8,.2,1)}
 @keyframes vin{from{opacity:0;transform:translateY(8px)}}
-dialog.sheet[open]{animation:shup .26s cubic-bezier(.2,.9,.25,1)}
-dialog.sheet[open]::backdrop{animation:askf .2s ease}
-@keyframes shup{from{transform:translateY(40px);opacity:0}}
 button,.mod,.tx{transition:transform .12s ease,background-color .15s ease,opacity .15s ease}
 button:active,.mod:active,button.tx:active{transform:scale(.97)}
 .toast{animation:asku .25s cubic-bezier(.2,.9,.25,1)}
 *{-webkit-tap-highlight-color:transparent}
-main{contain:layout style}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
