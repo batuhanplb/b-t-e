@@ -797,11 +797,13 @@ async function iconSearch(q) {
   logoSearch(q, "cqlogo", "cat-logo", "cimgq");
 }
 function accIcon(a) { return a.logo ? '<img class="alogo" src="' + esc(a.logo) + '" alt="" onerror="this.style.display=\'none\'">' : '<i class="dotc" style="background:' + a.color + '"></i>'; }
-const stripAct = h => (h || "").replace(/ data-act="[^"]*"/g, "");
+const stripAct = h => (h || "").replace(/ data-act="(?!cash-open")[^"]*"/g, "");
 function buildShare() {
   const yr = Number(CUR().slice(0, 4)), sy = S.year; S.year = yr;
   const pg = (meta().share && meta().share.pages) || ["debt", "cash", "table"];
-  const g = { pages: pg, debt: pg.includes("debt") ? stripAct(tDebt(debtCols())) : "", cash: pg.includes("cash") ? stripAct(vCash()) : "", table: pg.includes("table") ? stripAct(tCat()) : "", year: yr, ts: Date.now(), name: (S.user && S.user.name) || "" };
+  let cashM = null;
+  if (pg.includes("cash")) { const so = S.cashOpen; cashM = {}; cashPlan().forEach(p => { S.cashOpen = p.m; cashM[p.m] = stripAct(vCash()); }); S.cashOpen = so; }
+  const g = { pages: pg, debt: pg.includes("debt") ? stripAct(tDebt(debtCols())) : "", cash: cashM ? Object.values(cashM)[0] || "" : "", cashM, table: pg.includes("table") ? stripAct(tCat()) : "", year: yr, ts: Date.now(), name: (S.user && S.user.name) || "" };
   S.year = sy; return g;
 }
 let shT = null, shLast = "", shNow = false;
@@ -820,8 +822,9 @@ function renderShare() {
   if (!tabs.length) { root.innerHTML = '<div class="boot">Paylaşılan sayfa yok.</div>'; return; }
   if (!pg.includes(S.shTab)) S.shTab = tabs[0][0];
   root.innerHTML = '<div class="shareview"><header class="shtop"><span class="lgw"><img class="lgi" src="/icons/icon-192.png" alt=""><span class="lgt">Bütçe</span></span><span class="small muted">' + (d.name ? esc(d.name) + " paylaştı, " : "") + 'son güncelleme ' + new Date(d.ts).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + '</span></header>' +
-    '<div class="chips shtabs">' + tabs.map(([k, l]) => '<button class="chip" data-sh="' + k + '" aria-pressed="' + (S.shTab === k) + '">' + l + '</button>').join("") + '</div><div class="shbody">' + d[S.shTab] + '</div><p class="small muted">Bu sayfa salt okunurdur.</p></div>';
+    '<div class="chips shtabs">' + tabs.map(([k, l]) => '<button class="chip" data-sh="' + k + '" aria-pressed="' + (S.shTab === k) + '">' + l + '</button>').join("") + '</div><div class="shbody">' + (S.shTab === "cash" && d.cashM && d.cashM[S.shM] ? d.cashM[S.shM] : d[S.shTab]) + '</div><p class="small muted">Bu sayfa salt okunurdur.</p></div>';
   root.querySelectorAll("[data-sh]").forEach(b => b.onclick = () => { S.shTab = b.dataset.sh; renderShare(); });
+  root.querySelectorAll('[data-act="cash-open"]').forEach(b => b.onclick = () => { if (!b.dataset.m || !d.cashM || !d.cashM[b.dataset.m]) return; S.shM = b.dataset.m; const y = window.scrollY; renderShare(); window.scrollTo(0, y); });
 }
 function vInv() {
   return '<div class="card lockcard"><span class="lockic">' + ICON.lock + '</span><h2>Yatırımlar yakında</h2><p class="muted">Döviz, altın, fon ve hisse gibi varlıklarınızı buradan takip edeceksiniz: güncel değer, maliyet, kâr/zarar ve toplam servet içindeki payı.</p><div class="locklist">' +
