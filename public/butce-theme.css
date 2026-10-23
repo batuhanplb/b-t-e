@@ -273,3 +273,11 @@ html[data-theme=soft]{
 .ld-h2{font-size:20px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--line)}.ld-feat{border-top:0!important;padding-top:0!important}
 
 .rep-chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}.rep-chips::-webkit-scrollbar{display:none}.rep-chips .chip{flex:0 0 auto;white-space:nowrap;font-size:12px;padding:6px 10px}
+/* app hissi animasyonlar */
+#root.vin main{animation:vin .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes vin{from{opacity:0;transform:translateY(8px)}}
+button,.mod,.tx{transition:transform .12s ease,background-color .15s ease,opacity .15s ease}
+button:active,.mod:active,button.tx:active{transform:scale(.97)}
+.toast{animation:toastu .25s cubic-bezier(.2,.9,.25,1)}@keyframes toastu{from{opacity:0;transform:translate(-50%,16px)}}
+*{-webkit-tap-highlight-color:transparent}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.35.3";
+const APP_VERSION = "1.2.36.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -252,9 +252,9 @@ async function boot() {
     if (u) {
       S.loaded = { meta: false, months: false, debts: false };
       S.store.listen({
-        meta: m => { S.meta = m; S.loaded.meta = true; bump(); render(); },
-        months: (o) => { S.months = o; S.loaded.months = true; bump(); fixSep(); render(); if (!S._recDone && S.loaded.meta) { S._recDone = true; extendRecs(); } },
-        debts: o => { S.debts = o; S.loaded.debts = true; render(); },
+        meta: m => { S.meta = m; S.loaded.meta = true; bump(); renderSoon(); },
+        months: (o) => { S.months = o; S.loaded.months = true; bump(); fixSep(); renderSoon(); if (!S._recDone && S.loaded.meta) { S._recDone = true; extendRecs(); } },
+        debts: o => { S.debts = o; S.loaded.debts = true; renderSoon(); },
         err: e => { console.error(e); toast("Veri bağlantısı kesildi, tekrar deneniyor."); }
       });
     }
@@ -271,7 +271,10 @@ function syncUrl() {
   const qs = u.toString(), h = "#" + S.view + (qs ? "?" + qs : "");
   if (location.hash !== h) try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) { }
 }
+let _rq = 0;
+function renderSoon() { if (_rq) return; _rq = requestAnimationFrame(() => { _rq = 0; render(); }); }
 function render() {
+  if (_rq) { cancelAnimationFrame(_rq); _rq = 0; }
   setTimeout(syncUrl, 0);
   if (S.stmt && S.stmt.bank && S.months) try { stmtRun(); } catch (e) { console.error(e); }
   if (S.meta && S.meta.theme) applyTheme(S.meta.theme);
@@ -287,6 +290,7 @@ function render() {
   const body = { home: vHome, tx: vTx, debt: vDebt, cash: vCash, table: vTable, pie: vPie, inv: vInv, acc: vAcc, cat: vCat, pay: vPay, subs: vSubs }[S.view]();
   const scrollY = window.scrollY;
   const keep = root.dataset.view === S.view;
+  root.classList.toggle("vin", !keep && !!root.dataset.view);
   root.dataset.view = S.view;
   const tw = document.querySelector(".tw"); const twScroll = tw ? [tw.scrollTop, tw.scrollLeft] : null;
   root.innerHTML =
@@ -1115,8 +1119,8 @@ function saveTx(more) {
   const msg = D._new ? (txs.length > 1 ? txs.length + " işlem eklendi" : "Kaydedildi") : "Güncellendi";
   const flush = () => { new Set([...touched, ...touched2]).forEach(m => { try { const r = saveMonth(m, S.months[m]); r && r.catch && r.catch(e => console.error(e)); } catch (e) { console.error(e); } }); };
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  if (more) { const keepK = D.k, keepAcc = D.acc; openTx({ k: keepK, acc: keepAcc }); toast(msg); setTimeout(() => { flush(); render(); }, 30); }
-  else { if (dlg.open) dlg.close(); D = null; S.bub = null; toast(msg); setTimeout(() => { flush(); render(); }, 30); }
+  if (more) { const keepK = D.k, keepAcc = D.acc; openTx({ k: keepK, acc: keepAcc }); toast(msg); requestAnimationFrame(() => { renderSoon(); setTimeout(flush, 120); }); }
+  else { if (dlg.open) dlg.close(); D = null; S.bub = null; toast(msg); requestAnimationFrame(() => { renderSoon(); setTimeout(flush, 120); }); }
 }
 function deleteTx(all) {
   if (all && D.grp) {
