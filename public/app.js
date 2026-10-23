@@ -468,7 +468,9 @@ const DEF_DASH = { v: 3, items: [{ id: "cash", sz: 0, x: 5, y: 5 }, { id: "fav",
 const dashMobile = () => !matchMedia("(min-width:900px)").matches;
 const dashCols = () => dashMobile() ? (matchMedia("(max-width:359px)").matches ? 1 : 2) : 8;
 const dashKey = () => dashMobile() ? "dashMobile" : "dash";
-const dashCfg = () => { const mobile = dashMobile(), own = (S.dashEdit && S.dashDraft) || meta()[dashKey()], md = own || meta().dash || DEF_DASH;
+const DEF_DASH_M = { v: 3, items: [["fav", 0, false], ["inc", 0], ["exp", 0], ["daily", 1], ["debtcal", 1], ["cats", 1], ["sub", 1], ["cash", 0], ["tips", 0]].map(([id, sz, on]) => ({ id, sz, on: on !== false })) };
+const defDash = () => dashMobile() ? DEF_DASH_M : DEF_DASH;
+const dashCfg = () => { const mobile = dashMobile(), own = (S.dashEdit && S.dashDraft) || meta()[dashKey()], md = own || defDash();
   let saved = (md && md.items) || [];
   if (md.v !== 3) saved = saved.slice().sort((a, b) => ((a.g && a.g.y) || 99) - ((b.g && b.g.y) || 99) || ((a.g && a.g.x) || 0) - ((b.g && b.g.x) || 0));
   const out = MODS.map(([id, , , dyn]) => { const f = saved.find(x => x.id === id), opts = szOpts(id), sz = f && Number.isInteger(f.sz) ? clampN(f.sz, 0, opts.length - 1) : 0, [w, hh] = opts[sz];
@@ -1576,7 +1578,7 @@ document.addEventListener("click", e => {
     case "dg-add": dgSave(items => { const k = items.findIndex(x => x.id === ds.id); if (k < 0) return; const it = items.splice(k, 1)[0]; it.on = true; items.push(it); }); render(); break;
     case "dg-mv": dgSave(items => { const i = items.findIndex(x => x.id === ds.id), dir = Number(ds.d); if (i < 0) return; let j = i + dir; while (j >= 0 && j < items.length && !items[j].on) j += dir; if (j < 0 || j >= items.length) return; [items[i], items[j]] = [items[j], items[i]]; delete items[i].x; delete items[i].y; delete items[j].x; delete items[j].y; }); render(); break;
     case "dg-sz": dgSave(items => { const it = items.find(x => x.id === ds.id); if (!it) return; const n = szOpts(it.id).length; it.sz = ds.s != null ? clampN(+ds.s, 0, n - 1) : (it.sz + 1) % n; }); render(); break;
-    case "dg-reset": ask("Modül yerleşimi varsayılana dönsün mü?", [{ l: "Varsayılana dön", v: 1 }]).then(v => { if (!v) return; S.dashDraft = { ...JSON.parse(JSON.stringify(DEF_DASH)), reset: true }; render(); }); break;
+    case "dg-reset": ask("Modül yerleşimi varsayılana dönsün mü?", [{ l: "Varsayılana dön", v: 1 }]).then(v => { if (!v) return; S.dashDraft = { ...JSON.parse(JSON.stringify(defDash())), reset: true }; render(); }); break;
     case "gt-edit": D = { view: "gt", hid: [], ...clone(gtCfg()) }; renderSettings(); break;
     case "gt-rm": D[ds.g].splice(+ds.i, 1); renderSettings(); break;
     case "gt-mv": { const g = ds.g, i = +ds.i, j = i + Number(ds.d); if (j >= 0 && j < D[g].length) { [D[g][i], D[g][j]] = [D[g][j], D[g][i]]; } renderSettings(); break; }
