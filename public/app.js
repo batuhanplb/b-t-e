@@ -976,7 +976,7 @@ function renderTx(keep) {
   if (k !== "tr") {
     h += '<div class="fld"><span>Kategori</span><div class="tx-category">';
     if (D.catOpen) h += '<div class="catsel cat-search">' + ICON.search + '<input id="cq" role="combobox" aria-label="Kategori ara" aria-expanded="true" aria-controls="catlist" aria-autocomplete="list" autocomplete="off" placeholder="Kategori ara…" value="' + esc(D.cq || "") + '"><button class="ib" data-act="cat-open" aria-label="Kategori listesini kapat">' + ICON.x + '</button></div>' + catPanel(k);
-    else h += '<button class="catsel" data-act="cat-open" aria-expanded="false" aria-haspopup="listbox"><i style="background:' + catColor(D.cat) + '"></i><span>' + esc(D.cat ? catLabel(D.cat) : "Kategori seç") + '</span><span class="cat-chevron">' + ICON.r + '</span></button>';
+    else h += '<button class="catsel" data-act="cat-open" aria-expanded="false" aria-haspopup="listbox"><i style="background:' + catColor(D.cat) + '"></i><span>' + esc(D.cat ? catLabel(D.cat) : "Kategori seç") + '</span><span class="cat-chevron" data-act="cat-list" role="button" aria-label="Listeyi aç" style="padding:8px;margin:-8px">' + ICON.r + '</span></button>';
     h += '</div>';
     h += '<div style="margin-top:8px"><button class="btn sm ghost" data-act="sp-toggle">' + (D.sp && D.sp.length ? "Bölmeyi kaldır" : "Birden fazla kategoriye böl") + '</button></div>';
     h += '<div id="spbox">' + spBox() + '</div>';
@@ -1425,6 +1425,7 @@ document.addEventListener("click", e => {
     case "tx-k": { const k = ds.v; if (k === D.k) break; D.k = k; D.cat = null; D.catOpen = false; if (k === "tr") { D.to = visibleAccs().find(x => x.id !== D.acc)?.id || null; } else if (!D.accTouched) D.acc = lastAccFor(k); renderTx(true); break; }
     case "tx-acc": D[ds.f] = ds.id; if (ds.f === "acc") D.accTouched = true; dlgIn.querySelectorAll('[data-act="tx-acc"][data-f="' + ds.f + '"]').forEach(b => b.setAttribute("aria-pressed", b.dataset.id === ds.id)); break;
     case "cat-open": D.catOpen = !D.catOpen; D.cq = ""; D.spPick = null; renderTx(true); if (D.catOpen) $("#cq")?.focus(); break;
+    case "cat-list": if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); D.catOpen = true; D.cq = ""; D.spPick = null; renderTx(true); break;
     case "gt-add": if (!D[ds.g].includes(ds.v)) D[ds.g].push(ds.v); renderSettings(); break;
     case "tx-cat": if (D.spPick != null) { D.sp[D.spPick].cat = ds.id; D.spPick = null; renderTx(true); break; } D.cat = ds.id; D.catTouched = true; D.catOpen = false; D.cq = ""; renderTx(true); dlgIn.querySelector('[data-act="cat-open"]')?.focus(); break;
     case "sp-toggle": if (D.sp && D.sp.length) D.sp = null; else { const a = C.parseAmt(D.aStr) || 0; D.sp = [{ cat: D.cat, a: a ? amtIn(a) : "" }, { cat: null, a: "" }]; } D.spPick = null; renderTx(true); break;
