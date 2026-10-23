@@ -830,7 +830,9 @@ function buildShare() {
   const pg = (meta().share && meta().share.pages) || ["debt", "cash", "table"];
   let cashM = null;
   if (pg.includes("cash")) { const so = S.cashOpen; cashM = {}; cashPlan().forEach(p => { S.cashOpen = p.m; cashM[p.m] = stripAct(vCash()); }); S.cashOpen = so; }
-  const g = { pages: pg, debt: pg.includes("debt") ? stripAct(tDebt(debtCols())) : "", cash: cashM ? Object.values(cashM)[0] || "" : "", cashM, table: pg.includes("table") ? stripAct(tCat()) : "", year: yr, ts: Date.now(), name: (S.user && S.user.name) || "" };
+  let tbls = null;
+  if (pg.includes("table")) { const sel = meta().share && meta().share.tables; tbls = gtTabs().filter(t => !sel || sel.includes(t.id)).map(t => ({ id: t.id, name: t.name, html: stripAct(tCat(t.id)) })); }
+  const g = { pages: pg, debt: pg.includes("debt") ? stripAct(tDebt(debtCols())) : "", cash: cashM ? Object.values(cashM)[0] || "" : "", cashM, tables: tbls, table: tbls && tbls[0] ? tbls[0].html : "", year: yr, ts: Date.now(), name: (S.user && S.user.name) || "" };
   S.year = sy; return g;
 }
 let shT = null, shLast = "", shNow = false;
@@ -841,11 +843,13 @@ function scheduleShare(now) {
     if (!now && key === shLast) return; shLast = key; S.store.setShare(sh.token, g); if (now) toast("Paylaşılan sayfa güncellendi"); } catch (e) { console.error(e); } }, now ? 50 : 4000);
 }
 window.setShPage = (k, on) => { saveMetaChange(mm => { const p = new Set(mm.share.pages || ["debt", "cash", "table"]); on ? p.add(k) : p.delete(k); mm.share.pages = ["debt", "cash", "table"].filter(x => p.has(x)); }); scheduleShare(true); };
+window.setShTable = (id, on) => { saveMetaChange(mm => { const all = gtTabs().map(t => t.id); const p = new Set(mm.share.tables || all); on ? p.add(id) : p.delete(id); mm.share.tables = all.filter(x => p.has(x)); }); scheduleShare(true); };
 function renderShare() {
   const d = S.share, root = $("#root");
   if (!d) { root.innerHTML = '<div class="boot">Bu bağlantı geçersiz ya da paylaşım kapatılmış.</div>'; return; }
   const pg = d.pages || ["debt", "cash", "table"];
-  const tabs = [["debt", "Borç takvimi"], ["cash", "Nakit akışı"], ["table", "Gider " + d.year]].filter(([k]) => pg.includes(k));
+  const tTabs = (d.tables && d.tables.length ? d.tables.map(t => ["tbl:" + t.id, t.name]) : pg.includes("table") ? [["table", "Gider " + d.year]] : []);
+  const tabs = [["debt", "Borç takvimi"], ["cash", "Nakit akışı"], ...tTabs].filter(([k]) => pg.includes(k) || k.startsWith("tbl:"));
   if (!tabs.length) { root.innerHTML = '<div class="boot">Paylaşılan sayfa yok.</div>'; return; }
   if (!pg.includes(S.shTab)) S.shTab = tabs[0][0];
   root.innerHTML = '<div class="shareview"><header class="shtop"><span class="lgw"><img class="lgi" src="/icons/icon-192.png" alt=""><span class="lgt">Bütçe</span></span><span class="small muted">' + (d.name ? esc(d.name) + " paylaştı, " : "") + 'son güncelleme ' + new Date(d.ts).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + '</span></header>' +
