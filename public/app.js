@@ -1481,8 +1481,8 @@ document.addEventListener("click", e => {
     case "d-kind": D.kind = ds.v; renderDebt(true); break;
     case "d-payer": D.payer = ds.v; el.parentNode.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === ds.v)); break;
     case "d-paid": { const it = D.sched[+ds.i]; it.p = !isPaid(D, it); refreshSched(); break; }
-    case "d-delrow": D.sched.splice(+ds.i, 1); refreshSched(); break;
-    case "d-addrow": { const last = D.sched[D.sched.length - 1]; D.sched.push({ m: last ? C.addM(last.m, 1) : CUR(), a: last ? last.a : 0 }); refreshSched(); const w = $("#schedwrap"); w.scrollTop = w.scrollHeight; break; }
+    case "d-delrow": D.sched.splice(+ds.i, 1); updDebtTotal(); refreshSched(); break;
+    case "d-addrow": { const last = D.sched[D.sched.length - 1]; let m0 = CUR(); if (!last) { const mm = String(D.start || "").match(/^(\d{1,2})\.(\d{4})$/); if (mm && +mm[1] >= 1 && +mm[1] <= 12) m0 = mm[2] + "-" + mm[1].padStart(2, "0"); } D.sched.push({ m: last ? C.addM(last.m, 1) : m0, a: last ? last.a : 0 }); updDebtTotal(); refreshSched(); const w = $("#schedwrap"); w.scrollTop = w.scrollHeight; break; }
     case "d-plan": $("#planbox").innerHTML = planHtml(); break;
     case "d-plan-go": if (applyPlan()) renderDebt(true); break;
     case "d-save": saveDebt(); break;
