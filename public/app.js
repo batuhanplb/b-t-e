@@ -685,17 +685,19 @@ function gtDefault() {
   const find = n => { const l = n.toLocaleLowerCase("tr"); const m = ex.filter(c => c.name.toLocaleLowerCase("tr") === l); return (m.find(c => c.parent) || m[0] || {}).id; };
   return { g1: ["Benzin", "Mutfak", "Aidat", "Elektrik", "Su", "Doğalgaz", "İnternet", "Sosyal"].map(find).filter(Boolean), g2: ["Telefon", "Digitürk", "Spotify", "Amazon", "Warp"].map(find).filter(Boolean) };
 }
-const gtCfg = () => meta().gtable || gtDefault();
+const gtList = () => meta().gtables || [{ id: "t1", name: "Tablo 1", ...(meta().gtable || gtDefault()) }];
+const gtCfg = id => { const l = gtList(); return l.find(t => t.id === (id || S.gtab)) || l[0]; };
 function vTable() {
   const ys = [...new Set(Object.keys(S.months).map(m => Number(m.slice(0, 4))))].sort(); if (!ys.includes(S.year)) ys.push(S.year);
-  let h = '<div class="toolbar"><div class="chips">' + ys.map(y => '<button class="chip" data-act="year" data-v="' + y + '" aria-pressed="' + (y === S.year) + '">' + y + '</button>').join("") + '</div><span style="flex:1"></span><button class="btn sm" data-act="gt-edit">Sütunları seç</button></div>';
-  return h + tCat();
+  const l = gtList(); if (S.gtab !== "sum" && !l.some(t => t.id === S.gtab)) S.gtab = "sum";
+  const sum = S.gtab === "sum";
+  let h = '<div class="toolbar"><div class="chips">' + [["sum", "Özet"], ...l.map(t => [t.id, t.name])].map(([id, n]) => '<button class="chip" data-act="gt-tab" data-v="' + esc(id) + '" aria-pressed="' + (S.gtab === id) + '">' + esc(n) + '</button>').join("") + '</div></div>';
+  h += '<div class="toolbar"><div class="chips">' + ys.map(y => '<button class="chip" data-act="year" data-v="' + y + '" aria-pressed="' + (y === S.year) + '">' + y + '</button>').join("") + '</div><span style="flex:1"></span>' + (sum ? '<button class="btn sm" data-act="gt-new">Yeni tablo</button>' : '<button class="btn sm" data-act="gt-edit">Sütunları seç</button>') + '</div>';
+  return h + (sum ? tSum() : tCat());
 }
-function tCat() {
-  const y = S.year, now = CUR(), cfg = gtCfg();
+function gtCalc(cfg, y) {
   const hid = cfg.hid || [];
   const cols = [...cfg.g1.filter(id => !hid.includes(id)).map(id => ({ id, g: "g1" })), { st: "g1" }, ...cfg.g2.filter(id => !hid.includes(id)).map(id => ({ id, g: "g2" })), { st: "g2" }].filter(c => !c.id || c.id.startsWith("p:") || catOf(c.id));
-  if (!cfg.g1.length && !cfg.g2.length) return '<div class="card empty">Tabloda gösterilecek kategorileri "Sütunları seç" ile belirleyin.</div>';
   const ms = [...Array(12)].map((_, i) => y + "-" + C.pad(i + 1)), sel = new Set([...cfg.g1, ...cfg.g2].filter(id => !hid.includes(id))), sums = {};
   const pays = {}; [...sel].filter(x => x.startsWith("p:")).forEach(x => pays[x.slice(2).toLocaleLowerCase("tr")] = x);
   ms.forEach(m => { const o = sums[m] = {}; monthItems(m).forEach(t => { if (t.k !== "e" && t.k !== "i") return; const sg = t.k === "i" ? -1 : 1; const pk = pays[payName(t).toLocaleLowerCase("tr")]; if (pk) o[pk] = (o[pk] || 0) + sg * t.a;
@@ -703,14 +705,32 @@ function tCat() {
   const grp = (m, g) => cfg[g].filter(id => !hid.includes(id)).reduce((s, id) => s + (sums[m][id] || 0), 0);
   const val = (m, c) => c.id ? (sums[m][c.id] || 0) : grp(m, c.st);
   const tot = m => grp(m, "g1") + grp(m, "g2");
+  return { cols, ms, sums, val, tot };
+}
+const gtFs = ' style="background:var(--c1)!important;color:var(--ink)!important"', gtFa = ' style="background:var(--c1)!important;color:var(--ink)!important;font-style:italic"';
+function tSum() {
+  const y = S.year, now = CUR(), l = gtList(), R = l.map(t => gtCalc(t, y)), ms = R[0] ? R[0].ms : [];
+  if (!l.length) return '<div class="card empty">"Yeni tablo" ile bir tablo ekleyin.</div>';
+  const all = m => R.reduce((s, r) => s + r.tot(m), 0);
+  const done = ms.filter(m => m < now && all(m) !== 0), n = done.length || 1;
+  let h = '<div class="tw"><table class="sh"><thead><tr><th>' + y + '</th>' + l.map(t => '<th class="click g1" data-act="gt-tab" data-v="' + esc(t.id) + '">' + esc(t.name) + '</th>').join("") + '<th>Toplam</th></tr></thead><tbody>';
+  ms.forEach(m => { const fut = m > now ? ' class="fut"' : "", has = all(m) !== 0 || R.some(r => r.tot(m) !== 0);
+    h += '<tr><td>' + C.TR_M[Number(m.slice(5)) - 1] + '</td>' + R.map(r => '<td' + fut + '>' + (has ? f0(r.tot(m)) : "") + '</td>').join("") + '<td' + fut + '>' + (has ? f0(all(m)) : "") + '</td></tr>'; });
+  h += '</tbody><tfoot><tr><td' + gtFs + '>Toplam</td>' + R.map(r => '<td' + gtFs + '>' + f0(ms.reduce((s, m) => s + r.tot(m), 0)) + '</td>').join("") + '<td' + gtFs + '>' + f0(ms.reduce((s, m) => s + all(m), 0)) + '</td></tr>';
+  h += '<tr><td' + gtFa + '>Ortalama</td>' + R.map(r => '<td' + gtFa + '>' + f0(done.reduce((s, m) => s + r.tot(m), 0) / n) + '</td>').join("") + '<td' + gtFa + '>' + f0(done.reduce((s, m) => s + all(m), 0) / n) + '</td></tr></tfoot></table></div>';
+  return h + '<p class="small muted">Ortalama, tamamlanmış ' + done.length + ' ay üzerinden.</p>';
+}
+function tCat(id) {
+  const y = S.year, now = CUR(), cfg = gtCfg(id);
+  if (!cfg || (!cfg.g1.length && !cfg.g2.length)) return '<div class="card empty">Tabloda gösterilecek kategorileri "Sütunları seç" ile belirleyin.</div>';
+  const { cols, ms, sums, val, tot } = gtCalc(cfg, y);
   const done = ms.filter(m => m < now && tot(m) !== 0), n = done.length || 1;
   let h = '<div class="tw"><table class="sh"><thead><tr><th>' + y + '</th>' + cols.map(c => c.id ? '<th class="click ' + c.g + '" data-act="gt-open" data-id="' + esc(c.id) + '" title="İşlemleri göster">' + esc(c.id.startsWith("p:") ? c.id.slice(2) : catOf(c.id).name) + '</th>' : '<th class="st ' + c.st + '">' + esc(cfg["n" + c.st.slice(1)] || "Ara toplam") + '</th>').join("") + '<th>Toplam</th></tr></thead><tbody>';
   ms.forEach(m => { const fut = m > now, has = cols.some(c => c.id && (sums[m][c.id] || 0) !== 0);
     h += '<tr><td>' + C.TR_M[Number(m.slice(5)) - 1] + '</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + (fut ? " fut" : "") + '">' + (has ? f0(val(m, c)) : "") + '</td>').join("") + '<td class="' + (fut ? "fut" : "") + '">' + (has ? f0(tot(m)) : "") + '</td></tr>'; });
   const sum = (c, set) => set.reduce((s, m) => s + val(m, c), 0);
-  const fs = ' style="background:var(--c1)!important;color:var(--ink)!important"', fa = ' style="background:var(--c1)!important;color:var(--ink)!important;font-style:italic"';
-  h += '</tbody><tfoot><tr><td' + fs + '>Toplam</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '"' + fs + '>' + f0(sum(c, ms)) + '</td>').join("") + '<td' + fs + '>' + f0(ms.reduce((s, m) => s + tot(m), 0)) + '</td></tr>';
-  h += '<tr><td' + fa + '>Ortalama</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '"' + fa + '>' + f0(sum(c, done) / n) + '</td>').join("") + '<td' + fa + '>' + f0(done.reduce((s, m) => s + tot(m), 0) / n) + '</td></tr></tfoot></table></div>';
+  h += '</tbody><tfoot><tr><td' + gtFs + '>Toplam</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '"' + gtFs + '>' + f0(sum(c, ms)) + '</td>').join("") + '<td' + gtFs + '>' + f0(ms.reduce((s, m) => s + tot(m), 0)) + '</td></tr>';
+  h += '<tr><td' + gtFa + '>Ortalama</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '"' + gtFa + '>' + f0(sum(c, done) / n) + '</td>').join("") + '<td' + gtFa + '>' + f0(done.reduce((s, m) => s + tot(m), 0) / n) + '</td></tr></tfoot></table></div>';
   return h + '<p class="small muted">Her grubun son sütunu o grubun toplamıdır. Ortalama, tamamlanmış ' + done.length + ' ay üzerinden.</p>';
 }
 function cashAmt(it, m) {
