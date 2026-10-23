@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.37.0";
+const APP_VERSION = "1.2.38.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -686,6 +686,8 @@ function gtDefault() {
   return { g1: ["Benzin", "Mutfak", "Aidat", "Elektrik", "Su", "Doğalgaz", "İnternet", "Sosyal"].map(find).filter(Boolean), g2: ["Telefon", "Digitürk", "Spotify", "Amazon", "Warp"].map(find).filter(Boolean) };
 }
 const gtTabs = () => meta().gtables || [{ id: "t1", name: "Tablo 1", ...(meta().gtable || gtDefault()) }];
+const gtKs = c => [...Array(Math.max(1, c.ng || 2))].map((_, i) => "g" + (i + 1));
+const gtCls = g => "g" + (((+g.slice(1)) - 1) % 2 + 1);
 const gtCfg = id => { const l = gtTabs(); return l.find(t => t.id === (id || S.gtab)) || l[0]; };
 function vTable() {
   const ys = [...new Set(Object.keys(S.months).map(m => Number(m.slice(0, 4))))].sort(); if (!ys.includes(S.year)) ys.push(S.year);
@@ -697,14 +699,15 @@ function vTable() {
 }
 function gtCalc(cfg, y) {
   const hid = cfg.hid || [];
-  const cols = [...cfg.g1.filter(id => !hid.includes(id)).map(id => ({ id, g: "g1" })), { st: "g1" }, ...cfg.g2.filter(id => !hid.includes(id)).map(id => ({ id, g: "g2" })), { st: "g2" }].filter(c => !c.id || c.id.startsWith("p:") || catOf(c.id));
-  const ms = [...Array(12)].map((_, i) => y + "-" + C.pad(i + 1)), sel = new Set([...cfg.g1, ...cfg.g2].filter(id => !hid.includes(id))), sums = {};
+  const ks = gtKs(cfg), multi = ks.length > 1;
+  const cols = ks.flatMap(g => [...(cfg[g] || []).filter(id => !hid.includes(id)).map(id => ({ id, g: gtCls(g) })), ...(multi ? [{ st: g, cl: gtCls(g) }] : [])]).filter(c => !c.id || c.id.startsWith("p:") || catOf(c.id));
+  const ms = [...Array(12)].map((_, i) => y + "-" + C.pad(i + 1)), sel = new Set(ks.flatMap(g => cfg[g] || []).filter(id => !hid.includes(id))), sums = {};
   const pays = {}; [...sel].filter(x => x.startsWith("p:")).forEach(x => pays[x.slice(2).toLocaleLowerCase("tr")] = x);
   ms.forEach(m => { const o = sums[m] = {}; monthItems(m).forEach(t => { if (t.k !== "e" && t.k !== "i") return; const sg = t.k === "i" ? -1 : 1; const pk = pays[payName(t).toLocaleLowerCase("tr")]; if (pk) o[pk] = (o[pk] || 0) + sg * t.a;
     catParts(t).forEach(pp => { let c = catOf(pp.cat), g = 0; while (c && g++ < 5) { if (sel.has(c.id)) o[c.id] = (o[c.id] || 0) + sg * pp.a; c = c.parent ? catOf(c.parent) : null; } }); }); });
-  const grp = (m, g) => cfg[g].filter(id => !hid.includes(id)).reduce((s, id) => s + (sums[m][id] || 0), 0);
+  const grp = (m, g) => (cfg[g] || []).filter(id => !hid.includes(id)).reduce((s, id) => s + (sums[m][id] || 0), 0);
   const val = (m, c) => c.id ? (sums[m][c.id] || 0) : grp(m, c.st);
-  const tot = m => grp(m, "g1") + grp(m, "g2");
+  const tot = m => ks.reduce((s, g) => s + grp(m, g), 0);
   return { cols, ms, sums, val, tot };
 }
 const gtFs = ' style="background:var(--c1)!important;color:var(--ink)!important"', gtFa = ' style="background:var(--c1)!important;color:var(--ink)!important;font-style:italic"';
@@ -722,16 +725,16 @@ function tSum() {
 }
 function tCat(id) {
   const y = S.year, now = CUR(), cfg = gtCfg(id);
-  if (!cfg || (!cfg.g1.length && !cfg.g2.length)) return '<div class="card empty">Tabloda gösterilecek kategorileri "Sütunları seç" ile belirleyin.</div>';
+  if (!cfg || !gtKs(cfg).some(g => (cfg[g] || []).length)) return '<div class="card empty">Tabloda gösterilecek kategorileri "Sütunları seç" ile belirleyin.</div>';
   const { cols, ms, sums, val, tot } = gtCalc(cfg, y);
   const done = ms.filter(m => m < now && tot(m) !== 0), n = done.length || 1;
-  let h = '<div class="tw"><table class="sh"><thead><tr><th>' + y + '</th>' + cols.map(c => c.id ? '<th class="click ' + c.g + '" data-act="gt-open" data-id="' + esc(c.id) + '" title="İşlemleri göster">' + esc(c.id.startsWith("p:") ? c.id.slice(2) : catOf(c.id).name) + '</th>' : '<th class="st ' + c.st + '">' + esc(cfg["n" + c.st.slice(1)] || "Ara toplam") + '</th>').join("") + '<th>Toplam</th></tr></thead><tbody>';
+  let h = '<div class="tw"><table class="sh"><thead><tr><th>' + y + '</th>' + cols.map(c => c.id ? '<th class="click ' + c.g + '" data-act="gt-open" data-id="' + esc(c.id) + '" title="İşlemleri göster">' + esc(c.id.startsWith("p:") ? c.id.slice(2) : catOf(c.id).name) + '</th>' : '<th class="st ' + c.cl + '">' + esc(cfg["n" + c.st.slice(1)] || "Ara toplam") + '</th>').join("") + '<th>Toplam</th></tr></thead><tbody>';
   ms.forEach(m => { const fut = m > now, has = cols.some(c => c.id && (sums[m][c.id] || 0) !== 0);
-    h += '<tr><td>' + C.TR_M[Number(m.slice(5)) - 1] + '</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + (fut ? " fut" : "") + '">' + (has ? f0(val(m, c)) : "") + '</td>').join("") + '<td class="' + (fut ? "fut" : "") + '">' + (has ? f0(tot(m)) : "") + '</td></tr>'; });
+    h += '<tr><td>' + C.TR_M[Number(m.slice(5)) - 1] + '</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.cl) + (fut ? " fut" : "") + '">' + (has ? f0(val(m, c)) : "") + '</td>').join("") + '<td class="' + (fut ? "fut" : "") + '">' + (has ? f0(tot(m)) : "") + '</td></tr>'; });
   const sum = (c, set) => set.reduce((s, m) => s + val(m, c), 0);
-  h += '</tbody><tfoot><tr><td' + gtFs + '>Toplam</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '"' + gtFs + '>' + f0(sum(c, ms)) + '</td>').join("") + '<td' + gtFs + '>' + f0(ms.reduce((s, m) => s + tot(m), 0)) + '</td></tr>';
-  h += '<tr><td' + gtFa + '>Ortalama</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + '"' + gtFa + '>' + f0(sum(c, done) / n) + '</td>').join("") + '<td' + gtFa + '>' + f0(done.reduce((s, m) => s + tot(m), 0) / n) + '</td></tr></tfoot></table></div>';
-  return h + '<p class="small muted">Her grubun son sütunu o grubun toplamıdır. Ortalama, tamamlanmış ' + done.length + ' ay üzerinden.</p>';
+  h += '</tbody><tfoot><tr><td' + gtFs + '>Toplam</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.cl) + '"' + gtFs + '>' + f0(sum(c, ms)) + '</td>').join("") + '<td' + gtFs + '>' + f0(ms.reduce((s, m) => s + tot(m), 0)) + '</td></tr>';
+  h += '<tr><td' + gtFa + '>Ortalama</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.cl) + '"' + gtFa + '>' + f0(sum(c, done) / n) + '</td>').join("") + '<td' + gtFa + '>' + f0(done.reduce((s, m) => s + tot(m), 0) / n) + '</td></tr></tfoot></table></div>';
+  return h + '<p class="small muted">' + (gtKs(cfg).length > 1 ? 'Her grubun son sütunu o grubun toplamıdır. ' : '') + ' Ortalama, tamamlanmış ' + done.length + ' ay üzerinden.</p>';
 }
 function cashAmt(it, m) {
   if (it.rep === "once") return it.date && it.date.slice(0, 7) === m ? (it.amts[0] || {}).a || 0 : 0;
@@ -1280,8 +1283,9 @@ function renderSettings() {
       '<div class="sh-ft">' + (c._new ? '' : '<button class="btn danger" data-act="cat-del">Sil</button>') + '<button class="btn" data-act="cat-save">Kaydet</button></div>';
   } else if (v === "gt") {
     const ex = catTree().filter(({ c }) => c.type === "E");
-    const grpH = (g, l) => '<label class="fld"><span>Grup adı</span><input class="in" data-gn="' + g.replace("g", "n") + '" value="' + esc(D[g.replace("g", "n")] || l) + '"></label><div class="chips" style="margin-bottom:8px">' + (D[g].length ? D[g].map((id, i) => '<span class="chip" style="padding:4px 6px 4px 10px"><i style="background:' + (id.startsWith("p:") ? "var(--tr)" : catColor(id)) + '"></i><span' + ((D.hid || []).includes(id) ? ' style="opacity:.45;text-decoration:line-through"' : '') + '>' + esc(id.startsWith("p:") ? id.slice(2) : catLabel(id, true)) + '</span> <button class="ib" style="width:26px;height:26px" data-act="gt-hide" data-id="' + esc(id) + '" aria-label="Gizle">' + ((D.hid || []).includes(id) ? ICON.eyeoff : ICON.eye) + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="-1" aria-label="Sola taşı"' + (i === 0 ? ' disabled' : '') + '>' + ICON.l + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="1" aria-label="Sağa taşı"' + (i === D[g].length - 1 ? ' disabled' : '') + '>' + ICON.r + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-rm" data-g="' + g + '" data-i="' + i + '" aria-label="Kaldır">' + ICON.x + '</button></span>').join("") : '<span class="small muted">Henüz sütun yok.</span>') + '</div><div class="row2" style="margin-bottom:18px"><div><div class="catsel cat-search">' + ICON.search + '<input data-gtq="' + g + '" autocomplete="off" placeholder="Kategori ara…"></div><div class="tx-catlist" id="gtl-c-' + g + '"></div></div><div><div class="catsel cat-search">' + ICON.search + '<input data-gtpq="' + g + '" autocomplete="off" placeholder="Lehdar ara…"></div><div class="tx-catlist" id="gtl-p-' + g + '"></div></div></div>';
-    h = head("Tablo ayarları") + '<div class="sh-bd"><label class="fld"><span>Tablo adı</span><input class="in" data-gn="name" value="' + esc(D.name || "") + '"></label><p class="small muted" style="margin-top:0">Her grubun sonunda bir ara toplam sütunu olur. Ana kategori seçerseniz alt kategorileri de dahil edilir. Çıkarmak için sütuna dokunun.</p>' + grpH("g1", "1. grup") + grpH("g2", "2. grup") + '</div><div class="sh-ft">' + (gtTabs().length > 1 ? '<button class="btn danger" data-act="gt-del">Tabloyu sil</button>' : '') + '<button class="btn" data-act="gt-save">Kaydet</button></div>';
+    const ks = gtKs(D), multi = ks.length > 1;
+    const grpH = (g, l) => (multi ? '<div style="display:flex;gap:8px;align-items:end"><label class="fld" style="flex:1"><span>Grup adı</span><input class="in" data-gn="' + g.replace("g", "n") + '" value="' + esc(D[g.replace("g", "n")] || l) + '"></label><button class="btn sm ghost" style="margin-bottom:14px" data-act="gt-grm" data-g="' + g + '">Grubu kaldır</button></div>' : '') + '<div class="chips" style="margin-bottom:8px">' + (D[g].length ? D[g].map((id, i) => '<span class="chip" style="padding:4px 6px 4px 10px"><i style="background:' + (id.startsWith("p:") ? "var(--tr)" : catColor(id)) + '"></i><span' + ((D.hid || []).includes(id) ? ' style="opacity:.45;text-decoration:line-through"' : '') + '>' + esc(id.startsWith("p:") ? id.slice(2) : catLabel(id, true)) + '</span> <button class="ib" style="width:26px;height:26px" data-act="gt-hide" data-id="' + esc(id) + '" aria-label="Gizle">' + ((D.hid || []).includes(id) ? ICON.eyeoff : ICON.eye) + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="-1" aria-label="Sola taşı"' + (i === 0 ? ' disabled' : '') + '>' + ICON.l + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="1" aria-label="Sağa taşı"' + (i === D[g].length - 1 ? ' disabled' : '') + '>' + ICON.r + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-rm" data-g="' + g + '" data-i="' + i + '" aria-label="Kaldır">' + ICON.x + '</button></span>').join("") : '<span class="small muted">Henüz sütun yok.</span>') + '</div><div class="row2" style="margin-bottom:18px"><div><div class="catsel cat-search">' + ICON.search + '<input data-gtq="' + g + '" autocomplete="off" placeholder="Kategori ara…"></div><div class="tx-catlist" id="gtl-c-' + g + '"></div></div><div><div class="catsel cat-search">' + ICON.search + '<input data-gtpq="' + g + '" autocomplete="off" placeholder="Lehdar ara…"></div><div class="tx-catlist" id="gtl-p-' + g + '"></div></div></div>';
+    h = head("Tablo ayarları") + '<div class="sh-bd"><label class="fld"><span>Tablo adı</span><input class="in" data-gn="name" value="' + esc(D.name || "") + '"></label><p class="small muted" style="margin-top:0">' + (multi ? 'Her grubun sonunda bir ara toplam sütunu olur. ' : '') + 'Ana kategori seçerseniz alt kategorileri de dahil edilir. Çıkarmak için sütuna dokunun.</p>' + ks.map((g, i) => grpH(g, (i + 1) + ". grup")).join("") + '<button class="btn sm ghost" data-act="gt-gadd">' + (multi ? '+ Grup ekle' : 'Gruplara ayır') + '</button></div><div class="sh-ft">' + (gtTabs().length > 1 ? '<button class="btn danger" data-act="gt-del">Tabloyu sil</button>' : '') + '<button class="btn" data-act="gt-save">Kaydet</button></div>';
   } else if (v === "ci") {
     const c = D.ci, mon = c.rep !== "once";
     h = head(c._new ? (c.k === "inc" ? "Gelir ekle" : "Gider ekle") : "Düzenle") + '<div class="sh-bd">' +
@@ -1572,10 +1576,12 @@ document.addEventListener("click", e => {
     case "gt-rm": D[ds.g].splice(+ds.i, 1); renderSettings(); break;
     case "gt-mv": { const g = ds.g, i = +ds.i, j = i + Number(ds.d); if (j >= 0 && j < D[g].length) { [D[g][i], D[g][j]] = [D[g][j], D[g][i]]; } renderSettings(); break; }
     case "gt-hide": { D.hid = D.hid || []; const i = D.hid.indexOf(ds.id); i >= 0 ? D.hid.splice(i, 1) : D.hid.push(ds.id); renderSettings(); break; }
-    case "gt-save": { const g = { id: D.id, name: (D.name || "").trim() || "Tablo", g1: D.g1, g2: D.g2, n1: D.n1 || "1. grup", n2: D.n2 || "2. grup", hid: D.hid || [] }; const l = clone(gtTabs()); const i = l.findIndex(t => t.id === g.id); i >= 0 ? (l[i] = g) : l.push(g); saveMetaChange(m => { m.gtables = l; }); S.gtab = g.id; closeSheet(); render(); toast("Kaydedildi"); break; }
+    case "gt-save": { const g = { id: D.id, name: (D.name || "").trim() || "Tablo", ng: gtKs(D).length, hid: D.hid || [] }; gtKs(D).forEach((k, i) => { g[k] = D[k] || []; g["n" + (i + 1)] = D["n" + (i + 1)] || (i + 1) + ". grup"; }); const l = clone(gtTabs()); const i = l.findIndex(t => t.id === g.id); i >= 0 ? (l[i] = g) : l.push(g); saveMetaChange(m => { m.gtables = l; }); S.gtab = g.id; closeSheet(); render(); toast("Kaydedildi"); break; }
     case "gt-del": ask("“" + esc(D.name || "") + "” tablosu silinsin mi?", [{ l: "Sil", v: 1, red: 1 }]).then(v => { if (!v) return; const l = clone(gtTabs()).filter(t => t.id !== D.id); saveMetaChange(m => { m.gtables = l; }); S.gtab = "sum"; closeSheet(); render(); }); break;
+    case "gt-gadd": { const n = gtKs(D).length + 1; D.ng = n; D["g" + n] = []; D["n" + n] = n + ". grup"; renderSettings(); break; }
+    case "gt-grm": { const ks = gtKs(D), k = ks.indexOf(ds.g); if (k < 0 || ks.length < 2) break; const into = ks[k ? k - 1 : 1]; D[into] = [...(k ? D[into] : D[ds.g]), ...(k ? D[ds.g] : D[into])].filter((v, i, a) => a.indexOf(v) === i); for (let i = k + 1; i < ks.length; i++) { D["g" + i] = D["g" + (i + 1)]; D["n" + i] = D["n" + (i + 1)]; } delete D["g" + ks.length]; delete D["n" + ks.length]; D.ng = ks.length - 1; renderSettings(); break; }
     case "gt-tab": S.gtab = ds.v; render(); break;
-    case "gt-new": askText("Yeni tablo adı", "Tablo " + (gtTabs().length + 1)).then(n => { if (!n) return; D = { view: "gt", id: "t" + Date.now().toString(36), name: n, g1: [], g2: [], n1: "1. grup", n2: "2. grup", hid: [] }; renderSettings(); }); break;
+    case "gt-new": askText("Yeni tablo adı", "Tablo " + (gtTabs().length + 1)).then(n => { if (!n) return; D = { view: "gt", id: "t" + Date.now().toString(36), name: n, ng: 1, g1: [], hid: [] }; renderSettings(); }); break;
     case "exp-json": download("butce-yedek-" + today() + ".json", JSON.stringify({ exportedAt: new Date().toISOString(), meta: meta(), months: S.months, debts: S.debts }), "application/json"); break;
     case "exp-csv": { const rows = [["Tarih", "Tür", "Tutar", "Hesap", "Karşı hesap", "Kategori", "Açıklama", "Not"]]; derived().all.slice().sort((a, b) => a.d.localeCompare(b.d)).forEach(t => rows.push([t.d, { e: "Gider", i: "Gelir", tr: "Transfer" }[t.k], nfp.format(t.a), accName(t.acc), t.to ? accName(t.to) : "", t.cat ? catLabel(t.cat) : "", t.t || "", t.n || ""]));
       download("butce-islemler-" + today() + ".csv", "\ufeff" + rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(";")).join("\r\n"), "text/csv"); break; }
