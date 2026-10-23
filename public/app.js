@@ -189,7 +189,7 @@ const DEFAULT_META = {
     { id: "c-maas", name: "Maaş", parent: null, type: "I", color: "#1d7f47" }, { id: "c-yatirim", name: "Yatırım", parent: null, type: "I", color: "#2b6cb0" }
   ]
 };
-const S = {
+const S = { gtab: "sum",
   store: null, user: null, authErr: "", meta: null, months: {}, debts: {}, loaded: { meta: false, months: false, debts: false },
   view: "home", month: CUR(), q: "", accF: "", year: Number(CUR().slice(0, 4)), tTab: "cat", tKind: "e", expanded: new Set(), onlyMine: false, borcMine: true,
   ver: 0, cache: null
