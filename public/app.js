@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.35.1";
+const APP_VERSION = "1.2.35.3";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -701,7 +701,7 @@ function tCat() {
   const tot = m => grp(m, "g1") + grp(m, "g2");
   const done = ms.filter(m => m < now && tot(m) !== 0), n = done.length || 1;
   let h = '<div class="tw"><table class="sh"><thead><tr><th>' + y + '</th>' + cols.map(c => c.id ? '<th class="click ' + c.g + '" data-act="gt-open" data-id="' + esc(c.id) + '" title="İşlemleri göster">' + esc(c.id.startsWith("p:") ? c.id.slice(2) : catOf(c.id).name) + '</th>' : '<th class="st ' + c.st + '">' + esc(cfg["n" + c.st.slice(1)] || "Ara toplam") + '</th>').join("") + '<th>Toplam</th></tr></thead><tbody>';
-  ms.forEach(m => { const fut = m > now, has = ms.some(()=>0) || cols.some(c => c.id && (sums[m][c.id] || 0) !== 0);
+  ms.forEach(m => { const fut = m > now, has = cols.some(c => c.id && (sums[m][c.id] || 0) !== 0);
     h += '<tr><td>' + C.TR_M[Number(m.slice(5)) - 1] + '</td>' + cols.map(c => '<td class="' + (c.id ? c.g : "st " + c.st) + (fut ? " fut" : "") + '">' + (has ? f0(val(m, c)) : "") + '</td>').join("") + '<td class="' + (fut ? "fut" : "") + '">' + (has ? f0(tot(m)) : "") + '</td></tr>'; });
   const sum = (c, set) => set.reduce((s, m) => s + val(m, c), 0);
   const fs = ' style="background:var(--c1)!important;color:var(--ink)!important"', fa = ' style="background:var(--c1)!important;color:var(--ink)!important;font-style:italic"';
