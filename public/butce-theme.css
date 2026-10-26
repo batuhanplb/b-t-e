@@ -282,14 +282,7 @@ button:active,.mod:active,button.tx:active{transform:scale(.97)}
 *{-webkit-tap-highlight-color:transparent}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-.calc-ov{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
-.calc{background:var(--card,var(--bg));color:var(--fg,inherit);border-radius:16px;padding:14px;width:min(320px,92vw);box-shadow:0 10px 40px rgba(0,0,0,.3)}
-.calc-d{font-size:26px;font-weight:600;text-align:right;padding:10px 6px;margin-bottom:8px;overflow-x:auto;white-space:nowrap}
-.calc-g{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.calc-g button,.calc-f button{height:52px;border-radius:12px;border:1px solid var(--line,rgba(127,127,127,.25));background:transparent;color:inherit;font-size:20px;cursor:pointer}
-.calc-g button.op{color:var(--pri,hsl(262 60% 50%));font-weight:700}
-.calc-f{display:flex;gap:8px;margin-top:10px}.calc-f button{flex:1;font-size:16px}
-.calc-f .ok{background:var(--pri,hsl(262 60% 50%));color:#fff;border:0}
+.calc-ov{display:none}
 .pbar{display:block;height:4px;border-radius:3px;background:var(--line,rgba(127,127,127,.15));margin-top:4px;overflow:hidden;max-width:220px}.pbar i{display:block;height:100%;border-radius:3px}
 .pie-wrap{display:grid;gap:12px;margin-top:4px}.pie-wrap .pie{display:flex;justify-content:center;align-items:center;position:relative;padding:18px}
 @media(min-width:900px){.pie-wrap{grid-template-columns:300px 1fr;align-items:start}.pie-wrap .pie{position:sticky;top:12px}}
