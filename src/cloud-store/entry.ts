@@ -30,23 +30,30 @@ const errOf = (e: { message?: string; code?: string } | null) => {
   return err;
 };
 
+// Offline support: a per-user local copy of all docs plus a persisted outbox of
+// pending writes (keyed by doc, last write wins). The outbox is flushed when
+// the connection returns; server loads are overlaid with pending writes.
+type Pending = { coll: string; id: string; data: unknown | null };
+const LS_CACHE = (u: string) => "butce.cache." + u;
+const LS_OUT = (u: string) => "butce.outbox." + u;
+const LS_USER = "butce.lastUser";
+const lsGet = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : d; } catch { return d; } };
+const lsSet = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* quota */ } };
+
 export async function cloudStore(onUser: (u: User, err?: string) => void, toast?: (m: string) => void) {
   let uid: string | null = null;
   let h: Handlers | null = null;
   let cache = { meta: null as unknown, months: {} as Record<string, unknown[]>, debts: {} as Record<string, unknown> };
-  const chains: Record<string, Promise<unknown>> = {};
+  let outbox: Record<string, Pending> = {};
+  let flushing: Promise<void> | null = null;
+  let warned = false;
+  const saveCache = () => { if (uid) lsSet(LS_CACHE(uid), cache); };
+  const saveOut = () => { if (uid) lsSet(LS_OUT(uid), outbox); };
   const emit = () => {
     if (!h) return;
     h.meta(clone(cache.meta));
     h.months(clone(cache.months), false);
     h.debts(clone(cache.debts));
-  };
-  const q = (key: string, fn: () => Promise<unknown>) => {
-    chains[key] = (chains[key] || Promise.resolve()).then(fn).catch((err) => {
-      console.error(err);
-      toast?.(err && err.code === "permission-denied" ? "Bu hesapla yazma izni yok." : "Kaydedilemedi, bağlantıyı kontrol edin.");
-    });
-    return chains[key];
   };
   const put = async (coll: string, id: string, data: unknown) => {
     const { error } = await supabase.from("user_docs").upsert({ user_id: uid!, coll, doc_id: id, data: data as never, updated_at: new Date().toISOString() });
@@ -61,6 +68,36 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     else if (coll === "tx") { if (data) cache.months[id] = clone((data as { items: unknown[] }).items || []); else delete cache.months[id]; }
     else if (coll === "debts") { if (data) cache.debts[id] = clone(data); else delete cache.debts[id]; }
   };
+  const flush = (): Promise<void> => {
+    if (flushing) return flushing;
+    flushing = (async () => {
+      for (const key of Object.keys(outbox)) {
+        const p = outbox[key]!;
+        try {
+          if (p.data === null) await del(p.coll, p.id); else await put(p.coll, p.id, p.data);
+          if (outbox[key] === p) { delete outbox[key]; saveOut(); }
+        } catch (err) {
+          const e = err as { code?: string };
+          if (e?.code === "permission-denied") { delete outbox[key]; saveOut(); toast?.("Bu hesapla yazma izni yok."); continue; }
+          if (!warned) { warned = true; toast?.("Çevrimdışı kaydedildi, bağlantı gelince eşitlenecek."); }
+          break;
+        }
+      }
+      if (!Object.keys(outbox).length) warned = false;
+    })().finally(() => { flushing = null; });
+    return flushing;
+  };
+  const write = (coll: string, id: string, data: unknown | null) => {
+    applyLocal(coll, id, coll === "tx" && data !== null ? data : data);
+    saveCache(); emit();
+    outbox[coll + "/" + id] = { coll, id, data };
+    saveOut();
+    return flush();
+  };
+  const q = (_key: string, fn: () => Promise<unknown>) => fn().catch((err) => {
+    console.error(err);
+    toast?.(err && err.code === "permission-denied" ? "Bu hesapla yazma izni yok." : "Kaydedilemedi, bağlantıyı kontrol edin.");
+  });
 
   async function loadAll() {
     const rows: { coll: string; doc_id: string; data: unknown }[] = [];
@@ -72,6 +109,8 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     }
     cache = { meta: null, months: {}, debts: {} };
     rows.forEach((r) => applyLocal(r.coll, r.doc_id, r.data));
+    Object.values(outbox).forEach((p) => applyLocal(p.coll, p.id, p.data));
+    saveCache();
   }
 
   const store = {
