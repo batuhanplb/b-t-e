@@ -331,6 +331,7 @@ body{transition:background-color .22s var(--ease),color .22s var(--ease)}
 /* dokunmatikte de çalışan basılma geri bildirimi */
 .set-row:active,.dashrow:active,.lgopt:active,.sprow:active,.tx-catoption:active{background:var(--sunk)}
 .btn:active,.chip:active,.seg button:active,.ed-b:active,.dg-b:active,.mod-go:active{transform:scale(.96)}
+.ck:active{transform:scale(.9)}
 .ib:active{transform:scale(.92)}
 .fab:active{transform:scale(.94);box-shadow:0 2px 8px color-mix(in oklab,var(--ink) 22%,transparent)}
 .acc:active{background:color-mix(in srgb,currentColor 8%,transparent)}
@@ -346,6 +347,8 @@ body{transition:background-color .22s var(--ease),color .22s var(--ease)}
  .ib:hover{background:var(--sunk)}
  .fab:hover{transform:translateY(-2px);box-shadow:0 12px 26px -12px color-mix(in oklab,var(--ink) 62%,transparent)}
  .chip:not([aria-pressed="true"]):hover{border-color:color-mix(in oklab,var(--muted) 40%,var(--line));background:color-mix(in oklab,var(--sunk) 55%,var(--surface))}
+ .ck:hover{border-color:color-mix(in oklab,var(--muted) 55%,var(--line))}
+ .cb:not(.sel):hover{background:color-mix(in srgb,currentColor 7%,transparent)}
  .seg button:not([aria-pressed="true"]):hover{background:color-mix(in oklab,var(--surface) 45%,transparent);color:var(--ink)}
  .tx:hover:not(.picked){background:var(--sunk)}
  .prow:hover:not(.on),.set-row:hover,.dashrow:hover,.lgopt:hover,.sprow:hover,.tx-catoption:hover,.crow:hover{background:var(--sunk)}
