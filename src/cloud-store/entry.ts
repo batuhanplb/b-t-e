@@ -145,6 +145,12 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
       if (!r.redirected && r.tokens) await supabase.auth.setSession(r.tokens);
     },
     signOut() { return supabase.auth.signOut(); },
+    async deleteAccount() {
+      const { error } = await supabase.rpc("delete_my_account" as never);
+      if (error) throw errOf(error);
+      if (uid) { try { localStorage.removeItem(LS_CACHE(uid)); localStorage.removeItem(LS_OUT(uid)); } catch { /* ignore */ } }
+      await supabase.auth.signOut();
+    },
     listen(x: Handlers) {
       h = x;
       const local = uid ? lsGet<typeof cache | null>(LS_CACHE(uid), null) : null;

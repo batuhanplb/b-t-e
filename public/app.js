@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.40.0";
+const APP_VERSION = "1.2.41.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -10,7 +10,8 @@ function ask(msg, opts) {
     const o = document.createElement("div"); o.className = "askov";
     o.innerHTML = '<div class="askbox"><p>' + msg + '</p>' + opts.map((x, i) => '<button class="btn' + (x.red ? ' askred' : '') + '" data-i="' + i + '">' + x.l + '</button>').join("") + '<button class="btn ghost" data-i="-1">Vazgeç</button></div>';
     const done = v => { o.remove(); res(v); };
-    o.addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("button"); if (b) done(+b.dataset.i < 0 ? null : opts[+b.dataset.i].v); else if (e.target === o) done(null); });
+    let pd = null; o.addEventListener("pointerdown", e => { pd = e.target; });
+    o.addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("button"); if (b) done(+b.dataset.i < 0 ? null : opts[+b.dataset.i].v); else if (e.target === o && pd === o) done(null); });
     (typeof dlg !== "undefined" && dlg.open ? dlg : document.body).appendChild(o);
   });
 }
@@ -894,7 +895,7 @@ function askText(msg, val) {
     const o = document.createElement("div"); o.className = "askov";
     o.innerHTML = '<div class="askbox"><p>' + msg + '</p><input class="in" autocomplete="off" style="margin-bottom:10px" value="' + esc(val || "") + '"><button class="btn" data-i="1">Kaydet</button><button class="btn ghost" data-i="-1">Vazgeç</button></div>';
     const inp = o.querySelector("input"); const done = v => { o.remove(); res(v); };
-    o.addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("button"); if (b) done(+b.dataset.i < 0 ? null : inp.value.trim()); else if (e.target === o) done(null); });
+    o.addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("button"); if (b) done(+b.dataset.i < 0 ? null : inp.value.trim()); else if (e.target === o && pd === o) done(null); }); let pd = null; o.addEventListener("pointerdown", e => { pd = e.target; });
     inp.addEventListener("keydown", e => { if (e.key === "Enter") done(inp.value.trim()); });
     (typeof dlg !== "undefined" && dlg.open ? dlg : document.body).appendChild(o); setTimeout(() => inp.focus(), 30);
   });
@@ -974,7 +975,8 @@ let D = null; // draft
 function openSheet(html, keepScroll) { dlgIn.classList.toggle("rr", !!keepScroll && dlg.open); const bd = dlgIn.querySelector(".sh-bd"); const st = bd ? bd.scrollTop : 0; dlgIn.innerHTML = html; if (!dlg.open) dlg.showModal(); const nb = dlgIn.querySelector(".sh-bd"); if (nb) nb.scrollTop = keepScroll ? st : 0; }
 function closeSheet() { if (dlg.open) dlg.close(); D = null; }
 dlg.addEventListener("close", () => { D = null; });
-dlg.addEventListener("click", e => { if (e.target === dlg) closeSheet(); });
+let dlgPd = null; dlg.addEventListener("pointerdown", e => { dlgPd = e.target; });
+dlg.addEventListener("click", e => { if (e.target === dlg && dlgPd === dlg) closeSheet(); dlgPd = null; });
 const head = (title, cls, back) => '<div class="sh-hd ' + (cls || "") + '">' + (back ? '<button class="ib" data-act="' + back + '" aria-label="Geri">' + ICON.back + '</button>' : '') + '<h3>' + title + '</h3><button class="ib" data-act="close" aria-label="Kapat">' + ICON.x + '</button></div>';
 
 /* ---- transaction sheet ---- */
@@ -989,7 +991,7 @@ function openTx(opt = {}) {
   } else {
     const k = opt.k || "e";
     const defD = opt.d || (S.view === "tx" && S.month !== CUR() ? S.month + "-01" : today());
-    D = { id: C.rid(), k, aStr: opt.a ? amtIn(opt.a) : "", acc: opt.acc || lastAccFor(k === "tr" ? "e" : k), to: null, cat: opt.cat || null, t: opt.t || "", n: "", d: defD, rep: "one", cnt: 2, _new: true, catOpen: false, accTouched: !!opt.acc };
+    D = { id: C.rid(), k, aStr: opt.a ? amtIn(opt.a) : "", acc: opt.acc || (S.view === "tx" && S.accFs.length === 1 ? S.accFs[0] : lastAccFor(k === "tr" ? "e" : k)), to: null, cat: opt.cat || null, t: opt.t || "", n: "", d: defD, rep: "one", cnt: 2, _new: true, catOpen: false, accTouched: !!opt.acc };
     if (k === "tr") D.to = visibleAccs().find(a => a.id !== D.acc)?.id || null;
   }
   renderTx(); if (D._new) setTimeout(() => { const i = $("#f-amt"); i && i.focus(); }, 80);
@@ -1270,7 +1272,7 @@ function renderSettings() {
       '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Başka bütçe uygulamalarının (Money Manager, Spendee, Wallet, YNAB, Monefy, Toshl, Bluecoins, Mint, 1Money, Cashew, Money Lover vb.) ve bankaların CSV, Excel (.xlsx), QIF ve OFX dosyaları mevcut verilere eklenir; aynı işlemler tekrar eklenmez. Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler.</p></div>';
     { const ms = [...new Set(Dd.all.map(t => t.d.slice(0, 7)))].filter(m => m < CUR()).sort().reverse().slice(0, 24); if (ms.length) h += '<div class="sec-h" style="margin-top:20px"><h2>Aylık raporlar</h2></div><div class="rep-chips">' + ms.map(m => '<button class="chip" data-act="rep" data-m="' + m + '" data-back="1">' + mLabel(m) + '</button>').join("") + '</div>'; }
     if (NATIVE) h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">Sürüm: ' + esc(OTA.cur || "…") + '<br><span id="ota-msg" class="muted">' + esc(OTA.msg || "") + '</span></span><button class="btn sm ghost" data-act="ota-check">Güncellemeleri kontrol et</button></div>';
-    h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div>';
+    h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div><div class="card" style="padding:14px;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"><button class="btn sm ghost" style="color:var(--exp)" data-act="wipe-all">Tüm verileri sil</button><button class="btn sm ghost" style="color:var(--exp)" data-act="del-acc">Hesabı sil</button></div>';
     h += '<p class="small muted" style="text-align:center;margin:20px 0 4px">Bütçe v' + APP_VERSION + '</p></div>';
   } else if (v === "rep") {
     h = head(mLabel(D.m) + " raporu", "", D.back ? "set-back" : null) + '<div class="sh-bd">' + repHtml(D.m) + '</div>';
@@ -1422,7 +1424,9 @@ document.addEventListener("click", e => {
   const a = el.dataset.act, ds = el.dataset;
   switch (a) {
     case "signin": S.authErr = ""; S.store.signIn().catch(err => { S.authErr = authMsg(err); render(); }); break;
-    case "signout": closeSheet(); S.store.signOut(); break;
+    case "signout": ask("Çıkış yapılsın mı?", [{ l: "Çıkış yap", v: true, red: 1 }]).then(v => { if (v) { closeSheet(); S.store.signOut(); } }); break;
+    case "wipe-all": (async () => { if (!await ask("Tüm işlemler, borçlar ve ayarlar silinecek. Emin misin?", [{ l: "Devam", v: true, red: 1 }])) return; if (!await ask("Bu işlem geri alınamaz. Önce yedek indirmeni öneririz. Devam edilsin mi?", [{ l: "Evet, devam", v: true, red: 1 }])) return; if (!await ask("Son onay: tüm veriler kalıcı olarak silinsin mi?", [{ l: "Tüm verileri sil", v: true, red: 1 }])) return; Object.keys(S.months).forEach(m => saveMonth(m, [])); Object.keys(S.debts || {}).forEach(id => S.store.delDebt(id)); const sh = (meta().share || {}).token; if (sh) S.store.delShare(sh); S.meta = clone(DEFAULT_META); S.store.setMeta(S.meta); closeSheet(); render(); toast("Tüm veriler silindi"); })(); break;
+    case "del-acc": (async () => { if (!await ask("Hesabın ve tüm verilerin kalıcı olarak silinecek. Emin misin?", [{ l: "Devam", v: true, red: 1 }])) return; if (!await ask("Bu işlem geri alınamaz. Son kez soruyoruz: hesap silinsin mi?", [{ l: "Hesabı sil", v: true, red: 1 }])) return; try { await S.store.deleteAccount(); closeSheet(); toast("Hesabın silindi"); } catch (e) { toast("Hesap silinemedi, internet bağlantını kontrol et"); } })(); break;
     case "bub": S.bub = S.bub === ds.v || !ds.v ? null : ds.v; render(); break;
     case "nav": S.stmt = null; S.sel = null; S.bub = null; S.dashEdit = false; S.dashDraft = null; S.dashTray = false; S.view = ds.v; S.catF = null; S.payF = null; S.fYear = null; if (ds.v === "tx") { S.month = S.month || CUR(); S.accFs = []; S.q = ""; S.showFutTx = false; } if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
     case "mprev": S.month = C.addM(S.month, -1); render(); break;
@@ -1490,7 +1494,7 @@ document.addEventListener("click", e => {
     case "d-plan": $("#planbox").innerHTML = planHtml(); break;
     case "d-plan-go": if (applyPlan()) renderDebt(true); break;
     case "d-save": saveDebt(); break;
-    case "d-close": { if (!D._id) break; const d = S.debts[D._id]; if (!d) break; const nw = !d.closed; if (nw && !confirm("Bu borç kapatıldı olarak işaretlensin mi? Listede görünmeyecek.")) break;
+    case "d-close": { if (!D._id) break; const d = S.debts[D._id]; if (!d) break; const nw = !d.closed; if (nw && ds.ok !== "1") { ask("Bu borç kapatıldı olarak işaretlensin mi? Listede görünmeyecek.", [{ l: "Kapat", v: true }]).then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; }
       d.closed = nw; S.store.setDebt(D._id, d); closeSheet(); render(); toast(nw ? "Borç kapatıldı" : "Borç geri açıldı"); break; }
     case "d-del": ask("Bu borç ve tüm taksitleri silinsin mi?").then(v => { if (!v) return; const id = D._id; delete S.debts[id]; S.store.delDebt(id); closeSheet(); render(); toast("Silindi"); }); break;
     case "ttab": S.tTab = ds.v; S._toCur = true; render(); break;
@@ -1515,7 +1519,7 @@ document.addEventListener("click", e => {
     case "sh-on": { const t = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, "0")).join(""); saveMetaChange(mm => { mm.share = { token: t }; }); scheduleShare(true); renderSettings(); break; }
     case "sh-copy": { const u = $("#shurl").value; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast("Bağlantı kopyalandı"), () => { $("#shurl").select(); toast("Bağlantıyı seçip kopyalayın"); }); break; }
     case "sh-now": scheduleShare(true); break;
-    case "sh-off": { if (!confirm("Paylaşım kapatılsın mı? Bağlantı artık açılmayacak.")) break; const t = (meta().share || {}).token; if (t) S.store.delShare(t); saveMetaChange(mm => { delete mm.share; }); renderSettings(); toast("Paylaşım kapatıldı"); break; }
+    case "sh-off": { if (ds.ok !== "1") { ask("Paylaşım kapatılsın mı? Bağlantı artık açılmayacak.", [{ l: "Kapat", v: true, red: 1 }]).then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } const t = (meta().share || {}).token; if (t) S.store.delShare(t); saveMetaChange(mm => { delete mm.share; }); renderSettings(); toast("Paylaşım kapatıldı"); break; }
     case "ci-actual": { const id = ds.id, m = ds.m, it0 = ((meta().cash || {}).items || []).find(x => x.id === id); if (!it0) break;
       askText("<b>" + esc(it0.name) + "</b> – " + mLabel(m) + " gerçek tutarı<br><span class=\"small muted\">Sadece bu ayı değiştirir. Plan: " + f0(cashPlanAmt(it0, m)) + ". Boş bırakırsan plana döner.</span>", it0.act && it0.act[m] != null ? String(it0.act[m]).replace(".", ",") : "").then(v => { if (v == null) return;
         const n = parseFloat(v.replace(/\./g, "").replace(",", ".")); saveMetaChange(mm => { const it = ((mm.cash || {}).items || []).find(x => x.id === id); if (!it) return; it.act = it.act || {}; if (v === "" || !isFinite(n)) delete it.act[m]; else it.act[m] = C.r2(n); }); render(); }); break; }
@@ -1533,7 +1537,7 @@ document.addEventListener("click", e => {
     case "ci-k": D.ci.k = ds.v; renderSettings(); break;
     case "ci-debt": { saveMetaChange(mm => { mm.cash = mm.cash || { items: [] }; const l = mm.cash.exDebts = mm.cash.exDebts || []; const k = l.indexOf(ds.id); if (k >= 0) l.splice(k, 1); else l.push(ds.id); }); renderSettings(); render(); break; }
     case "ci-rep": D.ci.rep = ds.v; renderSettings(); break;
-    case "ci-del": { if (!confirm("Silinsin mi?")) break; const id = D.ci.id; saveMetaChange(m => { m.cash = m.cash || { items: [] }; m.cash.items = m.cash.items.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
+    case "ci-del": { if (ds.ok !== "1") { ask("Silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } const id = D.ci.id; saveMetaChange(m => { m.cash = m.cash || { items: [] }; m.cash.items = m.cash.items.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
     case "ci-save": { const c = D.ci, a = C.parseAmt(c.a);
       if (!c.name || !c.name.trim() || !(a > 0)) { $("#s-err").innerHTML = '<p class="err">Ad ve tutar girin.</p>'; break; }
       const it = { id: c.id, k: c.k, name: c.name.trim(), rep: c.rep };
@@ -1573,8 +1577,8 @@ document.addEventListener("click", e => {
     case "cat-svg": { if (!ds.u) break; D.cat.img = ds.u; D.cat.icon = null; renderSettings(); break; }
     case "cat-logo": { const d = (ds.d || "").trim(); if (!d) break; D.cat.img = logoUrl(d); D.cat.icon = null; renderSettings(); break; }
     case "acc-logo-rm": D.acc.logo = null; renderSettings(); break;
-    case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (!confirm("Hesap silinsin mi?")) break; saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
-    case "cat-del": { const id = D.cat.id; if (derived().all.some(t => t.cat === id) || meta().categories.some(x => x.parent === id)) { $("#s-err").innerHTML = '<p class="err">Bu kategori kullanılıyor veya alt kategorisi var.</p>'; break; } if (!confirm("Kategori silinsin mi?")) break; saveMetaChange(m => { m.categories = m.categories.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
+    case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (ds.ok !== "1") { ask("Hesap silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
+    case "cat-del": { const id = D.cat.id; if (derived().all.some(t => t.cat === id) || meta().categories.some(x => x.parent === id)) { $("#s-err").innerHTML = '<p class="err">Bu kategori kullanılıyor veya alt kategorisi var.</p>'; break; } if (ds.ok !== "1") { ask("Kategori silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } saveMetaChange(m => { m.categories = m.categories.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
     case "dash-edit-on": S.dashDraft = null; S.dashEdit = true; S.dashTray = false; render(); break;
     case "dash-edit-off": { const dr = S.dashDraft; S.dashDraft = null; S.dashEdit = false; S.dashTray = false; if (dr) saveMetaChange(m => { if (dr.reset) delete m[dashKey()]; else m[dashKey()] = dr; }); render(); if (dr) toast("Kaydedildi"); break; }
     case "dash-edit-cancel": S.dashDraft = null; S.dashEdit = false; S.dashTray = false; render(); break;
@@ -1653,7 +1657,8 @@ document.addEventListener("keydown", e => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const current = options.indexOf(e.target); const next = e.key === "ArrowDown" ? Math.min(current + 1, options.length - 1) : (current < 0 ? options.length - 1 : Math.max(0, current - 1)); options[next]?.focus(); return; }
     if (e.key === "Enter") { e.preventDefault(); if (e.target.id === "cq") options[0]?.click(); else e.target.click(); return; }
   }
-  if (e.key === "Enter" && dlg.open && e.target.tagName === "INPUT" && D && D.k) { e.preventDefault(); saveTx(false); }
+  if (e.key === "Enter" && dlg.open && e.target.tagName === "INPUT" && D && D.k) { e.preventDefault(); saveTx(false); return; }
+  if (e.key === "Enter" && !e.shiftKey && dlg.open && e.target.tagName === "INPUT" && !["checkbox", "file", "search"].includes(e.target.type) && !e.target.closest(".askov")) { const ft = dlgIn.querySelector(".sh-ft"); const b = ft && (ft.querySelector(".btn.pri, .btn.primary, button[type=submit]") || [...ft.querySelectorAll("button.btn:not(.ghost):not(.danger)")].pop()); if (b) { e.preventDefault(); b.click(); } }
 });
 let dragT = null;
 let dragEnd = 0;
@@ -1745,3 +1750,5 @@ document.addEventListener("click", e => { const r = e.target.closest(".bhit"); c
   const i = [...cb.querySelectorAll("rect.bhit")].indexOf(r); if (i < 0) return; e.stopPropagation(); e.preventDefault();
   S.view = "tx"; S.per = "d:" + cb.dataset.daym + "-" + String(i + 1).padStart(2, "0"); S.accFs = []; S.catF = null; S.payF = null; S.q = ""; S.showPastTx = true; S.showFutTx = true; S.showE = true; S.showI = true;
   if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); }, true);
+
+document.addEventListener("wheel", e => { const r = e.target.closest && e.target.closest(".rep-chips"); if (!r || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; r.scrollLeft += e.deltaY; e.preventDefault(); }, { passive: false });
