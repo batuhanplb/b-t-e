@@ -23,10 +23,13 @@ export function buildOta(root = process.cwd()) {
   const h = createHash("sha256");
   for (const k of Object.keys(files).sort()) h.update(k).update(files[k]!);
   const version = "w-" + h.digest("hex").slice(0, 12);
+  // Paketin web sürümü: istemci kendi sürümünden eski bir paketi indirip geriye sarmasın.
+  const appSrc = new TextDecoder().decode(files["app.js"]!);
+  const appVersion = (appSrc.match(/APP_VERSION = "([^"]+)"/) || [])[1] || null;
   const outDir = join(pub, "ota");
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, "bundle.zip"), zipSync(files, { level: 9 }));
-  writeFileSync(join(outDir, "latest.json"), JSON.stringify({ version, url: "/ota/bundle.zip" }));
+  writeFileSync(join(outDir, "latest.json"), JSON.stringify({ version, url: "/ota/bundle.zip", appVersion }));
   return version;
 }
 

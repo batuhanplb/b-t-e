@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.49.1";
+const APP_VERSION = "1.2.49.2";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -26,6 +26,12 @@ const OTA = { cur: null, shell: null, last: 0, msg: "" };
 const OTA_APK = "https://github.com/batuhanplb/b-t-e/releases/latest/download/butce.apk";
 const otaMark = () => { OTA.last = Date.now(); try { localStorage.setItem("butce-ota-last", String(OTA.last)); } catch (e) {} };
 const otaAgo = () => { if (!OTA.last) return "henüz"; const m = Math.round((Date.now() - OTA.last) / 60000); return m < 1 ? "az önce" : m < 60 ? m + " dk önce" : Math.round(m / 60) + " sa önce"; };
+// Sürüm karşılaştırma: 1.2.49.1 gibi izleri sayı sayı kıyaslar (canlıdaki eski paketi indirmeyi engeller).
+const cmpVer = (a, b) => {
+  const x = String(a || "").split(".").map(n => parseInt(n, 10) || 0), y = String(b || "").split(".").map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d < 0 ? -1 : 1; }
+  return 0;
+};
 async function otaShell() {
   const A = NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
   if (!A || !A.getInfo) return null;
@@ -46,6 +52,7 @@ async function otaCheck(manual) {
       if (r.status === 200) latest = typeof r.data === "string" ? JSON.parse(r.data) : r.data; else why = "HTTP " + r.status; } catch (e) { why = String(e && e.message || e); } }
     if (!latest) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) latest = await r.json(); else why = "HTTP " + r.status; } catch (e) { why = why || String(e && e.message || e); } }
     if (!latest) return { s: "err", d: why };
+    if (latest.appVersion && cmpVer(latest.appVersion, APP_VERSION) < 0) { otaMark(); return { s: "ok" }; } // canlı eski: geriye sarma yok
     if (!latest.version || OTA.cur === latest.version) { otaMark(); return { s: "ok" }; }
     if (manual) toast("Yeni sürüm indiriliyor…");
     step = "indirme";
