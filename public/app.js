@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.41.0";
+const APP_VERSION = "1.2.42.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1004,7 +1004,7 @@ function renderTx(keep) {
   if (D._new || true) h += '<div class="seg" style="display:flex;margin-bottom:14px">' + [["e", "Gider"], ["i", "Gelir"], ["tr", "Transfer"]].map(([v, l]) => '<button style="flex:1" data-act="tx-k" data-v="' + v + '" aria-pressed="' + (k === v) + '">' + l + '</button>').join("") + '</div>';
   const accChips = (field, label) => '<div class="fld"><span>' + label + '</span><div class="scroll-x">' + accs.map(a => '<button class="chip" data-act="tx-acc" data-f="' + field + '" data-id="' + esc(a.id) + '" aria-pressed="' + (D[field] === a.id) + '"><i style="background:' + a.color + ';border-radius:2px"></i>' + esc(a.name) + '</button>').join("") + '</div></div>';
   if (k === "tr") { h += accChips("acc", "Kimden"); h += accChips("to", "Kime"); } else h += accChips("acc", "Hesap");
-  h += '<label class="fld"><span>Tutar</span><span class="amtwrap"><span class="cur">₺</span><input id="f-amt" class="in amt" inputmode="decimal" autocomplete="one-time-code" data-lpignore="true" data-1p-ignore="true" placeholder="0,00" value="' + esc(D.aStr) + '" data-d="aStr"></span></label><div id="e-amt"></div>';
+  h += '<label class="fld"><span>Tutar</span><span class="amtwrap"><span class="cur">₺</span><input id="f-amt" class="in amt" inputmode="decimal" autocomplete="one-time-code" data-lpignore="true" data-1p-ignore="true" placeholder="0,00" value="' + esc(D.aStr) + '" data-d="aStr"><button type="button" class="ib calc-btn" aria-label="Hesap makinesi" onclick="openCalc()" style="margin-left:4px;font-weight:700">±</button></span></label><div id="e-amt"></div>';
   if (k !== "tr") {
     h += '<div class="fld"><span>Kategori</span><div class="tx-category">';
     if (D.catOpen) h += '<div class="catsel cat-search">' + ICON.search + '<input id="cq" role="combobox" aria-label="Kategori ara" aria-expanded="true" aria-controls="catlist" aria-autocomplete="list" autocomplete="off" placeholder="Kategori ara…" value="' + esc(D.cq || "") + '"><button class="ib" data-act="cat-open" aria-label="Kategori listesini kapat">' + ICON.x + '</button></div>' + catPanel(k);
@@ -1752,3 +1752,28 @@ document.addEventListener("click", e => { const r = e.target.closest(".bhit"); c
   if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); }, true);
 
 document.addEventListener("wheel", e => { const r = e.target.closest && e.target.closest(".rep-chips"); if (!r || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; r.scrollLeft += e.deltaY; e.preventDefault(); }, { passive: false });
+
+// Hesap makinesi
+window.openCalc = function () {
+  const inp = document.getElementById("f-amt"); if (!inp) return;
+  let ex = (inp.value || "").replace(/\./g, "");
+  const o = document.createElement("div"); o.className = "calc-ov";
+  const keys = ["C","⌫","%","÷","7","8","9","×","4","5","6","-","1","2","3","+",",","0","00","="];
+  o.innerHTML = '<div class="calc"><div class="calc-d"></div><div class="calc-g">' + keys.map(k => '<button type="button" data-k="' + k + '"' + ("÷×-+=".includes(k) ? ' class="op"' : "") + '>' + k + '</button>').join("") + '</div><div class="calc-f"><button type="button" data-k="x">İptal</button><button type="button" data-k="ok" class="ok">Tamam</button></div></div>';
+  document.body.appendChild(o);
+  const disp = o.querySelector(".calc-d");
+  const ev = () => { try { const js = ex.replace(/,/g, ".").replace(/×/g, "*").replace(/÷/g, "/").replace(/(\d+(?:\.\d+)?)%/g, "($1/100)").replace(/[^0-9.+\-*/()]/g, "").replace(/[+\-*/.]+$/, ""); if (!js) return 0; const v = Function("return (" + js + ")")(); return isFinite(v) ? Math.round(v * 100) / 100 : 0; } catch (e) { return 0; } };
+  const show = () => { disp.textContent = ex || "0"; };
+  const pd = { t: null }; o.addEventListener("pointerdown", e => { pd.t = e.target; });
+  o.addEventListener("click", e => {
+    e.stopPropagation();
+    if (e.target === o && pd.t === o) return o.remove();
+    const b = e.target.closest("button"); if (!b) return; const k = b.dataset.k;
+    if (k === "x") return o.remove();
+    if (k === "ok" || k === "=") { const v = ev(); if (k === "=") { ex = v ? String(v).replace(".", ",") : ""; return show(); } inp.value = v ? String(v).replace(".", ",") : ""; inp.dispatchEvent(new Event("input", { bubbles: true })); return o.remove(); }
+    if (k === "C") ex = ""; else if (k === "⌫") ex = ex.slice(0, -1);
+    else if ("÷×-+".includes(k)) ex = ex.replace(/[÷×+\-]$/, "") + k; else ex += k;
+    show();
+  });
+  show();
+};
