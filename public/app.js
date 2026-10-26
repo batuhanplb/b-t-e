@@ -903,10 +903,25 @@ function catRemove(ids, mode, target) {
   saveMetaChange(m => { m.categories = m.categories.filter(c => !all.has(c.id)).map(c => c.parent && all.has(c.parent) ? { ...c, parent: null } : c); });
   return n;
 }
+// Kategori seçici: Kategoriler sayfası gibi liste; alt kategoriler kapalı gelir, okla açılır.
 function pickCat(msg, ex, onlyTop, none) {
-  const opts = catTree().filter(({ c, depth }) => !ex.has(c.id) && !(onlyTop && depth)).map(({ c, depth }) => ({ l: (depth ? "— " : "") + esc(c.name), v: c.id }));
-  if (none) opts.unshift({ l: "Ana kategori yap", v: "__none" });
-  return ask(msg, opts);
+  const cats = meta().categories, op = {};
+  return new Promise(res => {
+    const o = document.createElement("div"); o.className = "askov";
+    const draw = () => {
+      const rows = catTree().filter(({ c, depth }) => !ex.has(c.id) && !(onlyTop && depth) && (!depth || op[c.parent]));
+      let lastT = "";
+      const li = rows.map(({ c, depth }) => { const kids = !onlyTop && !depth && cats.some(x => x.parent === c.id && !ex.has(x.id)); const h = !depth && c.type !== lastT ? (lastT = c.type, '<li class="small muted" style="padding:10px 14px 4px;font-weight:600">' + (c.type === "I" ? "Gelir kategorileri" : "Gider kategorileri") + '</li>') : ""; return h + '<li><div class="set-row catrow" style="padding-left:' + (14 + depth * 26) + 'px"><span class="cic" style="--c:' + c.color + ';width:30px;height:30px">' + catIcon(c.id) + '</span><button class="grow" style="text-align:left" data-v="' + esc(c.id) + '">' + esc(c.name) + '</button>' + (kids ? '<button class="ib" data-x="' + esc(c.id) + '" aria-label="Alt kategoriler" style="transform:rotate(' + (op[c.id] ? 90 : 0) + 'deg);transition:transform .2s">' + ICON.r + '</button>' : '') + '</div></li>'; }).join("");
+      o.innerHTML = '<div class="askbox" style="max-width:420px;width:92vw;text-align:left"><p>' + msg + '</p>' + (none ? '<button class="btn ghost" data-v="__none">Ana kategori yap</button>' : '') + '<ul class="list" style="max-height:60vh;overflow:auto;margin:6px 0">' + li + '</ul><button class="btn ghost" data-c="1">Vazgeç</button></div>';
+    };
+    draw();
+    let pd = null; o.addEventListener("pointerdown", e => { pd = e.target; });
+    o.addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("button");
+      if (b && b.dataset.x) { const sc = o.querySelector("ul").scrollTop; op[b.dataset.x] = !op[b.dataset.x]; draw(); o.querySelector("ul").scrollTop = sc; return; }
+      if (b && b.dataset.v) { o.remove(); res(b.dataset.v); return; }
+      if ((b && b.dataset.c) || (e.target === o && pd === o)) { o.remove(); res(null); } });
+    (typeof dlg !== "undefined" && dlg.open ? dlg : document.body).appendChild(o);
+  });
 }
 function catDelFlow(ids) {
   return ask(ids.length + " kategori silinecek. İşlemleri ne olsun?", [{ l: "İşlemleri Bilinmiyor'a taşı", v: "unk" }, { l: "Başka kategoriyle birleştir", v: "merge" }, { l: "İşlemleriyle birlikte sil", v: "deltx", red: 1 }]).then(md => {
