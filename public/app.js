@@ -1494,7 +1494,7 @@ document.addEventListener("click", e => {
     case "d-plan": $("#planbox").innerHTML = planHtml(); break;
     case "d-plan-go": if (applyPlan()) renderDebt(true); break;
     case "d-save": saveDebt(); break;
-    case "d-close": { if (!D._id) break; const d = S.debts[D._id]; if (!d) break; const nw = !d.closed; if (nw && !ds._ok) { ask("Bu borç kapatıldı olarak işaretlensin mi? Listede görünmeyecek.", [{ l: "Kapat", v: true }]).then(v => { if (v) { ds._ok = 1; onAct(el); } }); break; }
+    case "d-close": { if (!D._id) break; const d = S.debts[D._id]; if (!d) break; const nw = !d.closed; if (nw && ds.ok !== "1") { ask("Bu borç kapatıldı olarak işaretlensin mi? Listede görünmeyecek.", [{ l: "Kapat", v: true }]).then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; }
       d.closed = nw; S.store.setDebt(D._id, d); closeSheet(); render(); toast(nw ? "Borç kapatıldı" : "Borç geri açıldı"); break; }
     case "d-del": ask("Bu borç ve tüm taksitleri silinsin mi?").then(v => { if (!v) return; const id = D._id; delete S.debts[id]; S.store.delDebt(id); closeSheet(); render(); toast("Silindi"); }); break;
     case "ttab": S.tTab = ds.v; S._toCur = true; render(); break;
@@ -1519,7 +1519,7 @@ document.addEventListener("click", e => {
     case "sh-on": { const t = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, "0")).join(""); saveMetaChange(mm => { mm.share = { token: t }; }); scheduleShare(true); renderSettings(); break; }
     case "sh-copy": { const u = $("#shurl").value; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast("Bağlantı kopyalandı"), () => { $("#shurl").select(); toast("Bağlantıyı seçip kopyalayın"); }); break; }
     case "sh-now": scheduleShare(true); break;
-    case "sh-off": { if (!ds._ok) { ask("Paylaşım kapatılsın mı? Bağlantı artık açılmayacak.", [{ l: "Kapat", v: true, red: 1 }]).then(v => { if (v) { ds._ok = 1; onAct(el); } }); break; } const t = (meta().share || {}).token; if (t) S.store.delShare(t); saveMetaChange(mm => { delete mm.share; }); renderSettings(); toast("Paylaşım kapatıldı"); break; }
+    case "sh-off": { if (ds.ok !== "1") { ask("Paylaşım kapatılsın mı? Bağlantı artık açılmayacak.", [{ l: "Kapat", v: true, red: 1 }]).then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } const t = (meta().share || {}).token; if (t) S.store.delShare(t); saveMetaChange(mm => { delete mm.share; }); renderSettings(); toast("Paylaşım kapatıldı"); break; }
     case "ci-actual": { const id = ds.id, m = ds.m, it0 = ((meta().cash || {}).items || []).find(x => x.id === id); if (!it0) break;
       askText("<b>" + esc(it0.name) + "</b> – " + mLabel(m) + " gerçek tutarı<br><span class=\"small muted\">Sadece bu ayı değiştirir. Plan: " + f0(cashPlanAmt(it0, m)) + ". Boş bırakırsan plana döner.</span>", it0.act && it0.act[m] != null ? String(it0.act[m]).replace(".", ",") : "").then(v => { if (v == null) return;
         const n = parseFloat(v.replace(/\./g, "").replace(",", ".")); saveMetaChange(mm => { const it = ((mm.cash || {}).items || []).find(x => x.id === id); if (!it) return; it.act = it.act || {}; if (v === "" || !isFinite(n)) delete it.act[m]; else it.act[m] = C.r2(n); }); render(); }); break; }
@@ -1537,7 +1537,7 @@ document.addEventListener("click", e => {
     case "ci-k": D.ci.k = ds.v; renderSettings(); break;
     case "ci-debt": { saveMetaChange(mm => { mm.cash = mm.cash || { items: [] }; const l = mm.cash.exDebts = mm.cash.exDebts || []; const k = l.indexOf(ds.id); if (k >= 0) l.splice(k, 1); else l.push(ds.id); }); renderSettings(); render(); break; }
     case "ci-rep": D.ci.rep = ds.v; renderSettings(); break;
-    case "ci-del": { if (!ds._ok) { ask("Silinsin mi?").then(v => { if (v) { ds._ok = 1; onAct(el); } }); break; } const id = D.ci.id; saveMetaChange(m => { m.cash = m.cash || { items: [] }; m.cash.items = m.cash.items.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
+    case "ci-del": { if (ds.ok !== "1") { ask("Silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } const id = D.ci.id; saveMetaChange(m => { m.cash = m.cash || { items: [] }; m.cash.items = m.cash.items.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
     case "ci-save": { const c = D.ci, a = C.parseAmt(c.a);
       if (!c.name || !c.name.trim() || !(a > 0)) { $("#s-err").innerHTML = '<p class="err">Ad ve tutar girin.</p>'; break; }
       const it = { id: c.id, k: c.k, name: c.name.trim(), rep: c.rep };
@@ -1577,8 +1577,8 @@ document.addEventListener("click", e => {
     case "cat-svg": { if (!ds.u) break; D.cat.img = ds.u; D.cat.icon = null; renderSettings(); break; }
     case "cat-logo": { const d = (ds.d || "").trim(); if (!d) break; D.cat.img = logoUrl(d); D.cat.icon = null; renderSettings(); break; }
     case "acc-logo-rm": D.acc.logo = null; renderSettings(); break;
-    case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (!ds._ok) { ask("Hesap silinsin mi?").then(v => { if (v) { ds._ok = 1; onAct(el); } }); break; } saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
-    case "cat-del": { const id = D.cat.id; if (derived().all.some(t => t.cat === id) || meta().categories.some(x => x.parent === id)) { $("#s-err").innerHTML = '<p class="err">Bu kategori kullanılıyor veya alt kategorisi var.</p>'; break; } if (!ds._ok) { ask("Kategori silinsin mi?").then(v => { if (v) { ds._ok = 1; onAct(el); } }); break; } saveMetaChange(m => { m.categories = m.categories.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
+    case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (ds.ok !== "1") { ask("Hesap silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
+    case "cat-del": { const id = D.cat.id; if (derived().all.some(t => t.cat === id) || meta().categories.some(x => x.parent === id)) { $("#s-err").innerHTML = '<p class="err">Bu kategori kullanılıyor veya alt kategorisi var.</p>'; break; } if (ds.ok !== "1") { ask("Kategori silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } saveMetaChange(m => { m.categories = m.categories.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
     case "dash-edit-on": S.dashDraft = null; S.dashEdit = true; S.dashTray = false; render(); break;
     case "dash-edit-off": { const dr = S.dashDraft; S.dashDraft = null; S.dashEdit = false; S.dashTray = false; if (dr) saveMetaChange(m => { if (dr.reset) delete m[dashKey()]; else m[dashKey()] = dr; }); render(); if (dr) toast("Kaydedildi"); break; }
     case "dash-edit-cancel": S.dashDraft = null; S.dashEdit = false; S.dashTray = false; render(); break;
