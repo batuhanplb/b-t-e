@@ -1,24 +1,35 @@
-# bütçe
+# Bütçe
 
-https://butce-7f8d8.firebaseapp.com/ adresindeki Bütçe uygulamasını buraya aktaralım ve Lovable Cloud veritabanı altyapısıyla kuralım. Harcamalar, gelirler, hesaplar, borçlar/krediler, kategoriler, bütçe takibi ve analiz özelliklerini içeren, mobil öncelikli ve responsive modern bir web uygulaması olarak başlat.
+Kişisel finans ve bütçe takip uygulaması. Türkçe arayüz, TRY para birimi, mobil öncelikli.
 
-This project was built with [Lovable](https://lovable.dev).
+**Canlı:** https://butceapp.lovable.app
 
-## Build with Lovable
+## Özellikler
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/0bc86b81-2f5b-439f-9c07-d41043f1fa29).
+- Gelir, gider ve transfer kaydı; taksit ve abonelikler
+- Hesaplar, kredi kartları (kesim/ödeme günü), krediler ve borç takvimi
+- Kategoriler, alt kategoriler ve lehdarlar
+- Nakit akışı: ileriye dönük 12 aylık takip
+- Düzenlenebilir ana sayfa modülleri (günlük harcama, dağılım, abonelikler vb.)
+- Çoklu gider tabloları (özet, toplam ve ortalama)
+- Kredi kartı ekstresi (PDF) ile kayıt eşleştirme — cihazda, yapay zekasız
+- Aylık rapor, Öneri & Dikkat uyarıları
+- Expense IQ, Money Manager, Excel/CSV içe aktarma; JSON yedek
+- Koyu / yumuşak açık tema, tabloları seçerek paylaşma
+- Telefona "Ana ekrana ekle" ile uygulama gibi kurulum (PWA)
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+## Teknik
 
-## Development
+- Arayüz: vanilla JS (`public/app.js`, `public/core.js`), `src/original-index.html`
+- Veri: Lovable Cloud (Google ile giriş, kullanıcıya özel erişim)
+- Veri katmanı: `src/cloud-store/entry.ts` → değişince `bun run build:cloud-store`
+- Sunucu: TanStack Start (sadece statik dosyaları sunar)
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## Geliştirme
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+bun install
+bun run dev
 ```
+
+Çalışma kuralları için `AGENTS.md` dosyasına bakın.
