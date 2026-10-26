@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.43.0";
+const APP_VERSION = "1.2.44.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -320,7 +320,8 @@ function mbar() {
     '<button data-act="nav" data-v="home" aria-current="' + (S.view === "home" ? "page" : "false") + '">' + ICON.home + 'Anasayfa</button>' +
     '<button data-act="nav" data-v="tx" aria-current="' + (S.view === "tx" ? "page" : "false") + '">' + ICON.list + 'İşlemler</button>' +
     '<button class="mx ' + (op === "ana" ? "on" : "") + '" data-act="bub" data-v="ana" aria-current="' + (inA ? "page" : "false") + '">' + (op === "ana" ? ICON.x : ICON.pie) + 'Analiz</button>' +
-    '<button class="mx ' + (op === "pay" ? "on" : "") + '" data-act="bub" data-v="pay" aria-current="' + (inP ? "page" : "false") + '">' + (op === "pay" ? ICON.x : ICON.card) + 'Ödeme</button>' +
+    '<button data-act="nav" data-v="cash" aria-current="' + (S.view === "cash" ? "page" : "false") + '">' + ICON.trend + 'Nakit</button>' +
+    '<button data-act="nav" data-v="debt" aria-current="' + (S.view === "debt" ? "page" : "false") + '">' + ICON.card + 'Borç</button>' +
     '<button class="mx ' + (op === "tan" ? "on" : "") + '" data-act="bub" data-v="tan" aria-current="' + (inT ? "page" : "false") + '">' + (op === "tan" ? ICON.x : ICON.tag) + 'Tanımlar</button>' +
     '</nav></div>';
 }
@@ -434,7 +435,16 @@ function fillCharts() {
     b.innerHTML = c.kind === "line" ? lineSvg(c.args[0], c.args[1], c.args[2], W, H, c.args[3]) : barSvg(c.args[0], c.args[1], c.args[2], W, H, c.args[3] == null ? -1 : c.args[3]); });
 }
 let chRO = null, chQ = 0;
-function afterRender() {
+function notifyDue() {
+  try { if (!("Notification" in window) || Notification.permission !== "granted" || !meta().notif) return; const td = today(), k = "butce.notif." + td; if (localStorage.getItem(k)) return;
+    const tm = new Date(Date.now() + 864e5).toISOString().slice(0, 10), due = derived().all.filter(t => t.k === "e" && (t.d === td || t.d === tm) && (t.rep || t.inst || t.sub));
+    meta().accounts.filter(a => a.type === "kart" && a.cut && +td.slice(8) === +a.cut).forEach(a => due.push({ n: a.name + " ekstresi kesildi", a: 0 }));
+    if (!due.length) return; localStorage.setItem(k, "1");
+    const body = due.slice(0, 5).map(t => (t.n || t.note || (catOf(t.cat) || {}).name || "Ödeme") + (t.a ? " · " + f2(t.a) : "")).join("\n");
+    navigator.serviceWorker && navigator.serviceWorker.ready ? navigator.serviceWorker.ready.then(r => r.showNotification("Yaklaşan ödemeler", { body, icon: "/icons/icon-192.png" })).catch(() => new Notification("Yaklaşan ödemeler", { body })) : new Notification("Yaklaşan ödemeler", { body });
+  } catch (e) { }
+}
+function afterRender() { setTimeout(notifyDue, 1500);
   if (S.view === "acc") accDrag();
   if (typeof ResizeObserver === "undefined") { fillCharts(); return; }
   if (!chRO) chRO = new ResizeObserver(() => { if (chQ) return; chQ = requestAnimationFrame(() => { chQ = 0; fillCharts(); }); });
@@ -959,17 +969,17 @@ function vPie() {
   const R = 70, Cc = 2 * Math.PI * R; let off = 0;
   const col = id => id === "_" ? "#9a9fa3" : catColor(id), nm = id => id === "_" ? "Kategorisiz" : (S.pCat && id === S.pCat ? catOf(id).name + " (genel)" : catOf(id).name);
   const arcs = rows.map(([id, v]) => { const len = v / tot * Cc; const c = '<circle r="' + R + '" cx="90" cy="90" fill="none" stroke="' + col(id) + '" stroke-width="34" stroke-dasharray="' + len.toFixed(2) + ' ' + (Cc - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '"/>'; off += len; return c; }).join("");
-  h += '<div class="card pie"><svg viewBox="0 0 180 180" width="220" height="220" style="transform:rotate(-90deg)">' + arcs + '</svg><div class="pie-c"><span class="muted small">' + (S.pCat ? esc(catOf(S.pCat).name) : "Toplam gider") + '</span><b>' + f0(tot) + '</b></div></div>';
+  h += '<div class="pie-wrap"><div class="card pie"><svg viewBox="0 0 180 180" width="220" height="220" style="transform:rotate(-90deg)">' + arcs + '</svg><div class="pie-c"><span class="muted small">' + (S.pCat ? esc(catOf(S.pCat).name) : "Toplam gider") + '</span><b>' + f0(tot) + '</b></div></div>';
   S.pOpen = S.pOpen || {};
   const subOf = pid => { const o = {}; let tt = 0; derived().all.forEach(t => { if (t.k !== "e" || t.d < S.pFrom || t.d > S.pTo) return;
     catParts(t).forEach(pp => { if (!inCat(pp.cat, pid)) return; let c = catOf(pp.cat); while (c && c.parent && c.parent !== pid) c = catOf(c.parent); const k = !c || c.id === pid ? pid : c.id; o[k] = (o[k] || 0) + pp.a; tt += pp.a; }); });
     return [Object.entries(o).sort((a, b) => b[1] - a[1]), tt]; };
   const hasKids = id => id !== "_" && meta().categories.some(c => c.parent === id);
   const rowH = ([id, v], base, lvl) => { const open = !!S.pOpen[id], kids = hasKids(id) && !(S.pCat && id === S.pCat);
-    let out = '<li class="prow lv' + lvl + '"><div class="tx"><button class="pmain" data-act="' + (kids ? "pie-tog" : "") + '" data-id="' + esc(id) + '"><span class="cic" style="--c:' + col(id) + '">' + (id === "_" ? svgI(CI.tag) : catIcon(id)) + '</span><span class="m"><span class="t">' + esc(nm(id)) + (kids ? ' <span class="pch' + (open ? ' on' : '') + '">▾</span>' : '') + '</span><span class="s">%' + nfp.format(base ? v / base * 100 : 0) + '</span></span><span class="a">' + f2(v) + '</span></button>' + (id !== "_" ? '<button class="ib pgo" data-act="cat-tx" data-id="' + esc(id) + '" aria-label="İşlemler">' + ICON.r + '</button>' : '') + '</div></li>';
+    let out = '<li class="prow lv' + lvl + '"><div class="tx"><button class="pmain" data-act="' + (kids ? "pie-tog" : "") + '" data-id="' + esc(id) + '"><span class="cic" style="--c:' + col(id) + '">' + (id === "_" ? svgI(CI.tag) : catIcon(id)) + '</span><span class="m"><span class="t">' + esc(nm(id)) + (kids ? ' <span class="pch' + (open ? ' on' : '') + '">▾</span>' : '') + '</span><span class="s">%' + nfp.format(base ? v / base * 100 : 0) + '</span><span class="pbar"><i style="width:' + (base ? (v / base * 100).toFixed(1) : 0) + '%;background:' + col(id) + '"></i></span></span><span class="a">' + f2(v) + '</span></button>' + (id !== "_" ? '<button class="ib pgo" data-act="cat-tx" data-id="' + esc(id) + '" aria-label="İşlemler">' + ICON.r + '</button>' : '') + '</div></li>';
     if (kids && open) { const [sr, st] = subOf(id); out += sr.map(([sid, sv]) => sid === id ? '<li class="prow lv' + (lvl + 1) + '"><div class="tx"><span class="pmain"><span class="cic" style="--c:' + col(id) + '">' + catIcon(id) + '</span><span class="m"><span class="t">' + esc(catOf(id).name) + ' (genel)</span><span class="s">%' + nfp.format(st ? sv / st * 100 : 0) + '</span></span><span class="a">' + f2(sv) + '</span></span></div></li>' : rowH([sid, sv], st, lvl + 1)).join(""); }
     return out; };
-  h += '<div class="card" style="margin-top:12px"><ul class="list">' + rows.map(r => rowH(r, tot, 0)).join("") + '</ul></div>';
+  h += '<div class="card pie-list"><ul class="list">' + rows.map(r => rowH(r, tot, 0)).join("") + '</ul></div></div>';
   return h + '<p class="small muted">Alt kategorileri görmek için kategoriye, işlemleri görmek için sağdaki oka dokunun.</p>';
 }
 /* ============ sheet ============ */
@@ -1267,6 +1277,7 @@ function renderSettings() {
     h += '<div class="sec-h"><h2>Paylaşım</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0 0 10px">Seçtiğiniz sayfaları bağlantıya sahip kişilerle salt okunur paylaşın. Verileriniz değiştikçe paylaşılan sayfa kendiliğinden güncellenir.</p>' +
       (shUrl ? '<div class="chips" style="margin-bottom:10px">' + [["debt", "Borç takvimi"], ["cash", "Nakit akışı"], ["table", "Gider tablosu"]].map(([k, l]) => '<label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" onchange="setShPage(\'' + k + '\',this.checked)"' + ((shr.pages || ["debt", "cash", "table"]).includes(k) ? " checked" : "") + '>' + l + '</label>').join("") + '</div>' + ((shr.pages || ["debt", "cash", "table"]).includes("table") && gtTabs().length > 1 ? '<div class="chips" style="margin:0 0 10px 6px">' + gtTabs().map(t => '<label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" onchange="setShTable(\'' + esc(t.id) + '\',this.checked)"' + ((shr.tables || gtTabs().map(x => x.id)).includes(t.id) ? " checked" : "") + '>' + esc(t.name) + '</label>').join("") + '</div>' : "") + '<input class="in" readonly id="shurl" value="' + esc(shUrl) + '" style="margin-bottom:10px"><div class="chips"><button class="btn sm" data-act="sh-copy">Bağlantıyı kopyala</button><button class="btn sm ghost" data-act="sh-now">Şimdi güncelle</button><button class="btn sm ghost danger" data-act="sh-off">Paylaşımı kapat</button></div>'
         : '<button class="btn sm" data-act="sh-on">Paylaşım bağlantısı oluştur</button>') + '</div>';
+    h += '<div class="sec-h"><h2>Bildirimler</h2></div><div class="card" style="padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:10px"><span class="small" style="flex:1">Bugün/yarın ödenecek taksit, abonelik ve ekstre kesimlerinde telefona bildirim (uygulama açıldığında).</span><button class="btn sm" data-act="notif">' + (meta().notif && window.Notification && Notification.permission === "granted" ? "Kapat" : "Aç") + '</button></div>';
     h += '<div class="sec-h"><h2>Görünüm</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><label class="fld" style="margin:0"><span>Tema</span><select class="in" onchange="setTheme(this.value)"><option value="light"' + (!["dark","soft"].includes(document.documentElement.dataset.theme) ? " selected" : "") + '>Açık</option><option value="soft"' + (document.documentElement.dataset.theme === "soft" ? " selected" : "") + '>Yumuşak açık</option><option value="dark"' + (document.documentElement.dataset.theme === "dark" ? " selected" : "") + '>Koyu</option></select></label></div>';
     h += '<div class="sec-h"><h2>Nakit akışı</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><label class="fld" style="margin:0"><span>Maaş / dönem başlangıcı</span><select class="in" onchange="setSalDay(this.value)">' + [...Array(31)].map((_, i) => '<option value="' + (i + 1) + '"' + (salDay() === i + 1 ? " selected" : "") + '>' + (i ? "Ayın " + (i + 1) + "’i" : "Ayın 1’i (takvim ayı)") + '</option>').join("") + '</select></label><p class="small muted" style="margin:8px 0 0">Nakit akışındaki kalan para, bir sonraki maaş gününden önceki güne kadar hesaplanır.</p></div>';
     h += '<div class="sec-h"><h2>Veri</h2></div><div class="card" style="padding:14px">' +
@@ -1428,6 +1439,7 @@ document.addEventListener("click", e => {
   switch (a) {
     case "signin": S.authErr = ""; S.store.signIn().catch(err => { S.authErr = authMsg(err); render(); }); break;
     case "signout": ask("Çıkış yapılsın mı?", [{ l: "Çıkış yap", v: true, red: 1 }]).then(v => { if (v) { closeSheet(); S.store.signOut(); } }); break;
+    case "notif": (async () => { let on = true; if (meta().notif && window.Notification && Notification.permission === "granted") on = false; else { if (!window.Notification) { toast("Bu cihaz bildirimi desteklemiyor."); return; } const r = await Notification.requestPermission(); if (r !== "granted") { toast("Bildirim izni verilmedi."); return; } } saveMetaChange(m => { m.notif = on; }); render(); })(); break;
     case "wipe-all": (async () => { if (!await ask("Tüm işlemler, borçlar ve ayarlar silinecek. Emin misin?", [{ l: "Devam", v: true, red: 1 }])) return; if (!await ask("Bu işlem geri alınamaz. Önce yedek indirmeni öneririz. Devam edilsin mi?", [{ l: "Evet, devam", v: true, red: 1 }])) return; if (!await ask("Son onay: tüm veriler kalıcı olarak silinsin mi?", [{ l: "Tüm verileri sil", v: true, red: 1 }])) return; Object.keys(S.months).forEach(m => saveMonth(m, [])); Object.keys(S.debts || {}).forEach(id => S.store.delDebt(id)); const sh = (meta().share || {}).token; if (sh) S.store.delShare(sh); S.meta = clone(DEFAULT_META); S.store.setMeta(S.meta); closeSheet(); render(); toast("Tüm veriler silindi"); })(); break;
     case "del-acc": (async () => { if (!await ask("Hesabın ve tüm verilerin kalıcı olarak silinecek. Emin misin?", [{ l: "Devam", v: true, red: 1 }])) return; if (!await ask("Bu işlem geri alınamaz. Son kez soruyoruz: hesap silinsin mi?", [{ l: "Hesabı sil", v: true, red: 1 }])) return; try { await S.store.deleteAccount(); closeSheet(); toast("Hesabın silindi"); } catch (e) { toast("Hesap silinemedi, internet bağlantını kontrol et"); } })(); break;
     case "bub": S.bub = S.bub === ds.v || !ds.v ? null : ds.v; render(); break;

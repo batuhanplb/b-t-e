@@ -290,3 +290,6 @@ button:active,.mod:active,button.tx:active{transform:scale(.97)}
 .calc-g button.op{color:var(--pri,hsl(262 60% 50%));font-weight:700}
 .calc-f{display:flex;gap:8px;margin-top:10px}.calc-f button{flex:1;font-size:16px}
 .calc-f .ok{background:var(--pri,hsl(262 60% 50%));color:#fff;border:0}
+.pbar{display:block;height:4px;border-radius:3px;background:var(--line,rgba(127,127,127,.15));margin-top:4px;overflow:hidden;max-width:220px}.pbar i{display:block;height:100%;border-radius:3px}
+.pie-wrap{display:grid;gap:12px;margin-top:4px}.pie-wrap .pie{display:flex;justify-content:center;align-items:center;position:relative;padding:18px}
+@media(min-width:900px){.pie-wrap{grid-template-columns:300px 1fr;align-items:start}.pie-wrap .pie{position:sticky;top:12px}}
