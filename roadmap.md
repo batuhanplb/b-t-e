@@ -15,8 +15,9 @@
 
 - [x] Modül düzenleme: boy seçenekleri + oklar (web), liste görünümü (telefon)
 - [x] Capacitor kabuğu + GitHub ile otomatik APK
+- [x] APK/Android katmanını tamamen kaldır (1.3.0.0): kullanıcı PWA kullanıyor, APK ile iş yok
 - [ ] Uygulama içinde Google girişi (uygulamaya geri dönüş bağlantısı gerekiyor)
-- [ ] Yeni APK kurmadan anında güncelleme (OTA)
+- [x] Web değişikliklerinin kurulum gerektirmeden gelmesi (PWA: her açılışta sunucudan)
 - [x] Alt kategori ayracı ":" (geçmiş lehdarlar dahil)
 - [x] Lehdar boşsa, alan terk edilince kategori adını yaz (2. seçenek)
 

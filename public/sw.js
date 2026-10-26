@@ -1,5 +1,5 @@
-const V = "butce-v48";
-const SHELL = ["/", "/index.html", "/butce-theme.css?v=22", "/app.js", "/core.js", "/transaction-input.js", "/statement.js", "/cloud-store.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png"];
+const V = "butce-v49";
+const SHELL = ["/", "/index.html", "/butce-theme.css?v=23", "/app.js", "/core.js", "/transaction-input.js", "/statement.js", "/cloud-store.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c => Promise.allSettled(SHELL.map(u => c.add(u)))).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("butce-") && k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 // Network first with a short timeout; on failure/slow network serve the cached copy so the app always opens.
@@ -10,7 +10,7 @@ const net = (req, ms) => new Promise((res, rej) => {
 self.addEventListener("fetch", e => {
   const req = e.request, url = new URL(req.url);
   if (req.method !== "GET" || url.origin !== location.origin) return;
-  if (url.pathname.startsWith("/__/") || url.pathname.startsWith("/~oauth") || url.pathname.startsWith("/ota/")) return;
+  if (url.pathname.startsWith("/__/") || url.pathname.startsWith("/~oauth")) return;
   const nav = req.mode === "navigate";
   e.respondWith(
     net(req, nav ? 3500 : 6000)

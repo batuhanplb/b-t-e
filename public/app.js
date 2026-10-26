@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.49.3";
+const APP_VERSION = "1.3.0.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -16,71 +16,10 @@ function ask(msg, opts) {
   });
 }
 
-// Android uygulaması (Capacitor) içinde çalışırken: paylaşım bağlantıları canlı siteye gider, tarayıcı hissi kapatılır.
-const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-const SITE = NATIVE ? "https://butceapp.lovable.app" : location.origin;
-if (NATIVE) document.documentElement.classList.add("native");
-// Havadan güncelleme: açılışta, arka plandan dönüşte ve uygulama açıkken belirli aralıkla; yeni paket varsa indirip hemen uygular.
-// Böylece web tarafındaki her değişiklik APK kurmadan gelir; yeni APK yalnızca kabuk (eklenti/izin/ikon) değişince gerekir.
-const OTA = { cur: null, shell: null, last: 0, msg: "" };
-const OTA_APK = "https://github.com/batuhanplb/b-t-e/releases/latest/download/butce.apk";
-const otaMark = () => { OTA.last = Date.now(); try { localStorage.setItem("butce-ota-last", String(OTA.last)); } catch (e) {} };
-const otaAgo = () => { if (!OTA.last) return "henüz"; const m = Math.round((Date.now() - OTA.last) / 60000); return m < 1 ? "az önce" : m < 60 ? m + " dk önce" : Math.round(m / 60) + " sa önce"; };
-// Sürüm karşılaştırma: 1.2.49.1 gibi izleri sayı sayı kıyaslar (canlıdaki eski paketi indirmeyi engeller).
-const cmpVer = (a, b) => {
-  const x = String(a || "").split(".").map(n => parseInt(n, 10) || 0), y = String(b || "").split(".").map(n => parseInt(n, 10) || 0);
-  for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d < 0 ? -1 : 1; }
-  return 0;
-};
-async function otaShell() {
-  const A = NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
-  if (!A || !A.getInfo) return null;
-  try { const i = await A.getInfo(); OTA.shell = { v: i.version || "?", b: i.build || "?" }; } catch (e) {}
-  return OTA.shell;
-}
-async function otaCheck(manual) {
-  const U = NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater;
-  if (!U) return { s: "na" };
-  let step = "sürüm";
-  try {
-    try { const cur = await U.current(); OTA.cur = (cur.bundle && cur.bundle.version) || "builtin"; } catch (e) { OTA.cur = OTA.cur || "builtin"; }
-    step = "bilgi";
-    const u = SITE + "/ota/latest.json?t=" + Date.now();
-    const H = window.Capacitor.Plugins.CapacitorHttp;
-    let latest = null, why = "";
-    if (H && H.get) { try { const r = await H.get({ url: u, headers: { "Cache-Control": "no-cache" } });
-      if (r.status === 200) latest = typeof r.data === "string" ? JSON.parse(r.data) : r.data; else why = "HTTP " + r.status; } catch (e) { why = String(e && e.message || e); } }
-    if (!latest) { try { const r = await fetch(u, { cache: "no-store" }); if (r.ok) latest = await r.json(); else why = "HTTP " + r.status; } catch (e) { why = why || String(e && e.message || e); } }
-    if (!latest) return { s: "err", d: why };
-    if (latest.appVersion && cmpVer(latest.appVersion, APP_VERSION) < 0) { otaMark(); return { s: "ok" }; } // canlı eski: geriye sarma yok
-    if (!latest.version || OTA.cur === latest.version) { otaMark(); return { s: "ok" }; }
-    if (manual) toast("Yeni sürüm indiriliyor…");
-    step = "indirme";
-    const list = await U.list();
-    let b = (list.bundles || []).find(x => x.version === latest.version && x.status !== "error");
-    if (!b) b = await U.download({ url: SITE + latest.url, version: latest.version });
-    step = "kurulum";
-    // Kullanıcı açık bir form/onay penceresindeyse güncellemeyi hemen uygulama; katman kapanınca devreye girer.
-    if (!manual && (document.querySelector("#sheet[open]") || document.querySelector(".askov"))) return { s: "wait" };
-    otaMark();
-    await U.set({ id: b.id }); // uygulamayı yeni sürümle hemen yeniden yükler
-    return { s: "upd" };
-  } catch (e) { console.warn("OTA", e); return { s: "err", d: step + ": " + String(e && e.message || e) }; }
-}
-if (NATIVE) (async () => {
-  const P = window.Capacitor.Plugins || {};
-  const U = P.CapacitorUpdater;
-  try { OTA.last = Number(localStorage.getItem("butce-ota-last") || 0) || 0; } catch (e) {}
-  otaShell();
-  if (!U) return; // eski kurulum: havadan güncelleme yok, Ayarlar bir kez APK kurmayı önerir
-  try { await U.notifyAppReady(); } catch (e) {}
-  const due = ms => !OTA.last || Date.now() - OTA.last > ms;
-  const auto = async () => { const r = await otaCheck(false); if (r && r.s === "wait") setTimeout(auto, 60000); };
-  auto();
-  // Arka plandan öne gelince ve uygulama açıkken 10 dakikada bir denetle
-  if (P.App && P.App.addListener) P.App.addListener("appStateChange", st => { if (st && st.isActive && due(60000)) auto(); });
-  setInterval(() => { if (document.visibilityState === "visible" && due(9 * 60000)) auto(); }, 5 * 60000);
-})();
+// Paylaşım bağlantıları sitenin kendi adresine gider.
+const SITE = location.origin;
+
+
 /* ============ utilities ============ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -1137,21 +1076,7 @@ function closeSheet() { if (dlg.open) dlg.close(); D = null; }
 dlg.addEventListener("close", () => { D = null; });
 let dlgPd = null; dlg.addEventListener("pointerdown", e => { dlgPd = e.target; });
 dlg.addEventListener("click", e => { if (e.target === dlg && dlgPd === dlg) closeSheet(); dlgPd = null; });
-// Android donanım geri tuşu: önce açık katman (onay / alt sayfa / hızlı işlem balonu), sonra ana sayfa; en sonda iki kez basınca çıkış.
-if (NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.App && window.Capacitor.Plugins.App.addListener) {
-  let lastBack = 0;
-  window.Capacitor.Plugins.App.addListener("backButton", () => {
-    const ovs = [...document.querySelectorAll(".askov")].pop();
-    if (ovs) { const c = ovs.querySelector('button[data-i="-1"]'); if (c) c.click(); else ovs.remove(); return; }
-    if (dlg.open) { if (D && D.catOpen) { D.catOpen = false; D.cq = ""; renderTx(true); return; } closeSheet(); return; }
-    if (S.bub) { S.bub = null; render(); return; }
-    if (S.sel) { S.sel = null; render(); return; }
-    if (S.dashEdit) { const off = document.querySelector('[data-act="dash-edit-off"]'); if (off) { off.click(); return; } }
-    if (S.view !== "home") { const nb = document.querySelector('[data-act="nav"][data-v="home"]'); if (nb) { nb.click(); return; } }
-    if (Date.now() - lastBack < 2000) { try { window.Capacitor.Plugins.App.exitApp(); } catch (e) {} return; }
-    lastBack = Date.now(); toast("Çıkmak için tekrar bas");
-  });
-}
+
 const head = (title, cls, back) => '<div class="sh-hd ' + (cls || "") + '">' + (back ? '<button class="ib" data-act="' + back + '" aria-label="Geri">' + ICON.back + '</button>' : '') + '<h3>' + title + '</h3><button class="ib" data-act="close" aria-label="Kapat">' + ICON.x + '</button></div>';
 
 /* ---- transaction sheet ---- */
@@ -1447,26 +1372,13 @@ function renderSettings() {
       '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
       '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Başka bütçe uygulamalarının (Money Manager, Spendee, Wallet, YNAB, Monefy, Toshl, Bluecoins, Mint, 1Money, Cashew, Money Lover vb.) ve bankaların CSV, Excel (.xlsx), QIF ve OFX dosyaları mevcut verilere eklenir; aynı işlemler tekrar eklenmez. Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler.</p></div>';
     { const ms = [...new Set(Dd.all.map(t => t.d.slice(0, 7)))].filter(m => m < CUR()).sort().reverse().slice(0, 24); if (ms.length) h += '<div class="sec-h" style="margin-top:20px"><h2>Aylık raporlar</h2></div><div class="rep-chips">' + ms.map(m => '<button class="chip" data-act="rep" data-m="' + m + '" data-back="1">' + mLabel(m) + '</button>').join("") + '</div>'; }
-    if (NATIVE) {
-      const hasUp = !!(window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater);
-      h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px">' +
-        '<div class="small" style="line-height:1.75">Web sürümü: <b>' + APP_VERSION + '</b>' +
-        '<br>Havadan paket: <b>' + esc(OTA.cur || "…") + '</b>' +
-        (OTA.shell ? '<br>Kurulu uygulama: <b>' + esc(OTA.shell.v + " (" + OTA.shell.b + ")") + '</b>' : '') +
-        '<br>Son kontrol: <span class="muted">' + esc(otaAgo()) + '</span><span id="ota-msg" class="muted">' + esc(OTA.msg ? " · " + OTA.msg : "") + '</span></div>' +
-        (hasUp ? '' : '<p class="small" style="margin:10px 0 0;color:var(--exp)">Bu kurulum havadan güncellemeyi desteklemiyor. Bir kez aşağıdaki APK’yı kur; sonrasında güncellemeler kendiliğinden gelir.</p>') +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
-        (hasUp ? '<button class="btn sm ghost" data-act="ota-check">Güncellemeleri kontrol et</button>' : '') +
-        '<button class="btn sm ghost" data-act="ota-apk">APK indir</button></div></div>';
-    } else {
-      // Tarayıcı / ana ekran kısayolu (PWA): güncellemeler her açılışta sunucudan gelir, APK gerekmez.
-      h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px">' +
-        '<div class="small" style="line-height:1.75">Web sürümü: <b>' + APP_VERSION + '</b>' +
-        '<br>Kurulum: <b>tarayıcı · ana ekran kısayolu</b>' +
-        '<br>Güncellemeler her açılışta kendiliğinden gelir; APK gerekmez.</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
-        '<button class="btn sm ghost" data-act="ota-reload">Yenile</button></div></div>';
-    }
+    // Uygulama bilgisi: kurulum tarayıcı / ana ekran kısayolu; güncellemeler her açılışta sunucudan gelir.
+    h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px">' +
+      '<div class="small" style="line-height:1.75">Web sürümü: <b>' + APP_VERSION + '</b>' +
+      '<br>Kurulum: <b>tarayıcı · ana ekran kısayolu</b>' +
+      '<br>Güncellemeler her açılışta kendiliğinden gelir.</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
+      '<button class="btn sm ghost" data-act="app-reload">Yenile</button></div></div>';
     h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div><div class="card" style="padding:14px;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"><button class="btn sm ghost" style="color:var(--exp)" data-act="wipe-all">Tüm verileri sil</button><button class="btn sm ghost" style="color:var(--exp)" data-act="del-acc">Hesabı sil</button></div>';
     h += '<p class="small muted" style="text-align:center;margin:20px 0 4px">Bütçe v' + APP_VERSION + '</p></div>';
   } else if (v === "rep") {
@@ -1699,16 +1611,7 @@ document.addEventListener("click", e => {
     case "expand": S.expanded.has(ds.k) ? S.expanded.delete(ds.k) : S.expanded.add(ds.k); render(); break;
     case "onlymine": S.onlyMine = ds.v === "1"; render(); break;
     case "settings": openSettings(); break;
-    case "ota-check": { const bt = e.target.closest("button"); if (bt) { bt.disabled = true; bt.textContent = "Kontrol ediliyor…"; }
-      otaShell();
-      otaCheck(true).then(r => {
-        OTA.msg = r.s === "ok" ? "✓ Uygulama güncel" : r.s === "upd" ? "Güncelleniyor…" : r.s === "na" ? "Bu kurulumda güncelleme yok" : "Sunucuya ulaşılamadı" + (r.d ? " (" + r.d + ")" : "");
-        toast(OTA.msg);
-        if (bt && document.body.contains(bt)) { bt.disabled = false; bt.textContent = "Güncellemeleri kontrol et"; }
-        renderSettings();
-      }); break; }
-    case "ota-apk": { try { window.open(OTA_APK, "_system"); } catch (e) { try { location.href = OTA_APK; } catch (e2) {} } break; }
-    case "ota-reload": (async () => { toast("Yenileniyor…"); try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update().catch(() => {}))); } catch (e) {} setTimeout(() => location.reload(), 300); })(); break;
+    case "app-reload": (async () => { toast("Yenileniyor…"); try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update().catch(() => {}))); } catch (e) {} setTimeout(() => location.reload(), 300); })(); break;
     case "acct": openSettings(); break;
     case "set-back": D.view = "main"; renderSettings(); break;
     case "acc-new": D = { view: "acc" }; D.acc = { _new: true, id: "a-" + C.rid(), name: "", type: "banka", color: "#3166c9", start: 0, exclude: false, hidden: false, order: meta().accounts.length }; renderSettings(); break;

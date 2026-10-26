@@ -12,8 +12,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:cloud-store": "bash scripts/build-cloud-store.sh",
-    "build:app": "bash scripts/build-app.sh && cap sync android"
+    "build:cloud-store": "bash scripts/build-cloud-store.sh"
   },
   "overrides": {
     "rolldown": "1.2.1"
