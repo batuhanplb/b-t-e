@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.49.2";
+const APP_VERSION = "1.2.49.3";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1458,6 +1458,14 @@ function renderSettings() {
         '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
         (hasUp ? '<button class="btn sm ghost" data-act="ota-check">Güncellemeleri kontrol et</button>' : '') +
         '<button class="btn sm ghost" data-act="ota-apk">APK indir</button></div></div>';
+    } else {
+      // Tarayıcı / ana ekran kısayolu (PWA): güncellemeler her açılışta sunucudan gelir, APK gerekmez.
+      h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px">' +
+        '<div class="small" style="line-height:1.75">Web sürümü: <b>' + APP_VERSION + '</b>' +
+        '<br>Kurulum: <b>tarayıcı · ana ekran kısayolu</b>' +
+        '<br>Güncellemeler her açılışta kendiliğinden gelir; APK gerekmez.</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
+        '<button class="btn sm ghost" data-act="ota-reload">Yenile</button></div></div>';
     }
     h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div><div class="card" style="padding:14px;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"><button class="btn sm ghost" style="color:var(--exp)" data-act="wipe-all">Tüm verileri sil</button><button class="btn sm ghost" style="color:var(--exp)" data-act="del-acc">Hesabı sil</button></div>';
     h += '<p class="small muted" style="text-align:center;margin:20px 0 4px">Bütçe v' + APP_VERSION + '</p></div>';
@@ -1700,6 +1708,7 @@ document.addEventListener("click", e => {
         renderSettings();
       }); break; }
     case "ota-apk": { try { window.open(OTA_APK, "_system"); } catch (e) { try { location.href = OTA_APK; } catch (e2) {} } break; }
+    case "ota-reload": (async () => { toast("Yenileniyor…"); try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update().catch(() => {}))); } catch (e) {} setTimeout(() => location.reload(), 300); })(); break;
     case "acct": openSettings(); break;
     case "set-back": D.view = "main"; renderSettings(); break;
     case "acc-new": D = { view: "acc" }; D.acc = { _new: true, id: "a-" + C.rid(), name: "", type: "banka", color: "#3166c9", start: 0, exclude: false, hidden: false, order: meta().accounts.length }; renderSettings(); break;
