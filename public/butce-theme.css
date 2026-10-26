@@ -364,5 +364,12 @@ body{transition:background-color .22s var(--ease),color .22s var(--ease)}
 }
 .selbar{animation:sbarup .22s var(--ease)}@keyframes sbarup{from{opacity:0;transform:translateY(12px)}}
 @media (prefers-reduced-motion:reduce){*:hover,*:active{transform:none!important}}
+/* ---- Uygulama hissi: WebView'in tarayıcı artıkları kapatılır (palet değişmez) ---- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{overscroll-behavior-y:none}
+.tw,.sh-bd,.tx-catlist,.cat-search,.lgres,.pie-list{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.btn,.chip,.ib,.pill,.fab,.seg button,.mod-go,.set-row,.tx,.crow,.dashrow,.lgopt,.sprow,.prow,.ck,.cb,.acc,.icb,.ed-b,.dg-b,nav.tabs button,.mnav button,.nav-foot button{touch-action:manipulation}
+.btn,.chip,.ib,.fab,.seg button,.ck,.icb,.ed-b,.dg-b,nav.tabs button,.mnav button,.nav-foot button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+img{-webkit-user-drag:none}
 
 
