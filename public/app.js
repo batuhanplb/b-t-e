@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.42.0";
+const APP_VERSION = "1.2.43.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -508,7 +508,7 @@ function vHome() {
   M.ratio = () => { const r = ti ? te / ti * 100 : 0, sav = ti - te;
     return mod(svgI(CI.coin), "Gelir-gider dengesi", null, '<div class="mod-n"><b class="' + (sav < 0 ? "neg" : "pos") + '">' + f0(sav) + '</b><span class="muted small">bu ay kalan</span></div><div class="ratiobar"><i style="width:' + Math.min(100, r).toFixed(1) + '%;background:' + (r > 100 ? "var(--exp)" : "var(--primary)") + '"></i></div><div class="legend" style="justify-content:space-between"><span>Gider gelirin %' + nfp.format(r).replace(/,00$/, "") + '\'i</span><span>' + f0(te) + ' / ' + f0(ti) + '</span></div>'); };
   M.sub = () => { const sr = subList().map(x => [x, x.items.filter(t => t.d.slice(0, 7) === m)]).filter(([, a]) => a.length), tot = sr.reduce((s, [, a]) => s + a.reduce((q, t) => q + t.a, 0), 0);
-    return mod(svgI(CI.swap), "Abonelikler", "subs", '<div class="mod-n tr"><b>' + f0(tot) + '</b></div>' + (sr.length ? '<div class="klist">' + sr.slice(0, 20).map(([x, a]) => '<button class="krow" data-act="edit-tx" data-id="' + esc(a[0].id) + '" data-m="' + m + '"><span><b>' + esc(x.name) + '</b></span><span class="r"><b>' + f0(a.reduce((q, t) => q + t.a, 0)) + '</b></span></button>').join("") + '</div>' : '<div class="empty">Abonelik yok.</div>')); };
+    return mod(svgI(CI.swap), "Abonelikler", "subs", '<div class="mod-n tr"><b>' + f0(tot) + '</b></div>' + (sr.length ? '<div class="klist">' + sr.slice(0, 20).map(([x, a]) => '<button class="krow" data-act="edit-tx" data-id="' + esc(a[0].id) + '" data-m="' + m + '"><span style="display:flex;align-items:center;gap:6px">' + subIco(x, 18) + '<b>' + esc(x.name) + '</b></span><span class="r"><b>' + f0(a.reduce((q, t) => q + t.a, 0)) + '</b></span></button>').join("") + '</div>' : '<div class="empty">Abonelik yok.</div>')); };
   M.tips = () => { const tips = [];
     const pl = cashPlan(), neg = pl.find(p => p.kalan < 0);
     if (neg) tips.push(["warn", "Nakit eksiye düşüyor", mLabel(neg.m) + " sonunda " + f2(neg.kalan) + ". Gelir ekleyin ya da gideri öne alın.", "cash"]);
@@ -560,6 +560,9 @@ function vHome() {
   if (on.length) h += '<div class="mods manual-grid">' + section(on) + '</div>';
   return h;
 }
+const SUB_DOM = { netflix: "netflix.com", spotify: "spotify.com", youtube: "youtube.com", disney: "disneyplus.com", amazon: "amazon.com.tr", prime: "primevideo.com", exxen: "exxen.com", blutv: "blutv.com", gain: "gain.com.tr", tabii: "tabii.com", apple: "apple.com", icloud: "icloud.com", google: "google.com", chatgpt: "openai.com", openai: "openai.com", claude: "claude.ai", lovable: "lovable.dev", microsoft: "microsoft.com", xbox: "xbox.com", playstation: "playstation.com", steam: "steampowered.com", turkcell: "turkcell.com.tr", vodafone: "vodafone.com.tr", "türk telekom": "turktelekom.com.tr", superonline: "superonline.net", digiturk: "digiturk.com.tr", bein: "beinconnect.com.tr", tod: "tod.tv", mubi: "mubi.com", hbo: "max.com", canva: "canva.com", adobe: "adobe.com", github: "github.com", dropbox: "dropbox.com", duolingo: "duolingo.com", storytel: "storytel.com", trendyol: "trendyol.com", hepsiburada: "hepsiburada.com", getir: "getir.com", yemeksepeti: "yemeksepeti.com", macfit: "macfit.com" };
+function subLogo(name) { const n = String(name || "").toLocaleLowerCase("tr"); for (const k in SUB_DOM) if (n.includes(k)) return logoUrl(SUB_DOM[k]); const w = n.replace(/[^a-z0-9]/g, ""); return w.length > 2 ? logoUrl(w + ".com") : ""; }
+function subIco(x, sz) { const u = subLogo(x.name); return u ? '<span class="cic logo" style="width:' + sz + 'px;height:' + sz + 'px"><img src="' + u + '" alt="" onerror="this.parentNode.outerHTML=\'\'"></span>' : ''; }
 function subList() {
   const g = {}; derived().all.filter(t => t.k === "e" && t.grp && !t.ins && !t.reg).forEach(t => (g[t.grp] = g[t.grp] || []).push(t));
   const recs = meta().recs || [];
@@ -572,7 +575,7 @@ function vSubs() {
   const spent = L.reduce((s, x) => s + x.items.filter(t => t.d <= tdy && t.d.slice(0, 4) === tdy.slice(0, 4)).reduce((q, t) => q + t.a, 0), 0);
   const nxt = act.filter(x => x.nx).sort((a, b) => a.nx.d.localeCompare(b.nx.d))[0];
   let h = '<div class="kpis"><div class="card kpi"><span>Aylık toplam</span><b>' + f2(mt) + '</b></div><div class="card kpi"><span>Yıllık tahmini</span><b>' + f2(mt * 12) + '</b></div><div class="card kpi"><span>Bu yıl ödenen</span><b>' + f2(spent) + '</b></div><div class="card kpi"><span>Sıradaki ödeme</span><b>' + (nxt ? esc(nxt.name) : "—") + '</b>' + (nxt ? '<span class="small muted">' + dLabel(nxt.nx.d) + ' · ' + f2(nxt.nx.a) + '</span>' : '') + '</div></div>';
-  const row = x => '<li><button class="set-row" data-act="edit-tx" data-id="' + esc(x.ref.id) + '" data-m="' + x.ref.d.slice(0, 7) + '"><span class="cic" style="--c:' + catColor(x.cat) + ';width:32px;height:32px">' + catIcon(x.cat) + '</span><span class="grow">' + esc(x.name) + '<span class="small muted" style="display:block">' + (x.nx ? "Sonraki: " + dLabel(x.nx.d) : "Son: " + dLabel(x.ref.d)) + ' · ' + x.paid + ' ödeme yapıldı</span></span><span><b>' + f2(x.mon || x.ref.a) + '</b><span class="small muted" style="display:block;text-align:right">/ay</span></span></button></li>';
+  const row = x => '<li><button class="set-row" data-act="edit-tx" data-id="' + esc(x.ref.id) + '" data-m="' + x.ref.d.slice(0, 7) + '">' + (subLogo(x.name) ? subIco(x, 32) : '<span class="cic" style="--c:' + catColor(x.cat) + ';width:32px;height:32px">' + catIcon(x.cat) + '</span>') + '<span class="grow">' + esc(x.name) + '<span class="small muted" style="display:block">' + (x.nx ? "Sonraki: " + dLabel(x.nx.d) : "Son: " + dLabel(x.ref.d)) + ' · ' + x.paid + ' ödeme yapıldı</span></span><span><b>' + f2(x.mon || x.ref.a) + '</b><span class="small muted" style="display:block;text-align:right">/ay</span></span></button></li>';
   h += '<div class="sec-h" style="margin-top:18px"><h2>Aktif abonelikler (' + act.length + ')</h2><button class="btn sm" data-act="add-sub">Abonelik ekle</button></div>';
   h += act.length ? '<div class="card"><ul class="list">' + act.map(row).join("") + '</ul></div>' : '<div class="card empty">Aktif abonelik yok. Yeni işlemde "Abonelik" seçerek ekleyebilirsin.</div>';
   if (old.length) h += '<div class="sec-h" style="margin-top:18px"><h2>Biten abonelikler</h2></div><div class="card"><ul class="list">' + old.map(row).join("") + '</ul></div>';
