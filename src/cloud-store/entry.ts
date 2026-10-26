@@ -30,23 +30,30 @@ const errOf = (e: { message?: string; code?: string } | null) => {
   return err;
 };
 
+// Offline support: a per-user local copy of all docs plus a persisted outbox of
+// pending writes (keyed by doc, last write wins). The outbox is flushed when
+// the connection returns; server loads are overlaid with pending writes.
+type Pending = { coll: string; id: string; data: unknown | null };
+const LS_CACHE = (u: string) => "butce.cache." + u;
+const LS_OUT = (u: string) => "butce.outbox." + u;
+const LS_USER = "butce.lastUser";
+const lsGet = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : d; } catch { return d; } };
+const lsSet = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* quota */ } };
+
 export async function cloudStore(onUser: (u: User, err?: string) => void, toast?: (m: string) => void) {
   let uid: string | null = null;
   let h: Handlers | null = null;
   let cache = { meta: null as unknown, months: {} as Record<string, unknown[]>, debts: {} as Record<string, unknown> };
-  const chains: Record<string, Promise<unknown>> = {};
+  let outbox: Record<string, Pending> = {};
+  let flushing: Promise<void> | null = null;
+  let warned = false;
+  const saveCache = () => { if (uid) lsSet(LS_CACHE(uid), cache); };
+  const saveOut = () => { if (uid) lsSet(LS_OUT(uid), outbox); };
   const emit = () => {
     if (!h) return;
     h.meta(clone(cache.meta));
     h.months(clone(cache.months), false);
     h.debts(clone(cache.debts));
-  };
-  const q = (key: string, fn: () => Promise<unknown>) => {
-    chains[key] = (chains[key] || Promise.resolve()).then(fn).catch((err) => {
-      console.error(err);
-      toast?.(err && err.code === "permission-denied" ? "Bu hesapla yazma izni yok." : "Kaydedilemedi, bağlantıyı kontrol edin.");
-    });
-    return chains[key];
   };
   const put = async (coll: string, id: string, data: unknown) => {
     const { error } = await supabase.from("user_docs").upsert({ user_id: uid!, coll, doc_id: id, data: data as never, updated_at: new Date().toISOString() });
@@ -61,6 +68,36 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     else if (coll === "tx") { if (data) cache.months[id] = clone((data as { items: unknown[] }).items || []); else delete cache.months[id]; }
     else if (coll === "debts") { if (data) cache.debts[id] = clone(data); else delete cache.debts[id]; }
   };
+  const flush = (): Promise<void> => {
+    if (flushing) return flushing;
+    flushing = (async () => {
+      for (const key of Object.keys(outbox)) {
+        const p = outbox[key]!;
+        try {
+          if (p.data === null) await del(p.coll, p.id); else await put(p.coll, p.id, p.data);
+          if (outbox[key] === p) { delete outbox[key]; saveOut(); }
+        } catch (err) {
+          const e = err as { code?: string };
+          if (e?.code === "permission-denied") { delete outbox[key]; saveOut(); toast?.("Bu hesapla yazma izni yok."); continue; }
+          if (!warned) { warned = true; toast?.("Çevrimdışı kaydedildi, bağlantı gelince eşitlenecek."); }
+          break;
+        }
+      }
+      if (!Object.keys(outbox).length) warned = false;
+    })().finally(() => { flushing = null; });
+    return flushing;
+  };
+  const write = (coll: string, id: string, data: unknown | null) => {
+    applyLocal(coll, id, coll === "tx" && data !== null ? data : data);
+    saveCache(); emit();
+    outbox[coll + "/" + id] = { coll, id, data };
+    saveOut();
+    return flush();
+  };
+  const q = (_key: string, fn: () => Promise<unknown>) => fn().catch((err) => {
+    console.error(err);
+    toast?.(err && err.code === "permission-denied" ? "Bu hesapla yazma izni yok." : "Kaydedilemedi, bağlantıyı kontrol edin.");
+  });
 
   async function loadAll() {
     const rows: { coll: string; doc_id: string; data: unknown }[] = [];
@@ -72,6 +109,8 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     }
     cache = { meta: null, months: {}, debts: {} };
     rows.forEach((r) => applyLocal(r.coll, r.doc_id, r.data));
+    Object.values(outbox).forEach((p) => applyLocal(p.coll, p.id, p.data));
+    saveCache();
   }
 
   const store = {
@@ -108,16 +147,17 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     signOut() { return supabase.auth.signOut(); },
     listen(x: Handlers) {
       h = x;
-      loadAll().then(emit).catch((e) => x.err(e));
+      const local = uid ? lsGet<typeof cache | null>(LS_CACHE(uid), null) : null;
+      if (local) { cache = local; Object.values(outbox).forEach((p) => applyLocal(p.coll, p.id, p.data)); emit(); }
+      loadAll().then(() => { emit(); flush(); }).catch((e) => { if (!local) x.err(e); });
     },
-    setMeta(meta: unknown) { const b = clone(meta); applyLocal("meta", "main", b); emit(); return q("meta", () => put("meta", "main", b)); },
+    setMeta(meta: unknown) { return write("meta", "main", clone(meta)); },
     setMonth(m: string, items: unknown[]) {
       const b = clone(items);
-      applyLocal("tx", m, b.length ? { items: b } : null); emit();
-      return q("tx/" + m, () => (b.length ? put("tx", m, { items: b }) : del("tx", m)));
+      return write("tx", m, b.length ? { items: b } : null);
     },
-    setDebt(id: string, d: unknown) { const b = clone(d); applyLocal("debts", id, b); emit(); return q("debt/" + id, () => put("debts", id, b)); },
-    delDebt(id: string) { applyLocal("debts", id, null); emit(); return q("debt/" + id, () => del("debts", id)); },
+    setDebt(id: string, d: unknown) { return write("debts", id, clone(d)); },
+    delDebt(id: string) { return write("debts", id, null); },
     setShare(t: string, d: unknown) {
       return q("share", async () => {
         const { error } = await supabase.from("shares").upsert({ token: t, owner: uid!, data: clone(d) as never, updated_at: new Date().toISOString() });
@@ -140,16 +180,20 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
         for (const o of chunk.filter((o) => o.op === "del")) await del(o.path[0]!, o.path[1]!);
         chunk.forEach((o) => applyLocal(o.path[0]!, o.path[1]!, o.op === "del" ? null : clone(o.data)));
       }
+      saveCache();
       emit();
     },
   };
 
+  type SUser = { id: string; email?: string; user_metadata?: Record<string, string> };
   let lastUid: string | null | undefined;
-  const handle = (session: { user: { id: string; email?: string; user_metadata?: Record<string, string> } } | null) => {
+  const handle = (session: { user: SUser } | null) => {
     const u = session?.user ?? null;
     if ((u?.id ?? null) === lastUid) return;
     lastUid = u?.id ?? null;
     h = null; uid = lastUid;
+    outbox = uid ? lsGet<Record<string, Pending>>(LS_OUT(uid), {}) : {};
+    if (u) lsSet(LS_USER, { id: u.id, email: u.email, user_metadata: u.user_metadata });
     const meta = u?.user_metadata ?? {};
     store.user = u ? { email: u.email ?? null, name: meta['full_name'] ?? meta['name'] ?? null } : null;
     onUser(store.user);
@@ -157,20 +201,27 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
   // Never drop the user on a transient null session (offline token refresh,
   // phone waking from sleep). Only an explicit SIGNED_OUT logs the user out.
   supabase.auth.onAuthStateChange((e, s) => {
+    if (e === "SIGNED_OUT") { try { localStorage.removeItem(LS_USER); } catch { /* */ } }
     if (!s && e !== "SIGNED_OUT") return;
     setTimeout(() => handle(s), 0);
+    if (s) setTimeout(() => flush(), 50);
   });
-  const { data } = await supabase.auth.getSession();
-  setTimeout(() => handle(data.session), 0);
+  let data: { session: { user: SUser; access_token: string; refresh_token: string } | null } = { session: null };
+  try { data = (await supabase.auth.getSession()).data as typeof data; } catch { /* offline */ }
+  // Offline with an expired token: keep the last signed-in user working locally.
+  const lastUser = lsGet<SUser | null>(LS_USER, null);
+  setTimeout(() => handle(data.session ?? (lastUser ? { user: lastUser } : null)), 0);
   const wake = () => {
     if (document.visibilityState !== "visible" || !navigator.onLine) return;
     supabase.auth.getSession().then(({ data: d }) => {
       const exp = d.session?.expires_at ?? 0;
-      if (d.session && exp * 1000 - Date.now() < 5 * 60_000) supabase.auth.refreshSession().catch(() => {});
+      const p = d.session && exp * 1000 - Date.now() < 5 * 60_000 ? supabase.auth.refreshSession() : Promise.resolve();
+      return p.catch(() => {}).then(() => flush());
     }).catch(() => {});
   };
   document.addEventListener("visibilitychange", wake);
   window.addEventListener("online", wake);
+  setInterval(() => { if (navigator.onLine && Object.keys(outbox).length) flush(); }, 30_000);
 
   // Native-app auth bridge: the Capacitor app opens the published site with
   // ?native_auth=1 in the system browser. If a session exists, hand it back to
