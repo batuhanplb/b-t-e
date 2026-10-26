@@ -1,20 +1,20 @@
 /* Shared visual layer; budgeting workflows and saved module positions stay intact. */
 :root{
- --font:"Segoe UI",-apple-system,BlinkMacSystemFont,Arial,sans-serif;
- --bg:oklch(.975 .003 180);--surface:oklch(1 0 0);--card:var(--surface);--sunk:oklch(.952 .005 180);--line:oklch(.902 .008 180);
- --ink:oklch(.26 .014 180);--muted:oklch(.51 .012 180);--faint:oklch(.62 .008 180);
- --primary:oklch(.48 .12 262);--on-primary:oklch(1 0 0);--hero:var(--primary);--g1:var(--primary);--g2:var(--primary);
- --inc:oklch(.47 .12 150);--exp:oklch(.54 .16 25);--tr:oklch(.52 .13 250);--focus:var(--tr);
- --c1:oklch(.95 .015 240);--c1i:oklch(.43 .085 240);--c2:var(--sunk);--c2i:var(--ink);--c3:oklch(.95 .028 262);--c3i:var(--primary);
- --c4:oklch(.96 .03 85);--c4i:oklch(.47 .085 65);--c5:oklch(.96 .018 25);--c5i:var(--exp);
+ --font:"Inter","Segoe UI",-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+ --bg:oklch(.974 .01 305);--surface:oklch(1 0 0);--card:var(--surface);--sunk:oklch(.952 .012 305);--line:oklch(.908 .015 305);
+ --ink:oklch(.245 .032 300);--muted:oklch(.495 .028 300);--faint:oklch(.615 .02 300);
+ --primary:oklch(.5 .22 300);--on-primary:oklch(.985 .005 300);--hero:oklch(.42 .2 305);--g1:oklch(.56 .23 315);--g2:oklch(.46 .2 265);
+ --inc:oklch(.5 .13 155);--exp:oklch(.57 .2 15);--tr:oklch(.55 .17 245);--focus:var(--tr);
+ --c1:oklch(.95 .02 300);--c1i:oklch(.48 .16 300);--c2:var(--sunk);--c2i:var(--ink);--c3:oklch(.95 .025 265);--c3i:oklch(.5 .15 265);
+ --c4:oklch(.96 .035 80);--c4i:oklch(.52 .1 70);--c5:oklch(.96 .025 15);--c5i:var(--exp);
  --paid:var(--c3);--paid-ink:var(--inc);--due-bg:var(--c4);--due:var(--c4i);--sub:var(--c3);
- --shadow-float:0 4px 16px color-mix(in oklab,var(--ink) 14%,transparent);color-scheme:light;
+ --shadow-float:0 6px 20px color-mix(in oklab,var(--primary) 22%,transparent);color-scheme:light;
 }
 html[data-theme=dark]{
- --bg:oklch(.17 .007 180);--surface:oklch(.215 .009 180);--sunk:oklch(.25 .009 180);--line:oklch(.32 .01 180);
-  --ink:oklch(.93 .005 180);--muted:oklch(.73 .008 180);--faint:oklch(.6 .008 180);--primary:oklch(.76 .11 262);--on-primary:oklch(.19 .02 180);
-  --inc:oklch(.75 .13 150);--exp:oklch(.75 .135 25);--tr:oklch(.76 .1 250);
-  --c1:oklch(.26 .03 240);--c1i:var(--tr);--c3:oklch(.27 .045 262);--c4:oklch(.28 .035 80);--c4i:oklch(.79 .105 80);--c5:oklch(.27 .03 25);color-scheme:dark;
+ --bg:oklch(.185 .022 300);--surface:oklch(.235 .024 300);--sunk:oklch(.275 .026 300);--line:oklch(.335 .028 300);
+  --ink:oklch(.94 .008 300);--muted:oklch(.745 .02 300);--faint:oklch(.62 .02 300);--primary:oklch(.72 .17 300);--on-primary:oklch(.2 .03 300);
+  --inc:oklch(.76 .14 155);--exp:oklch(.76 .16 15);--tr:oklch(.78 .13 245);
+  --c1:oklch(.3 .05 300);--c1i:oklch(.8 .12 300);--c3:oklch(.32 .06 265);--c4:oklch(.32 .05 80);--c4i:oklch(.82 .12 80);--c5:oklch(.3 .05 15);color-scheme:dark;
 }
 body{font-size:13px;line-height:1.45;background:var(--bg)}
 *,*::before,*::after{letter-spacing:0}
@@ -221,8 +221,8 @@ button.tx.picked{background:color-mix(in oklab,var(--primary,#3b5bdb) 14%,transp
 .pay-dir{min-width:36px;padding:0 10px;justify-content:center}.pay-dir svg{width:15px;height:15px;display:block}
 .set-row>svg{width:18px;height:18px;flex:none;color:var(--muted)}
 html[data-theme=soft]{
- --bg:oklch(.925 .008 85);--surface:oklch(.955 .006 85);--sunk:oklch(.9 .009 85);--line:oklch(.86 .01 85);
- --ink:oklch(.3 .012 85);--muted:oklch(.5 .012 85);--faint:oklch(.6 .01 85);color-scheme:light;
+ --bg:oklch(.93 .012 60);--surface:oklch(.96 .01 60);--sunk:oklch(.905 .013 60);--line:oklch(.865 .014 60);
+ --ink:oklch(.31 .02 60);--muted:oklch(.5 .02 60);--faint:oklch(.6 .015 60);color-scheme:light;
 }
 /* İnce, modern kaydırma çubuğu */
 *{scrollbar-width:thin;scrollbar-color:color-mix(in oklab,var(--muted) 45%,transparent) transparent}
@@ -293,3 +293,24 @@ button:active,.mod:active,button.tx:active{transform:scale(.97)}
 .pbar{display:block;height:4px;border-radius:3px;background:var(--line,rgba(127,127,127,.15));margin-top:4px;overflow:hidden;max-width:220px}.pbar i{display:block;height:100%;border-radius:3px}
 .pie-wrap{display:grid;gap:12px;margin-top:4px}.pie-wrap .pie{display:flex;justify-content:center;align-items:center;position:relative;padding:18px}
 @media(min-width:900px){.pie-wrap{grid-template-columns:300px 1fr;align-items:start}.pie-wrap .pie{position:sticky;top:12px}}
+/* ✦ deneme teması: gece yıldızı ✦ */
+.card,.mod{border-radius:16px}
+.top{background:color-mix(in srgb,var(--surface) 55%,var(--bg));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.top h1{letter-spacing:-.02em}
+.btn{background:linear-gradient(135deg,var(--g1),var(--g2));border-radius:12px;font-weight:600}
+.btn.ghost{background:var(--surface)}
+.btn.danger{background:color-mix(in srgb,var(--exp) 10%,transparent)}
+.fab{background:linear-gradient(135deg,var(--g1),var(--g2));border-radius:16px;box-shadow:0 8px 24px color-mix(in oklab,var(--primary) 35%,transparent)}
+.netcard{background:linear-gradient(140deg,var(--g1),var(--g2));color:#fff}
+.netcard .neg{color:#ffc4c9}
+nav.tabs button[aria-current="page"]{position:relative}
+nav.tabs button[aria-current="page"]::after{content:"";position:absolute;bottom:7px;width:16px;height:3px;border-radius:99px;background:linear-gradient(90deg,var(--g1),var(--g2))}
+.nav-brand .logo,.avatar{background:linear-gradient(135deg,var(--g1),var(--g2))}
+.mod-ic{color:color-mix(in oklab,var(--primary) 70%,var(--muted))}
+.sec-h h2{color:var(--primary)}
+.ld-eyebrow{color:var(--primary);font-weight:700;letter-spacing:.14em}
+.ld-hero h1{background:linear-gradient(90deg,var(--g1),var(--g2),var(--primary));-webkit-background-clip:text;background-clip:text;color:transparent}
+.askbox{border-radius:22px}
+.in,.sel,.search{background:var(--surface);border-color:var(--line)}
+.toast{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff}
+

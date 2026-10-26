@@ -1,5 +1,5 @@
-const V = "butce-v36";
-const SHELL = ["/", "/index.html", "/butce-theme.css?v=15", "/app.js", "/core.js", "/transaction-input.js", "/statement.js", "/cloud-store.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png"];
+const V = "butce-v37";
+const SHELL = ["/", "/index.html", "/butce-theme.css?v=16", "/app.js", "/core.js", "/transaction-input.js", "/statement.js", "/cloud-store.js", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c => Promise.allSettled(SHELL.map(u => c.add(u)))).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("butce-") && k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 // Network first with a short timeout; on failure/slow network serve the cached copy so the app always opens.
