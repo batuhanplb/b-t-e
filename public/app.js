@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.45.0";
+const APP_VERSION = "1.2.46.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -884,10 +884,10 @@ function vAcc() {
   return '<div class="narrow"><div class="toolbar"><span class="small muted" style="flex:1">İşlemleri görmek için hesap adına dokunun.</span><button class="btn sm" data-act="acc-new">Hesap ekle</button></div><div class="card"><ul class="list">' + meta().accounts.slice().sort((a, b) => (a.order || 0) - (b.order || 0)).map(a => '<li class="acc-li" data-id="' + esc(a.id) + '"><div class="set-row catrow">' + (a.logo ? '<span class="cic logo" style="width:34px;height:34px"><img src="' + esc(a.logo) + '" alt=""></span>' : '<span class="cic" style="--c:' + a.color + ';width:34px;height:34px">' + svgI(a.type === "kart" ? CI.card : a.type === "nakit" ? CI.coin : CI.home) + '</span>') + '<button class="grow" style="text-align:left" data-act="acc-tx" data-id="' + esc(a.id) + '">' + esc(a.name) + (a.type === "kart" ? ' <span class="tag">kredi kartı' + (a.cut ? ", kesim " + a.cut : "") + '</span>' : '') + (a.hidden ? ' <span class="tag">gizli</span>' : '') + '</button>' + (a.type === "kart" && a.cut ? '<button class="btn sm" data-act="stmt" data-id="' + esc(a.id) + '">Ekstre</button>' : '') + '<span class="' + ((Dd.bal[a.id] || 0) < 0 ? "neg" : "") + '" style="white-space:nowrap">' + f2(Dd.bal[a.id] || 0) + '</span><button class="ib pen" data-act="acc-edit" data-id="' + esc(a.id) + '" aria-label="Düzenle">' + ICON.pen + '</button></div></li>').join("") + '</ul></div></div>';
 }
 function vCat() {
-  const op = S.catExp || (S.catExp = {}), cats = meta().categories, mode = S.catMode || "", sel = S.catSel || (S.catSel = new Set()), cust = meta().catSort === "custom";
+  const op = S.catExp || (S.catExp = {}), cats = meta().categories, mode = "", sel = S.catSel || (S.catSel = new Set()), cust = meta().catSort === "custom";
   const sec = (t, l) => { const rows = catTree().filter(({ c, depth }) => c.type === t && (!depth || op[c.parent])); return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(({ c, depth }) => { const kids = !depth && cats.some(x => x.parent === c.id); const right = mode === "sel" ? '<input type="checkbox" data-act="cat-sel" data-id="' + esc(c.id) + '"' + (sel.has(c.id) ? " checked" : "") + ' style="width:22px;height:22px">' : mode === "ord" ? '<button class="ib" data-act="cat-mv" data-id="' + esc(c.id) + '" data-d="-1" aria-label="Yukarı" style="transform:rotate(90deg)">' + ICON.l + '</button><button class="ib" data-act="cat-mv" data-id="' + esc(c.id) + '" data-d="1" aria-label="Aşağı" style="transform:rotate(90deg)">' + ICON.r + '</button>' : '<button class="ib pen" data-act="cat-edit" data-id="' + esc(c.id) + '" aria-label="Düzenle">' + ICON.pen + '</button>'; return '<li><div class="set-row catrow" style="padding-left:' + (14 + depth * 26) + 'px"><span class="cic" style="--c:' + c.color + ';width:30px;height:30px">' + catIcon(c.id) + '</span><button class="grow" style="text-align:left" data-act="' + (mode === "sel" ? "cat-sel" : "cat-tx") + '" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button>' + (kids ? '<button class="ib" data-act="cat-exp" data-id="' + esc(c.id) + '" aria-label="Alt kategoriler" style="transform:rotate(' + (op[c.id] ? 90 : 0) + 'deg);transition:transform .2s">' + ICON.r + '</button>' : '') + right + '</div></li>'; }).join("") + '</ul></div>'; };
-  const bar = mode === "sel" ? '<div class="toolbar" style="position:sticky;bottom:70px;background:var(--card);padding:10px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.15);margin-top:12px"><span style="flex:1">' + sel.size + ' seçildi</span><button class="btn sm ghost" data-act="cat-bmv"' + (sel.size ? '' : ' disabled') + '>Taşı</button><button class="btn sm ghost" data-act="cat-bmg"' + (sel.size ? '' : ' disabled') + '>Birleştir</button><button class="btn sm danger" data-act="cat-bdel"' + (sel.size ? '' : ' disabled') + '>Sil</button></div>' : '';
-  const tb = mode ? '<span class="small muted" style="flex:1">' + (mode === "sel" ? "Kategorileri seçin." : "Okla sırayı değiştirin.") + '</span><button class="btn sm" data-act="cat-mode" data-v="">Bitti</button>' : '<span class="small muted" style="flex:1">İşlemleri görmek için kategori adına dokunun.</span><button class="btn sm ghost" data-act="cat-sort">' + (cust ? "Özel sıra" : "A–Z") + '</button>' + (cust ? '<button class="btn sm ghost" data-act="cat-mode" data-v="ord">Sırala</button>' : '') + '<button class="btn sm ghost" data-act="cat-mode" data-v="sel">Seç</button><button class="btn sm" data-act="cat-new">Kategori ekle</button>';
+  const bar = '';
+  const tb = '<span class="small muted" style="flex:1">İşlemleri görmek için kategori adına dokunun.</span><button class="btn sm" data-act="cat-new">Kategori ekle</button>';
   return '<div class="narrow"><div class="toolbar" style="flex-wrap:wrap">' + tb + '</div>' + sec("E", "Gider kategorileri") + sec("I", "Gelir kategorileri") + bar + '</div>';
 }
 // Kategorileri kaldırır: mode "unk" işlemleri Bilinmiyor'a, "merge" hedefe (boş lehdara hedef adı), "deltx" işlemleriyle siler.
@@ -895,10 +895,11 @@ function catRemove(ids, mode, target) {
   const cats = meta().categories, all = new Set(ids); cats.forEach(c => { if (c.parent && all.has(c.parent)) all.add(c.id); });
   let tid = target, tname = "";
   if (mode === "unk") { let u = cats.find(c => c.name === "Bilinmiyor" && !c.parent); if (!u) { u = { id: "c-" + C.rid(), name: "Bilinmiyor", type: "E", parent: null, color: "#8a8f98" }; saveMetaChange(m => { m.categories.push(u); }); } tid = u.id; }
-  if (mode === "merge") { all.delete(tid); tname = (cats.find(c => c.id === tid) || {}).name || ""; }
+  const olds = new Set();
+  if (mode === "merge") { all.delete(tid); tname = catLabel(tid); all.forEach(id => { const c = cats.find(x => x.id === id); if (c) { olds.add(c.name.toLocaleLowerCase("tr")); olds.add(catLabel(id).toLocaleLowerCase("tr")); } }); }
   let n = 0;
   if (mode === "deltx") Object.keys(S.months).forEach(m => { const arr = S.months[m].filter(t => !all.has(t.cat)); if (arr.length !== S.months[m].length) { n += S.months[m].length - arr.length; saveMonth(m, arr); } });
-  else n = bulkTx(t => all.has(t.cat), t => { t.cat = tid; if (mode === "merge" && !t.t) t.t = tname; return t; });
+  else n = bulkTx(t => all.has(t.cat), t => { t.cat = tid; if (mode === "merge" && (!t.t || olds.has(String(t.t).toLocaleLowerCase("tr")))) t.t = tname; return t; });
   saveMetaChange(m => { m.categories = m.categories.filter(c => !all.has(c.id)).map(c => c.parent && all.has(c.parent) ? { ...c, parent: null } : c); });
   return n;
 }
@@ -1335,7 +1336,7 @@ function renderSettings() {
       '<div class="row2"><label class="fld"><span>Tür</span><select class="in" data-c="type"><option value="E"' + (c.type === "E" ? " selected" : "") + '>Gider</option><option value="I"' + (c.type === "I" ? " selected" : "") + '>Gelir</option></select></label><label class="fld"><span>Renk</span><input class="in" type="color" data-c="color" value="' + esc(c.color) + '" style="height:46px;padding:4px"></label></div>' +
       '<div class="fld"><span>İkon</span><div class="icgrid">' + ["", ...Object.keys(CI).filter(k => k !== "swap")].map(k => '<button class="icb" data-act="cat-icon" data-v="' + k + '" style="--c:' + c.color + '" aria-pressed="' + (!c.img && (c.icon || "") === k) + '">' + (k ? svgI(CI[k]) : "Oto") + '</button>').join("") + '</div><div style="display:flex;gap:8px;align-items:center;margin-top:10px">' + (c.img ? '<span class="cic" style="--c:' + c.color + '"><img src="' + c.img + '" alt=""></span><button class="btn sm ghost" data-act="cat-img-rm">Görseli kaldır</button>' : '') + '<input class="in" id="cimgq" autocomplete="off" placeholder="İkon veya logo ara, örn. ev, araba, netflix" style="flex:1;min-width:0"><label class="btn sm ghost" style="display:inline-flex;align-items:center;white-space:nowrap">Görsel yükle<input type="file" accept="image/*" id="cat-img" hidden></label></div><div id="cqres" class="lgres"></div></div>' +
       '<label class="fld"><span>Üst kategori</span><select class="in" data-c="parent"><option value="">Yok (ana kategori)</option>' + parents.map(p => '<option value="' + esc(p.id) + '"' + (c.parent === p.id ? " selected" : "") + '>' + esc(p.name) + '</option>').join("") + '</select></label><div id="s-err"></div></div>' +
-      '<div class="sh-ft">' + (c._new ? '' : '<button class="btn danger" data-act="cat-del">Sil</button>') + '<button class="btn" data-act="cat-save">Kaydet</button></div>';
+      '<div class="sh-ft">' + (c._new ? '' : '<button class="btn danger" data-act="cat-del">Sil</button><button class="btn ghost" data-act="cat-merge">Birleştir</button>') + '<button class="btn" data-act="cat-save">Kaydet</button></div>';
   } else if (v === "gt") {
     const ex = catTree().filter(({ c }) => c.type === "E");
     const ks = gtKs(D), multi = ks.length > 1;
@@ -1361,8 +1362,7 @@ function renderSettings() {
 }
 function catTree() {
   const cats = meta().categories, out = [];
-  const cust = meta().catSort === "custom", ix = new Map(cats.map((c, i) => [c.id, i]));
-  const byName = (a, b) => (a.type === b.type ? 0 : a.type === "E" ? -1 : 1) || (cust ? ix.get(a.id) - ix.get(b.id) : a.name.localeCompare(b.name, "tr"));
+    const byName = (a, b) => (a.type === b.type ? 0 : a.type === "E" ? -1 : 1) || a.name.localeCompare(b.name, "tr");
   cats.filter(c => !c.parent).sort(byName).forEach(p => { out.push({ c: p, depth: 0 }); cats.filter(c => c.parent === p.id).sort(byName).forEach(c => out.push({ c, depth: 1 })); });
   return out;
 }
@@ -1628,6 +1628,7 @@ document.addEventListener("click", e => {
     case "cat-logo": { const d = (ds.d || "").trim(); if (!d) break; D.cat.img = logoUrl(d); D.cat.icon = null; renderSettings(); break; }
     case "acc-logo-rm": D.acc.logo = null; renderSettings(); break;
     case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (ds.ok !== "1") { ask("Hesap silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
+    case "cat-merge": { const id = D.cat.id; pickCat("İşlemleri hangi kategoriye geçsin?", new Set([id])).then(t => { if (!t) return; const n = catRemove([id], "merge", t); toast(n + " işlem taşındı"); closeSheet(); render(); }); break; }
     case "cat-del": { const id = D.cat.id; catDelFlow([id]).then(ok => { if (ok) { closeSheet(); render(); } }); break; }
     case "dash-edit-on": S.dashDraft = null; S.dashEdit = true; S.dashTray = false; render(); break;
     case "dash-edit-off": { const dr = S.dashDraft; S.dashDraft = null; S.dashEdit = false; S.dashTray = false; if (dr) saveMetaChange(m => { if (dr.reset) delete m[dashKey()]; else m[dashKey()] = dr; }); render(); if (dr) toast("Kaydedildi"); break; }
