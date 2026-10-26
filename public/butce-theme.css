@@ -322,4 +322,44 @@ button:active,.mod:active,button.tx:active{transform:scale(.97)}
 .pie-list .prow .s{font-variant-numeric:tabular-nums}
 @media(min-width:900px){.pie-wrap{grid-template-columns:minmax(280px,320px) 1fr;align-items:start}.pie-left{position:sticky;top:12px}}
 @media(max-width:899px){.pie-card{padding:6px 10px 10px}.pie-mid b{font-size:19px}}
+/* ---- Etkileşim katmanı: palet aynı kalır; sadece hover, basılma ve geçiş dili ---- */
+:root{--ease:cubic-bezier(.2,.8,.2,1)}
+body{transition:background-color .22s var(--ease),color .22s var(--ease)}
+.card,.mod{transition:background-color .22s var(--ease),border-color .22s var(--ease),box-shadow .22s var(--ease)}
+.btn,.ib,.chip,.pill,.fab,.seg button,.mod-go,.tx,.prow,.crow,.set-row,.dashrow,.lgopt,.sprow,.acc,.ed-b,.dg-b,.tx-catoption,.ld-shot,nav.tabs button,.mnav button,.nav-foot button{transition:background-color .16s var(--ease),color .16s var(--ease),border-color .16s var(--ease),box-shadow .2s var(--ease),transform .14s var(--ease),opacity .16s var(--ease)}
+.in,select.sel,.search,.catsel,.cat-search,.tx-catlist,textarea{transition:border-color .16s var(--ease),box-shadow .16s var(--ease),background-color .16s var(--ease)}
+/* dokunmatikte de çalışan basılma geri bildirimi */
+.set-row:active,.dashrow:active,.lgopt:active,.sprow:active,.tx-catoption:active{background:var(--sunk)}
+.btn:active,.chip:active,.seg button:active,.ed-b:active,.dg-b:active,.mod-go:active{transform:scale(.96)}
+.ib:active{transform:scale(.92)}
+.fab:active{transform:scale(.94);box-shadow:0 2px 8px color-mix(in oklab,var(--ink) 22%,transparent)}
+.acc:active{background:color-mix(in srgb,currentColor 8%,transparent)}
+/* odak: aynı palet, yumuşak halka */
+.in:focus,select.sel:focus,.search:focus,.catsel:focus,.cat-search:focus-within,.tx-catlist:focus-within{border-color:color-mix(in oklab,var(--primary) 55%,var(--line));box-shadow:0 0 0 3px color-mix(in oklab,var(--primary) 13%,transparent)}
+/* fare/işaretçi olan cihazlarda hover */
+@media (hover:hover) and (pointer:fine){
+ .btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px -12px color-mix(in oklab,var(--ink) 55%,transparent)}
+ .btn:active{transform:translateY(0) scale(.985);box-shadow:none}
+ .btn[disabled],.btn[disabled]:hover{transform:none;box-shadow:none;opacity:.55;cursor:not-allowed}
+ .btn.ghost:hover{background:var(--sunk)}
+ .btn.danger:hover{background:color-mix(in oklab,var(--exp) 8%,var(--surface))}
+ .ib:hover{background:var(--sunk)}
+ .fab:hover{transform:translateY(-2px);box-shadow:0 12px 26px -12px color-mix(in oklab,var(--ink) 62%,transparent)}
+ .chip:not([aria-pressed="true"]):hover{border-color:color-mix(in oklab,var(--muted) 40%,var(--line));background:color-mix(in oklab,var(--sunk) 55%,var(--surface))}
+ .seg button:not([aria-pressed="true"]):hover{background:color-mix(in oklab,var(--surface) 45%,transparent);color:var(--ink)}
+ .tx:hover:not(.picked){background:var(--sunk)}
+ .prow:hover:not(.on),.set-row:hover,.dashrow:hover,.lgopt:hover,.sprow:hover,.tx-catoption:hover,.crow:hover{background:var(--sunk)}
+ .acc:hover{background:color-mix(in srgb,currentColor 6%,transparent)}
+ .sh tbody tr:hover td{background:color-mix(in oklab,var(--sunk) 70%,transparent)}
+ .sh th.click:hover{color:var(--ink)}
+ nav.tabs button:not([aria-current="page"]):hover,.mnav button:not([aria-current="page"]):hover,.nav-foot button:hover{background:var(--sunk)}
+ .in:hover,select.sel:hover,.search:hover,.catsel:hover{border-color:color-mix(in oklab,var(--muted) 45%,var(--line))}
+ .mod:has(.mod-go):hover{box-shadow:0 1px 2px color-mix(in oklab,var(--ink) 7%,transparent),0 10px 24px -20px color-mix(in oklab,var(--ink) 50%,transparent)}
+ .mod:has(.mod-go):hover .mod-go{background:var(--sunk);color:var(--ink)}
+ .ed-bar .ed-b:hover{transform:translateY(-1px);box-shadow:var(--shadow-float)}
+ .ld-shot:hover{transform:translateY(-4px);box-shadow:0 1px 0 var(--line),0 22px 40px -26px rgba(0,0,0,.45)}
+}
+.selbar{animation:sbarup .22s var(--ease)}@keyframes sbarup{from{opacity:0;transform:translateY(12px)}}
+@media (prefers-reduced-motion:reduce){*:hover,*:active{transform:none!important}}
+
 
