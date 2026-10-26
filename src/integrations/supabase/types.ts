@@ -274,6 +274,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_my_account: { Args: never; Returns: undefined }
       get_share: { Args: { _token: string }; Returns: Json }
     }
     Enums: {
