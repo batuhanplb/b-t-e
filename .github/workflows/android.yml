@@ -32,6 +32,14 @@ jobs:
           grep -q CapacitorUpdaterPlugin android/app/src/main/assets/capacitor.plugins.json
       - name: APK derle
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      # İmza sabit olmazsa yeni APK eskisinin üzerine kurulamaz; bu adım kaymayı yakalar.
+      - name: İmzayı doğrula (sabit anahtar)
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          FP=$("$BT/apksigner" verify --print-certs "$APK" | grep -i "SHA-256" | head -1 | tr -d ' :' | tr 'A-Z' 'a-z')
+          echo "imza: $FP"
+          echo "$FP" | grep -q "65806381f05a73f3c172ea9dbeb7ee849d308d1967d633d32888adbf0bac15c9"
       - uses: actions/upload-artifact@v4
         with:
           name: butce-apk

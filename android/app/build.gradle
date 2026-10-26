@@ -16,10 +16,26 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Sabit imza: her derleme aynı anahtarla imzalanır; yeni APK eskisinin ÜZERİNE kurulabilir.
+    // (Play Store'a çıkmadığımız için bu, kişisel kullanım anahtarıdır; public repoda tutulması bilinçli.)
+    // Sertifika SHA-256: 65:80:63:81:F0:5A:73:F3:C1:72:EA:9D:BE:B7:EE:84:9D:30:8D:19:67:D6:33:D3:28:88:AD:BF:0B:AC:15:C9
+    signingConfigs {
+        butce {
+            storeFile file("butce-sign.p12")
+            storeType "pkcs12"
+            storePassword "butce2026"
+            keyAlias "butce"
+            keyPassword "butce2026"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.butce
+        }
+        debug {
+            signingConfig signingConfigs.butce
         }
     }
 }
