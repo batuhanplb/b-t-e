@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.46.6";
+const APP_VERSION = "1.2.47.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -196,7 +196,7 @@ const S = { gtab: "sum",
   ver: 0, cache: null
 };
 S.accFs = []; S.per = "m"; S.showPastTx = true; S.showFutTx = false; S.showE = true; S.showI = true;
-S.pFrom = CUR() + "-01"; S.pTo = today(); S.pCat = ""; S.catF = null; S.showPast = false;
+S.pFrom = CUR() + "-01"; S.pTo = today(); S.pCat = ""; S.pSel = null; S.catF = null; S.showPast = false;
 const meta = () => S.meta || DEFAULT_META;
 function derived() {
   if (S.cache && S.cache.ver === S.ver) return S.cache;
@@ -995,6 +995,77 @@ function perRange() {
 }
 const catParts = t => (t.sp && t.sp.length) ? t.sp : [{ cat: t.cat, a: t.a }];
 function inCat(id, root) { let c = catOf(id), g = 0; while (c && g++ < 6) { if (c.id === root) return true; c = c.parent ? catOf(c.parent) : null; } return false; }
+/* ---- dağılım (pie) ---- */
+let PIE = null;
+const pctS = (v, base) => !base ? "0" : (v / base * 100).toFixed(1).replace(".", ",").replace(/,0$/, "");
+const dShort = d => { const m = +d.slice(5, 7); return +d.slice(8, 10) + " " + C.TR_M[m - 1]; }; const pieHintTxt = () => S.pSel ? "Detayı kapatmak için tekrar dokun." : "Dilime dokun: detaylar aşağıda açılır.";
+
+function pieSvg(rows, tot, col, nm) {
+  const RO = 96, RI = 64, mid = (RO + RI) / 2;
+  const pt = (r, a) => [(110 + r * Math.cos(a)).toFixed(2), (110 + r * Math.sin(a)).toFixed(2)];
+  const arc = (a0, a1) => {
+    const big = a1 - a0 > Math.PI ? 1 : 0;
+    const o0 = pt(RO, a0), o1 = pt(RO, a1), i1 = pt(RI, a1), i0 = pt(RI, a0);
+    return "M" + o0.join(" ") + "A" + RO + " " + RO + " 0 " + big + " 1 " + o1.join(" ") + "L" + i1.join(" ") + "A" + RI + " " + RI + " 0 " + big + " 0 " + i0.join(" ") + "Z";
+  };
+  const tip = r => "<title>" + esc(nm(r.id)) + " · " + f2(r.v) + " · %" + pctS(r.v, tot) + "</title>";
+  const cls = id => "pseg" + (S.pSel === id ? " on" : S.pSel ? " dim" : "");
+  if (rows.length === 1) {
+    const r = rows[0];
+    return '<svg class="pie-svg" viewBox="0 0 220 220" role="img" aria-label="Dağılım">' +
+      '<circle class="' + cls(r.id) + '" data-act="pie-sel" data-id="' + esc(r.id) + '" cx="110" cy="110" r="' + mid + '" fill="none" stroke="' + col(r.id) + '" stroke-width="' + (RO - RI) + '">' + tip(r) + "</circle></svg>";
+  }
+  const gap = rows.length > 7 ? 0.01 : 0.018;
+  let a = -Math.PI / 2;
+  const paths = rows.map(r => {
+    const sweep = r.v / tot * Math.PI * 2;
+    const a0 = a + gap / 2, a1 = Math.max(a0 + 0.004, a + sweep - gap / 2);
+    a += sweep;
+    return '<path class="' + cls(r.id) + '" data-act="pie-sel" data-id="' + esc(r.id) + '" d="' + arc(a0, a1) + '" fill="' + col(r.id) + '">' + tip(r) + "</path>";
+  }).join("");
+  return '<svg class="pie-svg" viewBox="0 0 220 220" role="img" aria-label="Dağılım">' + paths + "</svg>";
+}
+function pieCenter() {
+  if (!PIE) return "";
+  const s = S.pSel ? PIE.rows.find(r => r.id === S.pSel) : null;
+  if (!s) {
+    const n = PIE.rows.reduce((k, r) => k + r.n, 0);
+    return '<span class="k">Toplam gider</span><b>' + f0(PIE.tot) + '</b><span class="s">' + PIE.rows.length + " kategori · " + n + " işlem</span>";
+  }
+  return '<span class="k">' + esc(PIE.nm(s.id)) + "</span><b>" + f0(s.v) + '</b><span class="s">%' + pctS(s.v, PIE.tot) + " · " + s.n + " işlem</span>";
+}
+
+function pieDetail() {
+  if (!PIE || !S.pSel) return "";
+  const s = PIE.rows.find(r => r.id === S.pSel);
+  if (!s) return "";
+  const kids = s.id !== "_" && meta().categories.some(x => x.parent === s.id) && !(S.pCat && s.id === S.pCat);
+  const cell = (k, v, sub) => '<div class="pie-det-cell"><span>' + k + "</span><b>" + v + "</b>" + (sub ? "<em>" + esc(sub) + "</em>" : "") + "</div>";
+  return '<div class="pie-det-h"><span class="cic" style="--c:' + PIE.col(s.id) + '">' + (s.id === "_" ? svgI(CI.tag) : catIcon(s.id)) + '</span>' +
+    '<div class="pie-det-t"><b>' + esc(PIE.nm(s.id)) + '</b><span>%' + pctS(s.v, PIE.tot) + " · toplam giderin</span></div>" +
+    '<button class="ib" data-act="pie-sel" data-id="' + esc(s.id) + '" aria-label="Kapat">' + ICON.x + "</button></div>" +
+    '<div class="pie-det-grid">' + cell("Tutar", f2(s.v)) + cell("İşlem", s.n + " adet") + cell("Ortalama", f2(s.v / s.n)) +
+    cell("En yüksek", s.max ? f2(s.max.a) : "—", s.max ? (s.max.t || dShort(s.max.d)) : "") + "</div>" +
+    (s.last ? '<p class="pie-det-last">Son işlem ' + dShort(s.last.d) + (s.last.t ? " · " + esc(s.last.t) : "") + "</p>" : "") +
+    '<div class="pie-det-act">' + (s.id !== "_" ? '<button class="btn sm" data-act="cat-tx" data-id="' + esc(s.id) + '">İşlemleri gör</button>' : "") +
+    (kids ? '<button class="btn sm ghost" data-act="pie-drill" data-id="' + esc(s.id) + '">Alt kategoriler</button>' : "") + "</div>";
+}
+
+function pieApply() {
+  if (!PIE) return;
+  document.querySelectorAll(".pie-svg .pseg").forEach(el => {
+    const on = el.dataset.id === S.pSel;
+    el.classList.toggle("on", on);
+    el.classList.toggle("dim", !!S.pSel && !on);
+  });
+  const c = $("#pie-center"); if (c) c.innerHTML = pieCenter();
+  const d = $("#pie-detail"); if (d) d.innerHTML = pieDetail(); const h = $("#pie-hint"); if (h) h.textContent = pieHintTxt();
+  document.querySelectorAll(".pie-list .prow[data-id]").forEach(el => {
+    const on = el.dataset.id === S.pSel;
+    el.classList.toggle("on", on);
+    if (on && window.innerWidth >= 900) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  });
+}
 function vPie() {
   const now = new Date(), y = now.getFullYear(), cm = CUR();
   const pres = [["Bu ay", cm + "-01", today()], ["Geçen ay", C.addM(cm, -1) + "-01", C.addM(cm, -1) + "-" + C.daysIn(C.addM(cm, -1))], ["Son 3 ay", C.addM(cm, -2) + "-01", today()], ["Bu yıl", y + "-01-01", today()], ["Geçen yıl", (y - 1) + "-01-01", (y - 1) + "-12-31"]];
@@ -1006,24 +1077,32 @@ function vPie() {
     catParts(t).forEach(pp => { let key;
       if (!S.pCat) { const tc = C.topCat(derived().catMap, pp.cat); key = tc ? tc.id : "_"; }
       else { if (!inCat(pp.cat, S.pCat)) return; let c = catOf(pp.cat); while (c && c.parent && c.parent !== S.pCat) c = catOf(c.parent); key = c ? c.id : "_"; }
-      by[key] = (by[key] || 0) + pp.a; tot += pp.a; }); });
-  const rows = Object.entries(by).sort((a, b) => b[1] - a[1]);
-  if (!rows.length) return h + '<div class="card empty">Bu aralıkta gider yok.</div>';
-  const R = 70, Cc = 2 * Math.PI * R; let off = 0;
+      const r = by[key] || (by[key] = { v: 0, n: 0, max: null, last: null });
+      r.v += pp.a; r.n++; tot += pp.a;
+      if (!r.max || pp.a > r.max.a) r.max = { a: pp.a, t: t.t || "", d: t.d };
+      if (!r.last || t.d > r.last.d) r.last = { d: t.d, t: t.t || "", a: pp.a };
+    }); });
+  const rows = Object.entries(by).map(([id, r]) => ({ id, v: r.v, n: r.n, max: r.max, last: r.last })).sort((a, b) => b.v - a.v);
+  if (!rows.length) { PIE = null; S.pSel = null; return h + '<div class="card empty">Bu aralıkta gider yok.</div>'; }
+  if (S.pSel && !by[S.pSel]) S.pSel = null;
   const col = id => id === "_" ? "#9a9fa3" : catColor(id), nm = id => id === "_" ? "Kategorisiz" : (S.pCat && id === S.pCat ? catOf(id).name + " (genel)" : catOf(id).name);
-  const arcs = rows.map(([id, v]) => { const len = v / tot * Cc; const c = '<circle r="' + R + '" cx="90" cy="90" fill="none" stroke="' + col(id) + '" stroke-width="34" stroke-dasharray="' + len.toFixed(2) + ' ' + (Cc - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '"/>'; off += len; return c; }).join("");
-  h += '<div class="pie-wrap"><div class="card pie"><svg viewBox="0 0 180 180" width="220" height="220" style="transform:rotate(-90deg)">' + arcs + '</svg><div class="pie-c"><span class="muted small">' + (S.pCat ? esc(catOf(S.pCat).name) : "Toplam gider") + '</span><b>' + f0(tot) + '</b></div></div>';
+  PIE = { tot, rows, col, nm };
+  h += '<div class="pie-wrap"><div class="pie-left">';
+  h += '<div class="card pie-card"><div class="pie-canvas">' + pieSvg(rows, tot, col, nm) + '<div class="pie-mid" id="pie-center">' + pieCenter() + "</div></div>" +
+    '<p class="small muted pie-hint" id="pie-hint">' + pieHintTxt() + "</p></div>";
+  h += '<div class="card pie-det" id="pie-detail">' + pieDetail() + "</div>";
+  h += "</div>";
   S.pOpen = S.pOpen || {};
   const subOf = pid => { const o = {}; let tt = 0; derived().all.forEach(t => { if (t.k !== "e" || t.d < S.pFrom || t.d > S.pTo) return;
     catParts(t).forEach(pp => { if (!inCat(pp.cat, pid)) return; let c = catOf(pp.cat); while (c && c.parent && c.parent !== pid) c = catOf(c.parent); const k = !c || c.id === pid ? pid : c.id; o[k] = (o[k] || 0) + pp.a; tt += pp.a; }); });
     return [Object.entries(o).sort((a, b) => b[1] - a[1]), tt]; };
   const hasKids = id => id !== "_" && meta().categories.some(c => c.parent === id);
-  const rowH = ([id, v], base, lvl) => { const open = !!S.pOpen[id], kids = hasKids(id) && !(S.pCat && id === S.pCat);
-    let out = '<li class="prow lv' + lvl + '"><div class="tx"><button class="pmain" data-act="' + (kids ? "pie-tog" : "") + '" data-id="' + esc(id) + '"><span class="cic" style="--c:' + col(id) + '">' + (id === "_" ? svgI(CI.tag) : catIcon(id)) + '</span><span class="m"><span class="t">' + esc(nm(id)) + (kids ? ' <span class="pch' + (open ? ' on' : '') + '">▾</span>' : '') + '</span><span class="s">%' + nfp.format(base ? v / base * 100 : 0) + '</span><span class="pbar"><i style="width:' + (base ? (v / base * 100).toFixed(1) : 0) + '%;background:' + col(id) + '"></i></span></span><span class="a">' + f2(v) + '</span></button>' + (id !== "_" ? '<button class="ib pgo" data-act="cat-tx" data-id="' + esc(id) + '" aria-label="İşlemler">' + ICON.r + '</button>' : '') + '</div></li>';
-    if (kids && open) { const [sr, st] = subOf(id); out += sr.map(([sid, sv]) => sid === id ? '<li class="prow lv' + (lvl + 1) + '"><div class="tx"><span class="pmain"><span class="cic" style="--c:' + col(id) + '">' + catIcon(id) + '</span><span class="m"><span class="t">' + esc(catOf(id).name) + ' (genel)</span><span class="s">%' + nfp.format(st ? sv / st * 100 : 0) + '</span></span><span class="a">' + f2(sv) + '</span></span></div></li>' : rowH([sid, sv], st, lvl + 1)).join(""); }
+  const rowH = (r, base, lvl) => { const id = r.id, v = r.v, open = !!S.pOpen[id], kids = hasKids(id) && !(S.pCat && id === S.pCat);
+    let out = '<li class="prow lv' + lvl + (S.pSel === id ? " on" : "") + '" data-id="' + esc(id) + '"><div class="tx"><button class="pmain" data-act="' + (kids ? "pie-tog" : "") + '" data-id="' + esc(id) + '"><span class="cic" style="--c:' + col(id) + '">' + (id === "_" ? svgI(CI.tag) : catIcon(id)) + '</span><span class="m"><span class="t">' + esc(nm(id)) + (kids ? ' <span class="pch' + (open ? " on" : "") + '">▾</span>' : '') + '</span><span class="s">%' + pctS(v, base) + '</span><span class="pbar"><i style="width:' + (base ? (v / base * 100).toFixed(1) : 0) + '%;background:' + col(id) + '"></i></span></span><span class="a">' + f2(v) + '</span></button>' + (id !== "_" ? '<button class="ib pgo" data-act="cat-tx" data-id="' + esc(id) + '" aria-label="İşlemler">' + ICON.r + '</button>' : '') + '</div></li>';
+    if (kids && open) { const [sr, st] = subOf(id); out += sr.map(([sid, sv]) => sid === id ? '<li class="prow lv' + (lvl + 1) + '"><div class="tx"><span class="pmain"><span class="cic" style="--c:' + col(id) + '">' + catIcon(id) + '</span><span class="m"><span class="t">' + esc(catOf(id).name) + ' (genel)</span><span class="s">%' + pctS(sv, st) + '</span></span><span class="a">' + f2(sv) + '</span></span></div></li>' : rowH({ id: sid, v: sv }, st, lvl + 1)).join(""); }
     return out; };
   h += '<div class="card pie-list"><ul class="list">' + rows.map(r => rowH(r, tot, 0)).join("") + '</ul></div></div>';
-  return h + '<p class="small muted">Alt kategorileri görmek için kategoriye, işlemleri görmek için sağdaki oka dokunun.</p>';
+  return h + '<p class="small muted">Alt kategoriler için kategoriye, işlemler için sağdaki oka dokun.</p>';
 }
 /* ============ sheet ============ */
 const dlg = $("#sheet"), dlgIn = $("#sheet-in");
@@ -1635,9 +1714,10 @@ document.addEventListener("click", e => {
     case "gt-open": { S.view = "tx"; S.q = ""; S.accF = ""; S.catF = null; S.payF = null; S.fYear = S.year; if (location.hash.slice(1) !== "tx") location.hash = "tx";
       if (ds.id.startsWith("p:")) S.payF = ds.id.slice(2); else S.catF = ds.id; render(); window.scrollTo(0, 0); break; }
     case "plan-reset": D.planEdited = false; renderPlanBox(); break;
-    case "pie-pre": S.pFrom = ds.f; S.pTo = ds.t; render(); break;
-    case "pie-drill": S.pCat = ds.id; render(); break;
+    case "pie-pre": S.pFrom = ds.f; S.pTo = ds.t; S.pSel = null; render(); break;
+    case "pie-drill": S.pCat = ds.id; S.pSel = null; render(); break;
     case "pie-tog": S.pOpen = S.pOpen || {}; S.pOpen[ds.id] = !S.pOpen[ds.id]; render(); break;
+    case "pie-sel": S.pSel = S.pSel === ds.id ? null : ds.id; pieApply(); break;
     case "acc-logo": { const d = (ds.d || "").trim(); if (!d) break; D.acc.dom = d; D.acc.logo = logoUrl(d); D.lgq = ""; renderSettings(); break; }
     case "cat-svg": { if (!ds.u) break; D.cat.img = ds.u; D.cat.icon = null; renderSettings(); break; }
     case "cat-logo": { const d = (ds.d || "").trim(); if (!d) break; D.cat.img = logoUrl(d); D.cat.icon = null; renderSettings(); break; }
@@ -1709,7 +1789,7 @@ document.addEventListener("change", e => {
   if (D && t.dataset.c) { D.cat[t.dataset.c] = t.value || null; if (t.dataset.c === "type") { D.cat.parent = null; renderSettings(); } }
   if (D && t.dataset.d === "d") { D.d = t.value; renderPlanBox(); }
   if (D && t.id === "f-t") { D.t = t.value; setTimeout(() => { if (D && dlg.open && applyPayee()) { const a = document.activeElement, id = a && a.id; renderTx(true); id && document.getElementById(id)?.focus(); } }, 180); }
-  if (["pFrom", "pTo", "pCat"].includes(t.dataset.ch)) { S[t.dataset.ch] = t.value; render(); }
+  if (["pFrom", "pTo", "pCat"].includes(t.dataset.ch)) { S[t.dataset.ch] = t.value; S.pSel = null; render(); }
 });
 document.addEventListener("focusout", e => {
   if (e.target.id !== "f-t") return;

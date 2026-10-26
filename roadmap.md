@@ -21,5 +21,5 @@
 - [x] Lehdar boşsa, alan terk edilince kategori adını yaz (2. seçenek)
 
 # Daha sonra yapılacaklar
-- [ ] Dağılım sayfasının tasarımını yenile (kullanıcının isteğiyle sıraya alındı; henüz uygulanmayacak).
+- [x] Dağılım sayfasının tasarımını yenile: dilime dokununca merkezde tutar/pay, altında detay kartı (işlem adedi, ortalama, en yüksek, son işlem), listede eşleşen satır vurgusu ve "işlemleri gör / alt kategoriler" kısayolları (1.2.47.0).
 - [ ] Eksik veya yanlış çalışan tıklamaları kontrol edip düzelt (kullanıcının isteğiyle sıraya alındı; henüz uygulanmayacak).
