@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.44.0";
+const APP_VERSION = "1.2.45.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -884,9 +884,36 @@ function vAcc() {
   return '<div class="narrow"><div class="toolbar"><span class="small muted" style="flex:1">İşlemleri görmek için hesap adına dokunun.</span><button class="btn sm" data-act="acc-new">Hesap ekle</button></div><div class="card"><ul class="list">' + meta().accounts.slice().sort((a, b) => (a.order || 0) - (b.order || 0)).map(a => '<li class="acc-li" data-id="' + esc(a.id) + '"><div class="set-row catrow">' + (a.logo ? '<span class="cic logo" style="width:34px;height:34px"><img src="' + esc(a.logo) + '" alt=""></span>' : '<span class="cic" style="--c:' + a.color + ';width:34px;height:34px">' + svgI(a.type === "kart" ? CI.card : a.type === "nakit" ? CI.coin : CI.home) + '</span>') + '<button class="grow" style="text-align:left" data-act="acc-tx" data-id="' + esc(a.id) + '">' + esc(a.name) + (a.type === "kart" ? ' <span class="tag">kredi kartı' + (a.cut ? ", kesim " + a.cut : "") + '</span>' : '') + (a.hidden ? ' <span class="tag">gizli</span>' : '') + '</button>' + (a.type === "kart" && a.cut ? '<button class="btn sm" data-act="stmt" data-id="' + esc(a.id) + '">Ekstre</button>' : '') + '<span class="' + ((Dd.bal[a.id] || 0) < 0 ? "neg" : "") + '" style="white-space:nowrap">' + f2(Dd.bal[a.id] || 0) + '</span><button class="ib pen" data-act="acc-edit" data-id="' + esc(a.id) + '" aria-label="Düzenle">' + ICON.pen + '</button></div></li>').join("") + '</ul></div></div>';
 }
 function vCat() {
-  const op = S.catExp || (S.catExp = {}), cats = meta().categories;
-  const sec = (t, l) => { const rows = catTree().filter(({ c, depth }) => c.type === t && (!depth || op[c.parent])); return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(({ c, depth }) => { const kids = !depth && cats.some(x => x.parent === c.id); return '<li><div class="set-row catrow" style="padding-left:' + (14 + depth * 26) + 'px"><span class="cic" style="--c:' + c.color + ';width:30px;height:30px">' + catIcon(c.id) + '</span><button class="grow" style="text-align:left" data-act="cat-tx" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button>' + (kids ? '<button class="ib" data-act="cat-exp" data-id="' + esc(c.id) + '" aria-label="Alt kategoriler" style="transform:rotate(' + (op[c.id] ? 90 : 0) + 'deg);transition:transform .2s">' + ICON.r + '</button>' : '') + '<button class="ib pen" data-act="cat-edit" data-id="' + esc(c.id) + '" aria-label="Düzenle">' + ICON.pen + '</button></div></li>'; }).join("") + '</ul></div>'; };
-  return '<div class="narrow"><div class="toolbar"><span class="small muted" style="flex:1">İşlemleri görmek için kategori adına dokunun.</span><button class="btn sm" data-act="cat-new">Kategori ekle</button></div>' + sec("E", "Gider kategorileri") + sec("I", "Gelir kategorileri") + '</div>';
+  const op = S.catExp || (S.catExp = {}), cats = meta().categories, mode = S.catMode || "", sel = S.catSel || (S.catSel = new Set()), cust = meta().catSort === "custom";
+  const sec = (t, l) => { const rows = catTree().filter(({ c, depth }) => c.type === t && (!depth || op[c.parent])); return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(({ c, depth }) => { const kids = !depth && cats.some(x => x.parent === c.id); const right = mode === "sel" ? '<input type="checkbox" data-act="cat-sel" data-id="' + esc(c.id) + '"' + (sel.has(c.id) ? " checked" : "") + ' style="width:22px;height:22px">' : mode === "ord" ? '<button class="ib" data-act="cat-mv" data-id="' + esc(c.id) + '" data-d="-1" aria-label="Yukarı" style="transform:rotate(90deg)">' + ICON.l + '</button><button class="ib" data-act="cat-mv" data-id="' + esc(c.id) + '" data-d="1" aria-label="Aşağı" style="transform:rotate(90deg)">' + ICON.r + '</button>' : '<button class="ib pen" data-act="cat-edit" data-id="' + esc(c.id) + '" aria-label="Düzenle">' + ICON.pen + '</button>'; return '<li><div class="set-row catrow" style="padding-left:' + (14 + depth * 26) + 'px"><span class="cic" style="--c:' + c.color + ';width:30px;height:30px">' + catIcon(c.id) + '</span><button class="grow" style="text-align:left" data-act="' + (mode === "sel" ? "cat-sel" : "cat-tx") + '" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button>' + (kids ? '<button class="ib" data-act="cat-exp" data-id="' + esc(c.id) + '" aria-label="Alt kategoriler" style="transform:rotate(' + (op[c.id] ? 90 : 0) + 'deg);transition:transform .2s">' + ICON.r + '</button>' : '') + right + '</div></li>'; }).join("") + '</ul></div>'; };
+  const bar = mode === "sel" ? '<div class="toolbar" style="position:sticky;bottom:70px;background:var(--card);padding:10px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.15);margin-top:12px"><span style="flex:1">' + sel.size + ' seçildi</span><button class="btn sm ghost" data-act="cat-bmv"' + (sel.size ? '' : ' disabled') + '>Taşı</button><button class="btn sm ghost" data-act="cat-bmg"' + (sel.size ? '' : ' disabled') + '>Birleştir</button><button class="btn sm danger" data-act="cat-bdel"' + (sel.size ? '' : ' disabled') + '>Sil</button></div>' : '';
+  const tb = mode ? '<span class="small muted" style="flex:1">' + (mode === "sel" ? "Kategorileri seçin." : "Okla sırayı değiştirin.") + '</span><button class="btn sm" data-act="cat-mode" data-v="">Bitti</button>' : '<span class="small muted" style="flex:1">İşlemleri görmek için kategori adına dokunun.</span><button class="btn sm ghost" data-act="cat-sort">' + (cust ? "Özel sıra" : "A–Z") + '</button>' + (cust ? '<button class="btn sm ghost" data-act="cat-mode" data-v="ord">Sırala</button>' : '') + '<button class="btn sm ghost" data-act="cat-mode" data-v="sel">Seç</button><button class="btn sm" data-act="cat-new">Kategori ekle</button>';
+  return '<div class="narrow"><div class="toolbar" style="flex-wrap:wrap">' + tb + '</div>' + sec("E", "Gider kategorileri") + sec("I", "Gelir kategorileri") + bar + '</div>';
+}
+// Kategorileri kaldırır: mode "unk" işlemleri Bilinmiyor'a, "merge" hedefe (boş lehdara hedef adı), "deltx" işlemleriyle siler.
+function catRemove(ids, mode, target) {
+  const cats = meta().categories, all = new Set(ids); cats.forEach(c => { if (c.parent && all.has(c.parent)) all.add(c.id); });
+  let tid = target, tname = "";
+  if (mode === "unk") { let u = cats.find(c => c.name === "Bilinmiyor" && !c.parent); if (!u) { u = { id: "c-" + C.rid(), name: "Bilinmiyor", type: "E", parent: null, color: "#8a8f98" }; saveMetaChange(m => { m.categories.push(u); }); } tid = u.id; }
+  if (mode === "merge") { all.delete(tid); tname = (cats.find(c => c.id === tid) || {}).name || ""; }
+  let n = 0;
+  if (mode === "deltx") Object.keys(S.months).forEach(m => { const arr = S.months[m].filter(t => !all.has(t.cat)); if (arr.length !== S.months[m].length) { n += S.months[m].length - arr.length; saveMonth(m, arr); } });
+  else n = bulkTx(t => all.has(t.cat), t => { t.cat = tid; if (mode === "merge" && !t.t) t.t = tname; return t; });
+  saveMetaChange(m => { m.categories = m.categories.filter(c => !all.has(c.id)).map(c => c.parent && all.has(c.parent) ? { ...c, parent: null } : c); });
+  return n;
+}
+function pickCat(msg, ex, onlyTop, none) {
+  const opts = catTree().filter(({ c, depth }) => !ex.has(c.id) && !(onlyTop && depth)).map(({ c, depth }) => ({ l: (depth ? "— " : "") + esc(c.name), v: c.id }));
+  if (none) opts.unshift({ l: "Ana kategori yap", v: "__none" });
+  return ask(msg, opts);
+}
+function catDelFlow(ids) {
+  return ask(ids.length + " kategori silinecek. İşlemleri ne olsun?", [{ l: "İşlemleri Bilinmiyor'a taşı", v: "unk" }, { l: "Başka kategoriyle birleştir", v: "merge" }, { l: "İşlemleriyle birlikte sil", v: "deltx", red: 1 }]).then(md => {
+    if (!md) return false;
+    if (md === "merge") return pickCat("Hedef kategori", new Set(ids)).then(t => { if (!t) return false; toast(catRemove(ids, "merge", t) + " işlem taşındı"); return true; });
+    if (md === "deltx") return ask("Emin misiniz? İşlemler kalıcı silinecek.").then(v => { if (!v) return false; toast(catRemove(ids, "deltx") + " işlem silindi"); return true; });
+    toast(catRemove(ids, "unk") + " işlem taşındı"); return true;
+  });
 }
 function vPay() {
   const q = (S.payQ || "").trim().toLocaleLowerCase("tr");
@@ -1334,7 +1361,8 @@ function renderSettings() {
 }
 function catTree() {
   const cats = meta().categories, out = [];
-  const byName = (a, b) => (a.type === b.type ? 0 : a.type === "E" ? -1 : 1) || a.name.localeCompare(b.name, "tr");
+  const cust = meta().catSort === "custom", ix = new Map(cats.map((c, i) => [c.id, i]));
+  const byName = (a, b) => (a.type === b.type ? 0 : a.type === "E" ? -1 : 1) || (cust ? ix.get(a.id) - ix.get(b.id) : a.name.localeCompare(b.name, "tr"));
   cats.filter(c => !c.parent).sort(byName).forEach(p => { out.push({ c: p, depth: 0 }); cats.filter(c => c.parent === p.id).sort(byName).forEach(c => out.push({ c, depth: 1 })); });
   return out;
 }
@@ -1567,6 +1595,13 @@ document.addEventListener("click", e => {
     case "cat-img-rm": D.cat.img = null; renderSettings(); break;
     case "past-toggle": S.showPast = !S.showPast; render(); break;
     case "cat-tx": closeSheet(); S.view = "tx"; S.catF = ds.id; S.q = ""; S.accF = ""; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
+    case "cat-mode": S.catMode = ds.v; S.catSel = new Set(); render(); break;
+    case "cat-sel": { const ss = S.catSel || (S.catSel = new Set()); ss.has(ds.id) ? ss.delete(ds.id) : ss.add(ds.id); render(); break; }
+    case "cat-sort": { const cust = meta().catSort === "custom"; saveMetaChange(m => { m.catSort = cust ? "alpha" : "custom"; if (!cust) { const ord = catTree().map(x => x.c.id); m.categories.sort((a, b) => ord.indexOf(a.id) - ord.indexOf(b.id)); } }); render(); break; }
+    case "cat-mv": { const cs = meta().categories, c = cs.find(x => x.id === ds.id), sib = cs.filter(x => x.type === c.type && (x.parent || null) === (c.parent || null)), k = sib.indexOf(c), o = sib[k + Number(ds.d)]; if (!o) break; saveMetaChange(m => { const a = m.categories.findIndex(x => x.id === c.id), b = m.categories.findIndex(x => x.id === o.id); [m.categories[a], m.categories[b]] = [m.categories[b], m.categories[a]]; }); render(); break; }
+    case "cat-bdel": catDelFlow([...S.catSel]).then(ok => { if (ok) { S.catMode = ""; render(); } }); break;
+    case "cat-bmg": { const ids = [...S.catSel]; pickCat("Seçilenler hangi kategoride birleşsin?", new Set()).then(t => { if (!t) return; toast(catRemove(ids.filter(x => x !== t), "merge", t) + " işlem taşındı"); S.catMode = ""; render(); }); break; }
+    case "cat-bmv": { const ids = new Set(S.catSel); pickCat("Hangi kategorinin altına taşınsın?", ids, true, true).then(t => { if (!t) return; const p = t === "__none" ? null : t, pt = p && meta().categories.find(x => x.id === p); saveMetaChange(m => { m.categories.forEach(c => { if (ids.has(c.id)) { m.categories.forEach(k => { if (k.parent === c.id) k.parent = p; }); c.parent = p; if (pt) c.type = pt.type; } }); }); toast("Taşındı"); S.catMode = ""; render(); }); break; }
     case "cat-exp": (S.catExp = S.catExp || {})[ds.id] = !S.catExp[ds.id]; render(); break;
     case "pay-tx": S.view = "tx"; S.payF = ds.t; S.catF = null; S.q = ""; S.accFs = []; S.fYear = null; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
     case "pay-sort": { const cur = S.paySort || "isim"; const nx = cur === "isim" ? "n" : cur === "n" ? "a" : "isim"; S.paySort = nx; S.payDir = nx === "isim" ? "az" : "cok"; saveMetaChange(m => { m.paySort = nx; m.payDir = S.payDir; }); render(); break; }
@@ -1593,7 +1628,7 @@ document.addEventListener("click", e => {
     case "cat-logo": { const d = (ds.d || "").trim(); if (!d) break; D.cat.img = logoUrl(d); D.cat.icon = null; renderSettings(); break; }
     case "acc-logo-rm": D.acc.logo = null; renderSettings(); break;
     case "acc-del": { const id = D.acc.id; if (derived().all.some(t => t.acc === id || t.to === id)) { $("#s-err").innerHTML = '<p class="err">Bu hesapta işlem var; silmek yerine gizleyebilirsiniz.</p>'; break; } if (ds.ok !== "1") { ask("Hesap silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } saveMetaChange(m => { m.accounts = m.accounts.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
-    case "cat-del": { const id = D.cat.id; if (derived().all.some(t => t.cat === id) || meta().categories.some(x => x.parent === id)) { $("#s-err").innerHTML = '<p class="err">Bu kategori kullanılıyor veya alt kategorisi var.</p>'; break; } if (ds.ok !== "1") { ask("Kategori silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } saveMetaChange(m => { m.categories = m.categories.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
+    case "cat-del": { const id = D.cat.id; catDelFlow([id]).then(ok => { if (ok) { closeSheet(); render(); } }); break; }
     case "dash-edit-on": S.dashDraft = null; S.dashEdit = true; S.dashTray = false; render(); break;
     case "dash-edit-off": { const dr = S.dashDraft; S.dashDraft = null; S.dashEdit = false; S.dashTray = false; if (dr) saveMetaChange(m => { if (dr.reset) delete m[dashKey()]; else m[dashKey()] = dr; }); render(); if (dr) toast("Kaydedildi"); break; }
     case "dash-edit-cancel": S.dashDraft = null; S.dashEdit = false; S.dashTray = false; render(); break;
