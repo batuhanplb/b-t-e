@@ -1658,7 +1658,7 @@ document.addEventListener("keydown", e => {
     if (e.key === "Enter") { e.preventDefault(); if (e.target.id === "cq") options[0]?.click(); else e.target.click(); return; }
   }
   if (e.key === "Enter" && dlg.open && e.target.tagName === "INPUT" && D && D.k) { e.preventDefault(); saveTx(false); return; }
-  if (e.key === "Enter" && !e.shiftKey && dlg.open && e.target.tagName === "INPUT" && !["checkbox", "file", "search"].includes(e.target.type) && !e.target.closest(".askov")) { const ft = dlgIn.querySelector(".sh-ft"); const b = ft && (ft.querySelector(".btn.pri, .btn.primary, button[type=submit]") || [...ft.querySelectorAll("button.btn:not(.ghost)")].pop()); if (b) { e.preventDefault(); b.click(); } }
+  if (e.key === "Enter" && !e.shiftKey && dlg.open && e.target.tagName === "INPUT" && !["checkbox", "file", "search"].includes(e.target.type) && !e.target.closest(".askov")) { const ft = dlgIn.querySelector(".sh-ft"); const b = ft && (ft.querySelector(".btn.pri, .btn.primary, button[type=submit]") || [...ft.querySelectorAll("button.btn:not(.ghost):not(.danger)")].pop()); if (b) { e.preventDefault(); b.click(); } }
 });
 let dragT = null;
 let dragEnd = 0;
