@@ -209,7 +209,7 @@ button.tx.picked{background:color-mix(in oklab,var(--primary,#3b5bdb) 14%,transp
 @media(min-width:900px){.selbar{left:auto;right:24px;bottom:24px;width:420px}}
 
 .askov{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:24px;animation:askf .15s}
-.askbox{width:100%;max-width:340px;background:var(--card,#fff);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 40px rgba(0,0,0,.25);animation:asku .2s ease-out}
+.askbox{width:100%;max-width:340px;max-height:85vh;overflow-y:auto;background:var(--card,#fff);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 40px rgba(0,0,0,.25);animation:asku .2s ease-out}
 .askbox p{margin:0 0 6px;font-size:16px;font-weight:600;text-align:center}
 .askbox .btn{width:100%;min-height:48px;font-size:15px;border-radius:12px}.askbox .askred{background:var(--exp);color:#fff;border-color:var(--exp)}
 @keyframes askf{from{opacity:0}}@keyframes asku{from{transform:translateY(30px);opacity:0}}
