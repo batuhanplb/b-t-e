@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.2.46.2";
+const APP_VERSION = "1.2.46.1";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1818,3 +1818,28 @@ document.addEventListener("click", e => { const r = e.target.closest(".bhit"); c
   if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); }, true);
 
 document.addEventListener("wheel", e => { const r = e.target.closest && e.target.closest(".rep-chips"); if (!r || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; r.scrollLeft += e.deltaY; e.preventDefault(); }, { passive: false });
+
+// Hesap makinesi
+window.openCalc = function () {
+  const inp = document.getElementById("f-amt"); if (!inp) return;
+  let ex = (inp.value || "").replace(/\./g, "");
+  const o = document.createElement("div"); o.className = "calc-ov";
+  const keys = ["C","⌫","%","÷","7","8","9","×","4","5","6","-","1","2","3","+",",","0","00","="];
+  o.innerHTML = '<div class="calc"><div class="calc-d"></div><div class="calc-g">' + keys.map(k => '<button type="button" data-k="' + k + '"' + ("÷×-+=".includes(k) ? ' class="op"' : "") + '>' + k + '</button>').join("") + '</div><div class="calc-f"><button type="button" data-k="x">İptal</button><button type="button" data-k="ok" class="ok">Tamam</button></div></div>';
+  document.body.appendChild(o);
+  const disp = o.querySelector(".calc-d");
+  const ev = () => { try { const js = ex.replace(/,/g, ".").replace(/×/g, "*").replace(/÷/g, "/").replace(/(\d+(?:\.\d+)?)%/g, "($1/100)").replace(/[^0-9.+\-*/()]/g, "").replace(/[+\-*/.]+$/, ""); if (!js) return 0; const v = Function("return (" + js + ")")(); return isFinite(v) ? Math.round(v * 100) / 100 : 0; } catch (e) { return 0; } };
+  const show = () => { disp.textContent = ex || "0"; };
+  const pd = { t: null }; o.addEventListener("pointerdown", e => { pd.t = e.target; });
+  o.addEventListener("click", e => {
+    e.stopPropagation();
+    if (e.target === o && pd.t === o) return o.remove();
+    const b = e.target.closest("button"); if (!b) return; const k = b.dataset.k;
+    if (k === "x") return o.remove();
+    if (k === "ok" || k === "=") { const v = ev(); if (k === "=") { ex = v ? String(v).replace(".", ",") : ""; return show(); } inp.value = v ? String(v).replace(".", ",") : ""; inp.dispatchEvent(new Event("input", { bubbles: true })); return o.remove(); }
+    if (k === "C") ex = ""; else if (k === "⌫") ex = ex.slice(0, -1);
+    else if ("÷×-+".includes(k)) ex = ex.replace(/[÷×+\-]$/, "") + k; else ex += k;
+    show();
+  });
+  show();
+};

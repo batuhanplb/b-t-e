@@ -72,7 +72,7 @@ table.sh{font-size:12px;width:max-content;min-width:100%}.sh th,.sh td{padding:9
  .mod .krow{flex-wrap:wrap}.mod .krow>span:first-child{flex-basis:100%}.mod .krow .r{max-width:100%;justify-content:flex-start;text-align:left}.mod .klist,.mod ul.list{max-height:260px}
  .mod[data-id="debtcal"],.mod[data-id="recent"],.mod[data-id="tips"]{grid-column:1 / -1}.mod .tip .muted{display:block}.mod-flush .list{margin-left:-10px;margin-right:-10px}
  .sh th,.sh td{font-size:11px;padding:8px}.sh thead th{min-width:82px;max-width:130px;font-size:10px}.sh th:first-child,.sh td:first-child{min-width:76px}.sh tr>.st:last-child{position:static;box-shadow:none}
- .mnav{background:var(--surface);grid-template-columns:repeat(6,minmax(0,1fr))}.mnav button{font-size:10px;height:58px;min-width:0;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mnav button svg{width:20px;height:20px}.mnav button[aria-current="page"]{color:var(--primary)}
+ .mnav{background:var(--surface)}.mnav button{font-size:10px;height:58px}.mnav button svg{width:20px;height:20px}.mnav button[aria-current="page"]{color:var(--primary)}
  .mnav .mx.on svg,.bub[aria-current="page"] .bi{color:var(--on-primary)}.bub .bi{color:var(--muted);box-shadow:var(--shadow-float)}.bub .bl{box-shadow:var(--shadow-float);font-size:12px}
  .accstrip .net b{font-size:17px}.accstrip .acc{min-width:104px}.sum b{font-size:13px}.row2{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar>.seg{max-width:100%;flex-wrap:wrap}.sprow .in{flex-basis:96px}
  .dashrow{flex-wrap:wrap!important}.dashrow .grow{flex-basis:100%}
@@ -282,7 +282,14 @@ button:active,.mod:active,button.tx:active{transform:scale(.97)}
 *{-webkit-tap-highlight-color:transparent}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-.calc-ov{display:none}
+.calc-ov{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+.calc{background:var(--card,var(--bg));color:var(--fg,inherit);border-radius:16px;padding:14px;width:min(320px,92vw);box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.calc-d{font-size:26px;font-weight:600;text-align:right;padding:10px 6px;margin-bottom:8px;overflow-x:auto;white-space:nowrap}
+.calc-g{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.calc-g button,.calc-f button{height:52px;border-radius:12px;border:1px solid var(--line,rgba(127,127,127,.25));background:transparent;color:inherit;font-size:20px;cursor:pointer}
+.calc-g button.op{color:var(--pri,hsl(262 60% 50%));font-weight:700}
+.calc-f{display:flex;gap:8px;margin-top:10px}.calc-f button{flex:1;font-size:16px}
+.calc-f .ok{background:var(--pri,hsl(262 60% 50%));color:#fff;border:0}
 .pbar{display:block;height:4px;border-radius:3px;background:var(--line,rgba(127,127,127,.15));margin-top:4px;overflow:hidden;max-width:220px}.pbar i{display:block;height:100%;border-radius:3px}
 .pie-wrap{display:grid;gap:12px;margin-top:4px}.pie-wrap .pie{display:flex;justify-content:center;align-items:center;position:relative;padding:18px}
 @media(min-width:900px){.pie-wrap{grid-template-columns:300px 1fr;align-items:start}.pie-wrap .pie{position:sticky;top:12px}}
