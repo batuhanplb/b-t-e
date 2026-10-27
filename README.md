@@ -3,6 +3,7 @@
 Kişisel finans ve bütçe takip uygulaması. Türkçe arayüz, TRY para birimi, mobil öncelikli.
 
 **Canlı:** https://butceapp.lovable.app
+**Depo:** https://github.com/batuhanplb/butce
 
 ## Özellikler
 

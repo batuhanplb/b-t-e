@@ -9,6 +9,8 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
+- Proje adı **butce**: yerel klasör `C:\Users\batuh\butce`, GitHub `batuhanplb/butce` (remote `https://github.com/batuhanplb/butce`). Eski ad `b-t-e` idi; kod içinde `b-t-e` referansı yok, marka zaten "Bütçe". Why: ad her yerde tek ve tutarlı.
+
 - `/` and `/index.html` serve src/original-index.html verbatim; vanilla app.js/core.js retain existing workflows. Why: the static application remains the functional source of truth.
 - Shared presentation changes belong in public/butce-theme.css, loaded after legacy styles; preserve saved dashboard coordinates. Why: visual refinements must not rewrite budgeting logic or user preferences.
 - Site-wide visual unification (Dağılım dili: sunk özet hücreleri, eyebrow etiketler, tabular tutarlar) is one appended block at the end of public/butce-theme.css plus İşlemler's single-row `.fstrip` filter chips; deleting that block reverts the look and filter state/logic must stay untouched. Why: one revertible block, no budgeting-logic churn.
