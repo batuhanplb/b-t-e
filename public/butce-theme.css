@@ -370,3 +370,86 @@ body{overscroll-behavior-y:none}
 img{-webkit-user-drag:none}
 
 
+/* ---- Tasarım birliği: Dağılım'ın dili (1.3.2.0) ----
+   Amaç: Dağılım sayfasındaki "sunk hücre + eyebrow etiket + tabular sayı" dili
+   diğer sayfalara da taşınır. Palet, hesaplama, akışlar ve dashboard
+   koordinatları değişmez; bu blok tek başına silinerek geri alınabilir. */
+:root{--eyebrow:10.5px;--eyebrow-ls:.06em;--cell-r:10px;--cell-pad:8px 10px}
+
+/* 1. Tutarlar: her yerde tabular rakam (sütunlar titremesin) */
+.sum b,.kpi b,.cash-sum b,.mod-n b,.tx .a,.crow .cl>span:last-child,.krow .r b,.bal,
+.sh td,.sh tfoot td,.accstrip .acc .v,.pie-list .prow .s{font-variant-numeric:tabular-nums}
+
+/* 2. Özet şeridi = Dağılım detay hücresi */
+.sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px}
+.sum>div{min-width:0;background:var(--sunk);border-radius:var(--cell-r);padding:var(--cell-pad);font-size:11px;line-height:1.3;color:var(--muted)}
+.sum b{display:block;margin-top:3px;font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--ink);overflow-wrap:anywhere}
+.sum>div>span{display:block;margin-top:2px;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum>div:has(>b.neg){background:color-mix(in srgb,var(--exp) 7%,var(--sunk))}
+.sum>div:has(>b.pos){background:color-mix(in srgb,var(--inc) 7%,var(--sunk))}
+
+/* 3. KPI kartları (Borç, Abonelikler) */
+.kpi>span:not(.small){display:block;font-size:var(--eyebrow);font-weight:700;letter-spacing:var(--eyebrow-ls);text-transform:uppercase;color:var(--muted);line-height:1.3;overflow-wrap:anywhere}
+.kpi b{display:block;margin-top:3px;font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1.2;overflow-wrap:anywhere}
+.kpi .small{display:block;margin-top:3px}
+
+/* 4. Nakit özeti, uyarı ve grafik seçimi */
+.cash-sum>div{min-width:0;background:var(--sunk);border:0;border-radius:var(--cell-r);padding:var(--cell-pad)}
+.cash-sum span{font-size:var(--eyebrow);font-weight:700;letter-spacing:var(--eyebrow-ls);text-transform:uppercase;line-height:1.3;overflow-wrap:anywhere}
+.cash-sum b{font-size:14px;font-weight:700;letter-spacing:-.01em;margin-top:2px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.cash-sum .ok{background:color-mix(in srgb,var(--primary) 9%,var(--sunk))}
+.cash-sum .bad{background:color-mix(in srgb,var(--exp) 9%,var(--sunk))}
+.cash-nav b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.cash-warn{background:color-mix(in srgb,var(--exp) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--exp) 26%,transparent);border-radius:8px;padding:9px 12px;font-size:12.5px;line-height:1.4}
+.cashbars .cb.sel{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--primary) 50%,transparent)}
+
+/* 5. Liste ve bölüm başlıkları */
+.day{font-size:var(--eyebrow);font-weight:700;letter-spacing:var(--eyebrow-ls);text-transform:uppercase;padding:14px 4px 6px}
+.sec-h{align-items:center}
+.sec-h h2{font-size:var(--eyebrow);font-weight:700;letter-spacing:var(--eyebrow-ls);text-transform:uppercase;color:var(--muted)}
+.empty{font-size:13px;line-height:1.5;padding:26px 16px}
+.card.empty{padding:30px 18px}
+
+/* 6. Tablolar: aynı başlık/satır ritmi */
+.sh th,.sh td{padding:9px 10px}
+.sh thead th,.sh thead th:first-child{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.sh thead th .hs{font-size:9.5px;font-weight:500;letter-spacing:.01em;text-transform:none}
+.sh tbody td{font-variant-numeric:tabular-nums}
+.sh tfoot td{font-weight:700;letter-spacing:-.01em}
+.sh tr.cur td{background:color-mix(in srgb,var(--primary) 7%,var(--surface))!important;box-shadow:none}
+
+/* 7. Tanım listeleri (Hesaplar, Kategoriler, Lehdarlar) */
+.set-row{padding:12px 14px;gap:10px}
+.set-row .grow,.catrow .grow{font-size:13px}
+.cic{border-radius:8px}
+.tag{font-size:10.5px;letter-spacing:.02em}
+.bal{font-weight:600;letter-spacing:-.01em}
+
+/* 8. Anasayfa modülleri: yerleşim sabit, yalnız tipografi ve hover */
+.mod-n b,.mod.sm .mod-n b{font-weight:800;letter-spacing:-.02em}
+.krow{border-radius:8px;transition:background-color .18s var(--ease)}
+.krow .r b{letter-spacing:-.01em}
+@media (hover:hover) and (pointer:fine){.krow:hover{background:var(--sunk)}}
+
+/* 9. Formlar: tek etiket/kutu ritmi */
+.fld>span{font-size:11px;font-weight:600;letter-spacing:.01em}
+.in{border-radius:8px}
+.sh-hd h3{font-size:15.5px;font-weight:650}
+
+/* 10. İşlemler filtreleri: tek satır, yatay kaydırmalı şerit */
+.fstrip{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.fstrip::-webkit-scrollbar{display:none}
+.fstrip>.chip{flex:0 0 auto;white-space:nowrap}
+.fstrip>.fsep{flex:0 0 auto;width:1px;height:20px;background:var(--line);margin:0 3px}
+.fstrip>.chip-reset{color:var(--muted);border-style:dashed}
+
+/* 11. Küçük telefon: özet hücreleri satıra döner, tutar asla kesilmez */
+@media (max-width:899px){.sum b,.cash-sum b{font-size:13.5px}}
+@media (max-width:399px){
+  .sum,.cash-sum{grid-template-columns:minmax(0,1fr);gap:6px}
+  .sum>div,.cash-sum>div{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:7px 10px}
+  .sum b,.cash-sum b{margin-top:0;font-size:14px}
+  .sum>div>span{flex-basis:100%;margin-top:1px;white-space:normal}
+}
+
+

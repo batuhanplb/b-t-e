@@ -26,3 +26,9 @@
 # Daha sonra yapılacaklar
 - [x] Dağılım sayfasının tasarımını yenile: dilime dokununca merkezde tutar/pay, altında detay kartı (işlem adedi, ortalama, en yüksek, son işlem), listede eşleşen satır vurgusu ve "işlemleri gör / alt kategoriler" kısayolları (1.2.47.0).
 - [ ] Eksik veya yanlış çalışan tıklamaları kontrol edip düzelt (kullanıcının isteğiyle sıraya alındı; henüz uygulanmayacak).
+
+# Tasarım birliği (1.3.2.0)
+- [x] Dağılım sayfasının dilini (sunk hücre, eyebrow etiket, tabular sayı) İşlemler, Nakit, Borç, Abonelikler, tablolar ve tanım listelerine taşı (mantık ve yerleşim aynı).
+- [x] İşlemler'deki 5 ayrı filtre satırını tek yatay kaydırmalı şeride indir; filtre durumu ve davranışı değişmedi.
+- [x] 399px altındaki ekranlarda özet hücrelerini satıra çevirerek tutarın kesilmesini önle.
+
