@@ -54,4 +54,11 @@
 - [x] Sekme çubuğu (`.cash-tabseg`) kompaktlaştı (32px buton, sunk zemin, aktif beyaz + gölge); ay kartındaki tahmin satırı tick hizasına girintili, soluk italik.
 - [x] UI testine "tahmin çıkış toplamına ve ay sonu kalanına yansır" eklendi (cari ay 19.000 kalan, gelecek ay 20.000 tam tahmin).
 
+# Tanıtım ekranında özellik örnekleri (1.3.5.0)
+- [x] Giriş öncesi ekranda "Neler yapabilirsin" maddelerinin her birinin altına ilgili sayfanın küçük bir örneği eklendi: nakit akışı, değişken tutarlar, ekstre eşleştirme, kart kesim uyarısı, borç takvimi, abonelikler, aylık rapor, günlük harcama, toplu işlem, ana sayfa düzeni, paylaşım linki, içe aktarma.
+- [x] Örnekler görsel dilini uygulamadan alır: renk, çizgi ve köşe yarıçapı yalnızca tema değişkenlerinden (`var(--...)`) gelir; sert kodlanmış renk yok, koyu temada da aynı görünür.
+- [x] `src/test/landing.test.js`: her özelliğin bir örneği olduğunu, örneklerde sabit renk kullanılmadığını ve gerçek sayfa adları/tutarların gösterildiğini doğrular; örneksiz yeni özellik eklenirse test kırılır.
+- [x] `AGENTS.md` kuralı: uygulamada görsel değişiklik yapıldığında tanıtım ekranındaki `.ld-shot` / `.ld-mini` örnekleri de güncellenir.
+
+
 

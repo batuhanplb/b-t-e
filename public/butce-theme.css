@@ -269,6 +269,49 @@ html[data-theme=soft]{
 .ld-foot{margin-top:40px;font-size:12px;color:var(--muted)}
 .ld-h2{font-size:20px;margin:56px 0 0;padding-top:28px;border-top:1px solid var(--line)}.ld-feat{border-top:0!important;padding-top:0!important}
 
+/* ---- Landing özellik örnekleri (1.3.5.0) ----
+   "Neler yapabilirsin" maddelerinin her birinin altında ilgili sayfanın küçük
+   bir kopyası durur (.ld-mini). Renk, çizgi, köşe yarıçapı ve tipografi yalnızca
+   tema değişkenlerinden gelir; uygulamanın görsel dili değişince örnekler de
+   aynı dili izler. Bu blok tek başına silinerek geri alınabilir. */
+.ld-feat{align-items:start}
+.ld-mini{margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 11px;font-size:12px;line-height:1.35;font-variant-numeric:tabular-nums;overflow:hidden}
+.ld-mini .m-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.ld-mini .m-top span:first-child{min-width:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-mini .m-top span+span{flex:0 0 auto;font-size:10.5px;color:var(--muted)}
+.ld-mini .m-r{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.ld-mini .m-r:last-child{border-bottom:0;padding-bottom:0}
+.ld-mini .m-l{min-width:0}
+.ld-mini .m-l b{display:block;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-mini .m-l small{display:block;margin-top:1px;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-mini .m-v{flex:0 0 auto;text-align:right;white-space:nowrap}
+.ld-mini .m-v b{display:block;font-size:12px;font-weight:700}
+.ld-mini .m-v small{display:block;margin-top:1px;font-size:10px;color:var(--muted)}
+.ld-mini .m-v.neg b{color:var(--exp)}
+.ld-mini .m-v.pos b{color:var(--inc)}
+.ld-mini .m-cap{margin-top:7px;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-mini .m-note{display:flex;gap:8px;align-items:flex-start;background:var(--sunk);border-radius:9px;padding:7px 9px}
+.ld-mini .m-note>i{flex:0 0 auto;width:6px;height:6px;margin-top:4px;border-radius:50%;background:var(--primary)}
+.ld-mini .m-note b{display:block;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-mini .m-note small{display:block;margin-top:1px;font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-mini .m-ck{display:inline-block;position:relative;width:11px;height:11px;margin-right:6px;border-radius:3px;background:var(--primary);vertical-align:-1px}
+.ld-mini .m-ck:after{content:"";position:absolute;left:3px;top:1.5px;width:4px;height:7px;border:solid var(--on-primary);border-width:0 1.5px 1.5px 0;transform:rotate(42deg)}
+.ld-mini .m-total{display:flex;justify-content:space-between;gap:8px;margin-top:8px;padding-top:7px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+.ld-mini .m-total b{font-size:12px;font-weight:700;color:var(--ink)}
+.ld-mini .m-spark{display:flex;align-items:flex-end;gap:2px;height:52px}
+.ld-mini .m-spark i{flex:1 1 0;min-width:0;min-height:3px;background:var(--sunk);border-radius:2px 2px 0 0}
+.ld-mini .m-spark i.on{background:var(--primary)}
+.ld-mini .m-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:20px;gap:4px}
+.ld-mini .m-grid i{background:var(--sunk);border:1px solid var(--line);border-radius:5px}
+.ld-mini .m-grid i.w2{grid-column:span 2}
+.ld-mini .m-grid i.h2{grid-row:span 2}
+.ld-mini .m-link{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;background:var(--sunk);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--muted)}
+.ld-mini .m-link b{color:var(--primary);font-weight:600;white-space:nowrap}
+.ld-mini .m-theme{display:flex;align-items:center;gap:5px;margin-top:8px}
+.ld-mini .m-theme i{width:14px;height:14px;border-radius:50%;border:1px solid var(--line);background:var(--ink)}
+.ld-mini .m-theme i+i{background:var(--surface)}
+.ld-mini .m-theme small{margin-left:3px;font-size:10.5px;color:var(--muted)}
+
 .rep-chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}.rep-chips::-webkit-scrollbar{display:none}.rep-chips .chip{flex:0 0 auto;white-space:nowrap;font-size:12px;padding:6px 10px}
 /* app hissi animasyonlar */
 #root.vin main{animation:vin .22s cubic-bezier(.2,.8,.2,1)}

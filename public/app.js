@@ -2,7 +2,7 @@ import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
-const APP_VERSION = "1.3.4.1";
+const APP_VERSION = "1.3.5.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -65,6 +65,15 @@ function landingHtml() {
   const err = S.authErr ? '<p class="neg small">' + esc(S.authErr) + '</p>' : '';
   const row = (n, c, a, b) => '<div class="ld-tx"><div><b>' + n + '</b><small>' + c + '</small></div><div class="r"><b class="' + (a[0] === "+" ? "pos" : "neg") + '">' + a + '</b><small>' + b + '</small></div></div>';
   const bars = (arr, hi) => '<div class="ld-bars">' + arr.map((h, i) => '<i style="height:' + h + '%"' + (i === hi ? ' class="on"' : '') + '></i>').join("") + '</div>';
+  // Özellik örnekleri: gerçek sayfaların küçük kopyaları. Renk ve yazı tipi yalnızca
+  // tema değişkenlerinden (var(--...)) gelir; sert kodlanmış renk yok, böylece
+  // uygulamanın görsel dili değişince bu örnekler de aynı görünümü izler.
+  const mini = (top, body) => '<div class="ld-mini">' + (top ? '<div class="m-top"><span>' + top[0] + '</span><span>' + top[1] + '</span></div>' : '') + body + '</div>';
+  const m = (n, s, v, v2, k) => '<div class="m-r"><div class="m-l"><b>' + n + '</b>' + (s ? '<small>' + s + '</small>' : '') + '</div><div class="m-v' + (k ? ' ' + k : '') + '"><b>' + v + '</b>' + (v2 ? '<small>' + v2 + '</small>' : '') + '</div></div>';
+  const mck = (n, s, v) => '<div class="m-r"><div class="m-l"><b><i class="m-ck"></i>' + n + '</b>' + (s ? '<small>' + s + '</small>' : '') + '</div><div class="m-v"><b>' + v + '</b></div></div>';
+  const note = (t, s) => '<div class="m-note"><i></i><div><b>' + t + '</b><small>' + s + '</small></div></div>';
+  const cap = t => '<div class="m-cap">' + t + '</div>';
+  const spark = (arr, hi) => '<div class="m-spark">' + arr.map((h, i) => '<i style="height:' + h + '%"' + (i === hi ? ' class="on"' : '') + '></i>').join("") + '</div>';
   const shot1 = '<figure class="ld-shot"><div class="ld-bar"><span>İşlemler</span><span>Ekim</span></div>' +
     row("Migros", "Ev:Mutfak · Kredi kartı", "-1.284,50", "38.715,50") + row("Maaş", "Maaş · Vadesiz", "+62.000,00", "40.000,00") +
     row("Shell", "Araba:Yakıt · Kredi kartı", "-2.150,00", "-21.940,00") + row("Kira", "Ev:Kira · Vadesiz", "-18.500,00", "21.500,00") +
@@ -80,19 +89,33 @@ function landingHtml() {
     '<p class="ld-lead">Harcamalar, hesaplar, kredi kartı ekstreleri ve taksitler tek ekranda. Excel tablolarının yerini tutan, telefonda rahat kullanılan bir bütçe defteri.</p>' + btn + err + '</section>' +
     '<section class="ld-shots">' + shot1 + shot2 + shot3 + '</section>' +
     '<h2 class="ld-h2">Neler yapabilirsin</h2><section class="ld-feat">' +
-    [["Nakit akışı", "Önümüzdeki 12 ayı tek tek gör. Maaş, kira, kart ödemesi dahil her ayın girişi, çıkışı ve ay sonu kalanı hazır. Paranın eksiye düşeceği ay önceden uyarılır."],
-     ["Değişken tutarlar", "Faturan bazen 450 bazen 550 mi? Planı 500 bırak, o ayın gerçek tutarını ayrıca yaz; sonraki aylar bozulmaz."],
-     ["Ekstre eşleştirme", "Banka PDF'ini yükle; aynı gün ve tutardaki işlemler kendiliğinden eşleşir. 500 + 1500 gibi bölünmüş girişleri de tek ekstre satırına bağlarsın. Veri telefonundan çıkmaz, yapay zekâ kullanılmaz."],
-     ["Kart kesim uyarısı", "Kartının hesap kesim günü gelince Öneri ve Dikkat alanına not düşer; dokununca o dönemin işlemleri açılır."],
-     ["Borç takvimi", "Krediler, taksitler ve kart ödemeleri tarih sırasıyla. Taksit tutarını değiştirince toplam kendiliğinden güncellenir."],
-     ["Düzenli ve abonelik", "Kira, maaş, Netflix; haftalık, aylık, 3 ayda bir ya da yıllık. Abonelikler ayrı sayfada yıllık maliyetiyle görünür."],
-     ["Aylık rapor", "Her ayın 1'inde geçen aya göre hangi kategoride ne kadar arttığın ya da azaldığın yüzdelerle gelir; tasarruf oranı ve günlük ortalama dahil."],
-     ["Günlük harcama", "Ayın her gününü çubuklarla gör, bir güne dokun ve o günün işlemlerine git. Gelecek kayıtlı harcamalar da grafikte."],
-     ["Toplu işlem", "İşleme basılı tut, çoklu seç; seçilenlerin toplamını gör, tek seferde sil."],
-     ["Kendi ana sayfan", "Modülleri istediğin yere taşı, küçük ya da büyük yap. Telefon ve bilgisayar için ayrı düzen saklanır."],
-     ["Paylaşım linki", "Borç takvimi, nakit akışı ya da gider tablosundan sadece seçtiklerini bir linkle paylaş."],
-     ["Kolay geçiş", "Expense IQ yedeğini veya Excel/CSV dosyanı içe aktar; kart kesim günlerin ve ayarların korunur. Koyu ve yumuşak açık tema da var."]
-    ].map(f => '<div><b>' + f[0] + '</b><p>' + f[1] + '</p></div>').join("") + '</section>' +
+    [["Nakit akışı", "Önümüzdeki 12 ayı tek tek gör. Maaş, kira, kart ödemesi dahil her ayın girişi, çıkışı ve ay sonu kalanı hazır. Paranın eksiye düşeceği ay önceden uyarılır.", mini(["Nakit akışı", "3 ay"],
+       m("Kasım", "giriş 64.500 · çıkış 48.320", "+16.180", "ay sonu") + m("Aralık", "giriş 64.500 · çıkış 52.100", "+12.400", "ay sonu") + m("Ocak", "giriş 64.500 · çıkış 66.800", "-2.300", "eksiye düşüyor", "neg"))],
+     ["Değişken tutarlar", "Faturan bazen 450 bazen 550 mi? Planı 500 bırak, o ayın gerçek tutarını ayrıca yaz; sonraki aylar bozulmaz.", mini(["Elektrik", "Kasım"],
+       m("Plan", "her ay aynı", "500,00", "sabit") + m("Gerçek fatura", "14 Kasım", "548,60", "+48,60 fark", "neg") + m("Aralık planı", "bozulmadı", "500,00", "sabit"))],
+     ["Ekstre eşleştirme", "Banka PDF'ini yükle; aynı gün ve tutardaki işlemler kendiliğinden eşleşir. 500 + 1500 gibi bölünmüş girişleri de tek ekstre satırına bağlarsın. Veri telefonundan çıkmaz, yapay zekâ kullanılmaz.", mini(["Ekstre", "PDF · 34 işlem"],
+       m("Migros · 24 Eki", "kart ekstresi", "-1.284,50", "eşleşti") + m("Maaş 500 + 1.500", "iki giriş tek satırda", "+2.000,00", "eşleşti"))],
+     ["Kart kesim uyarısı", "Kartının hesap kesim günü gelince Öneri ve Dikkat alanına not düşer; dokununca o dönemin işlemleri açılır.", mini(["Öneri ve dikkat", "1 not"],
+       note("Kart kesim günü yaklaşıyor", "24 Kasım · dokun → dönem işlemleri") + m("Dönem harcaması", "1–24 Kasım", "-9.960,00", "ekstreye girer"))],
+     ["Borç takvimi", "Krediler, taksitler ve kart ödemeleri tarih sırasıyla. Taksit tutarını değiştirince toplam kendiliğinden güncellenir.", mini(["Borç takvimi", "3 kayıt"],
+       m("05 Kas", "Konut kredisi · 48/120", "12.400,00") + m("12 Kas", "Kredi kartı ekstresi", "9.960,00") + m("20 Kas", "Telefon taksidi 7/12", "2.500,00"))],
+     ["Düzenli ve abonelik", "Kira, maaş, Netflix; haftalık, aylık, 3 ayda bir ya da yıllık. Abonelikler ayrı sayfada yıllık maliyetiyle görünür.", mini(["Abonelikler", "yıllık maliyet"],
+       m("Netflix", "aylık 99,99", "1.199,88", "yıllık") + m("Kira", "aylık 18.500,00", "222.000,00", "yıllık") + m("Sigorta", "3 ayda bir 1.050,00", "4.200,00", "yıllık"))],
+     ["Aylık rapor", "Her ayın 1'inde geçen aya göre hangi kategoride ne kadar arttığın ya da azaldığın yüzdelerle gelir; tasarruf oranı ve günlük ortalama dahil.", mini(["Ekim raporu", "geçen aya göre"],
+       m("Market", "3.240,00", "+%18", "arttı", "neg") + m("Ulaşım", "1.180,00", "-%7", "azaldı", "pos") + m("Tasarruf oranı", "günlük ort. 1.610", "%21", "hedef %20", "pos"))],
+     ["Günlük harcama", "Ayın her gününü çubuklarla gör, bir güne dokun ve o günün işlemlerine git. Gelecek kayıtlı harcamalar da grafikte.", mini(["Günlük harcama", "Ekim"],
+       spark([22, 38, 30, 54, 42, 68, 35, 28, 46, 58, 40, 72, 50, 33, 26, 44, 62, 38, 52, 66, 30, 48, 56, 36, 64, 42, 50, 34, 58, 46, 70], 11) + cap("12 Ekim · 1.240,00 · 4 işlem"))],
+     ["Toplu işlem", "İşleme basılı tut, çoklu seç; seçilenlerin toplamını gör, tek seferde sil.", mini(["Seçili 3 işlem", "toplam 3.734,49"],
+       mck("Migros", "24 Eki · Ev:Mutfak", "-1.284,50") + mck("Shell", "23 Eki · Araba:Yakıt", "-2.150,00") + mck("Spotify", "22 Eki · Abonelik", "-299,99") +
+       '<div class="m-total"><span>Seçilenler</span><b>-3.734,49</b></div>' + cap("Tek seferde sil"))],
+     ["Kendi ana sayfan", "Modülleri istediğin yere taşı, küçük ya da büyük yap. Telefon ve bilgisayar için ayrı düzen saklanır.", mini(["Anasayfa", "yerleşim"],
+       '<div class="m-grid"><i class="w2 h2"></i><i></i><i></i><i></i><i></i><i class="w2"></i><i></i><i></i></div>' + cap("Taşı · küçült / büyüt · ayrı kaydedilir"))],
+     ["Paylaşım linki", "Borç takvimi, nakit akışı ya da gider tablosundan sadece seçtiklerini bir linkle paylaş.", mini(["Paylaşım", "salt okunur"],
+       mck("Borç takvimi", "3 kayıt", "dahil") + mck("Nakit akışı", "12 ay", "dahil") + '<div class="m-link"><span>butce.app/s/8f2k</span><b>Kopyala</b></div>' + cap("Sadece seçtiklerin görünür"))],
+     ["Kolay geçiş", "Expense IQ yedeğini veya Excel/CSV dosyanı içe aktar; kart kesim günlerin ve ayarların korunur. Koyu ve yumuşak açık tema da var.", mini(["İçe aktar", "2 dosya"],
+       m("Expense IQ yedeği", "1.284 işlem", "hazır", "aktarıldı", "pos") + m("Excel / CSV", "96 satır", "hazır", "aktarıldı", "pos") +
+       '<div class="m-theme"><i></i><i></i><small>Koyu · Yumuşak açık</small></div>')]
+    ].map(f => '<div><b>' + f[0] + '</b><p>' + f[1] + '</p>' + f[2] + '</div>').join("") + '</section>' +
     '<footer class="ld-foot">Bütçe · Verilerin hesabına özel saklanır</footer></div>';
 }
 
