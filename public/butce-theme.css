@@ -452,4 +452,23 @@ img{-webkit-user-drag:none}
   .sum>div>span{flex-basis:100%;margin-top:1px;white-space:normal}
 }
 
+/* 12. Modül listeleri (Dağılım, En büyük harcamalar, hesaplar): tutar DAİMA tek
+   satırda kalır; ad ve yüzde etiketi kısalır. Satırın tek sırada kalması 187-197
+   satırlarındaki kurallarla zaten sağlanıyor; burada eksik olan "tutar kırılmasın"
+   güvencesi ve modül genişliğine göre uyarlanan tipografi eklenir. */
+.mod .krow .r{flex:0 0 auto;max-width:100%;flex-wrap:nowrap;justify-content:flex-end}
+.mod .krow .r b{white-space:nowrap;overflow-wrap:normal;word-break:keep-all}
+.mod .krow>span:not(.r):not(.kcic){min-width:0;overflow:hidden}
+.mod .krow>span:not(.r):not(.kcic)>b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;word-break:keep-all}
+.mod .krow>span:not(.r):not(.kcic)>.small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Dar modül: tutar ve yüzde bir tık küçülür, böylece ad için yer kalır. */
+@container (max-width:220px){
+  .mod .krow .r b{font-size:11.5px}
+  .mod .krow>span:not(.r):not(.kcic)>.small{font-size:10px}
+}
+@container (max-width:170px){
+  .mod .krow .r b{font-size:11px}
+  .mod .krow>span:not(.r):not(.kcic)>.small{font-size:9.5px}
+}
+
 

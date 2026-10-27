@@ -12,6 +12,7 @@
 - `/` and `/index.html` serve src/original-index.html verbatim; vanilla app.js/core.js retain existing workflows. Why: the static application remains the functional source of truth.
 - Shared presentation changes belong in public/butce-theme.css, loaded after legacy styles; preserve saved dashboard coordinates. Why: visual refinements must not rewrite budgeting logic or user preferences.
 - Site-wide visual unification (Dağılım dili: sunk özet hücreleri, eyebrow etiketler, tabular tutarlar) is one appended block at the end of public/butce-theme.css plus İşlemler's single-row `.fstrip` filter chips; deleting that block reverts the look and filter state/logic must stay untouched. Why: one revertible block, no budgeting-logic churn.
+- Modül listesi satırlarında (`.mod .krow`: Dağılım, En büyük harcamalar, Hesaplar) tutar asla kırılmaz: `.r` büyümez/küçülmez (`flex:0 0 auto`), tutar `white-space:nowrap`, ad ve `%pay` etiketi tek satır + üç nokta. Uyarlama `@container` ile modülün kendi genişliğine göre yapılır (viewport'a değil); ikon boyutu 187-197. satırlardaki `!important` kurallarında kalır. Why: dar modüllerde "₺27.067" iki satıra düşüyordu.
 - app.js imports /cloud-store.js, bundled from src/cloud-store/entry.ts; run `bun run build:cloud-store` after editing its source. Why: the static app executes the committed browser bundle.
 
 - Dashboard layout is order + size preset only (`SZ` table in app.js, saved as v3 `{id,on,sz}`); mobile uses `meta.dashMobile`, desktop `meta.dash`, no drag/resize. Why: preset sizes keep modules stable on touch and desktop.

@@ -32,3 +32,7 @@
 - [x] İşlemler'deki 5 ayrı filtre satırını tek yatay kaydırmalı şeride indir; filtre durumu ve davranışı değişmedi.
 - [x] 399px altındaki ekranlarda özet hücrelerini satıra çevirerek tutarın kesilmesini önle.
 
+# Liste satırlarında tutar sığdırma (1.3.2.1)
+- [x] Anasayfa modül listelerinde (Dağılım, En büyük harcamalar, Hesaplar) tutar artık hiç kırılmıyor: "₺27.067" tek satırda kalıyor, ad ve "%22,44 pay" etiketi tek satırda üç nokta ile kısalıyor.
+- [x] Kırılma viewport'a değil modülün kendi genişliğine göre yönetiliyor (`@container`): dar modülde tutar/yüzde bir tık küçülür, 220px altında ad için yer açılır.
+
