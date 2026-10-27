@@ -20,6 +20,8 @@
 - [x] Web değişikliklerinin kurulum gerektirmeden gelmesi (PWA: her açılışta sunucudan)
 - [x] Alt kategori ayracı ":" (geçmiş lehdarlar dahil)
 - [x] Lehdar boşsa, alan terk edilince kategori adını yaz (2. seçenek)
+- [x] Mobil alt menü: Yatırımlar menüden çıktı; Gider ve Dağılım üst sekmeye taşındı (7 sekme tek sıra, 1.3.1.0)
+
 
 # Daha sonra yapılacaklar
 - [x] Dağılım sayfasının tasarımını yenile: dilime dokununca merkezde tutar/pay, altında detay kartı (işlem adedi, ortalama, en yüksek, son işlem), listede eşleşen satır vurgusu ve "işlemleri gör / alt kategoriler" kısayolları (1.2.47.0).

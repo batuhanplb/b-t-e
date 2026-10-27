@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.3.0.2";
+const APP_VERSION = "1.3.1.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -274,20 +274,15 @@ function render() {
   if (S._toCur || (!keep && (S.view === "table" || S.view === "debt"))) { S._toCur = false; const t2 = document.querySelector(".tw"); const r = t2 && t2.querySelector("tr.cur"); if (r) t2.scrollTop = Math.max(0, r.offsetTop - t2.clientHeight / 2); }
   afterRender();
 }
-const ANA = [["table", "Gider", ICON.table], ["pie", "Dağılım", ICON.pie], ["inv", "Yatırımlar", ICON.trend, 1]];
-const PAY = [["debt", "Borç takvimi", ICON.card], ["cash", "Nakit akışı", ICON.trend]];
 const TAN = [["acc", "Hesaplar", ICON.wallet], ["cat", "Kategoriler", ICON.tag], ["pay", "Lehdarlar", ICON.user]];
 function mbar() {
-  const inA = ANA.some(([v]) => v === S.view), inP = PAY.some(([v]) => v === S.view), inT = TAN.some(([v]) => v === S.view), op = S.bub;
-  const bub = (list, cls) => '<div class="bubs ' + cls + '">' + list.map(([v, l, i], k) => '<button class="bub" data-act="nav" data-v="' + v + '" style="--k:' + k + '"' + (S.view === v ? ' aria-current="page"' : '') + '><span class="bi">' + i + '</span><span class="bl">' + l + '</span></button>').join("") + '</div>';
-  return '<div class="mbar' + (op ? " open" : "") + '">' + (op ? '<button class="scrim" data-act="bub" data-v="" aria-label="Kapat"></button>' + bub(op === "ana" ? ANA : op === "pay" ? PAY : TAN, op) : '') +
+  const inT = TAN.some(([v]) => v === S.view), op = S.bub === "tan";
+  const nv = (v, l, i) => '<button data-act="nav" data-v="' + v + '" aria-current="' + (S.view === v ? "page" : "false") + '">' + i + l + '</button>';
+  const bub = list => '<div class="bubs tan">' + list.map(([v, l, i], k) => '<button class="bub" data-act="nav" data-v="' + v + '" style="--k:' + k + '"' + (S.view === v ? ' aria-current="page"' : '') + '><span class="bi">' + i + '</span><span class="bl">' + l + '</span></button>').join("") + '</div>';
+  return '<div class="mbar' + (op ? " open" : "") + '">' + (op ? '<button class="scrim" data-act="bub" data-v="" aria-label="Kapat"></button>' + bub(TAN) : '') +
     '<nav class="mnav" aria-label="Bölümler">' +
-    '<button data-act="nav" data-v="home" aria-current="' + (S.view === "home" ? "page" : "false") + '">' + ICON.home + 'Anasayfa</button>' +
-    '<button data-act="nav" data-v="tx" aria-current="' + (S.view === "tx" ? "page" : "false") + '">' + ICON.list + 'İşlemler</button>' +
-    '<button class="mx ' + (op === "ana" ? "on" : "") + '" data-act="bub" data-v="ana" aria-current="' + (inA ? "page" : "false") + '">' + (op === "ana" ? ICON.x : ICON.pie) + 'Analiz</button>' +
-    '<button data-act="nav" data-v="cash" aria-current="' + (S.view === "cash" ? "page" : "false") + '">' + ICON.trend + 'Nakit</button>' +
-    '<button data-act="nav" data-v="debt" aria-current="' + (S.view === "debt" ? "page" : "false") + '">' + ICON.card + 'Borç</button>' +
-    '<button class="mx ' + (op === "tan" ? "on" : "") + '" data-act="bub" data-v="tan" aria-current="' + (inT ? "page" : "false") + '">' + (op === "tan" ? ICON.x : ICON.tag) + 'Tanımlar</button>' +
+    nv("home", "Anasayfa", ICON.home) + nv("tx", "İşlemler", ICON.list) + nv("table", "Gider", ICON.table) + nv("pie", "Dağılım", ICON.pie) + nv("cash", "Nakit", ICON.trend) + nv("debt", "Borç", ICON.card) +
+    '<button class="mx ' + (op ? "on" : "") + '" data-act="bub" data-v="tan" aria-current="' + (inT ? "page" : "false") + '">' + (op ? ICON.x : ICON.tag) + 'Tanımlar</button>' +
     '</nav></div>';
 }
 const monthBar = () => '<div class="monthbar"><button class="ib" data-act="mprev" aria-label="Önceki ay">' + ICON.l + '</button><span class="l">' + mLabel(S.month) + '</span><button class="ib" data-act="mnext" aria-label="Sonraki ay">' + ICON.r + '</button></div>';
