@@ -1,6 +1,7 @@
 // Nakit akışı sayfası: Orijinal / Simülasyon sekmesi ve tahmin satırları.
 // Tahmin, geçmiş ayların ağırlıklı ortalamasıdır; cari ayda harcanan tutar
-// tahminden düşülür (20.000 tahmin - 1.000 harcama = 19.000 kalan).
+// tahminden düşülür (20.000 tahmin - 1.000 harcama = 19.000 kalan) ve tahmin
+// çıkış toplamına / ay sonu kalanına yansır.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -95,6 +96,7 @@ describe("Nakit akışı simülasyon sekmesi", () => {
     click(w, w.document.querySelectorAll(".cash-tabseg button")[1]);
     await flush();
     expect(w.document.querySelector(".simcard")).not.toBeNull();
+    expect(txt(w.document.querySelector('[data-act="sim-pick"]'))).toBe("+ Gider");
     expect(txt(w.document.querySelector(".simrow .r b"))).toContain("20.000");
     const rows = [...w.document.querySelectorAll(".crow.sim")];
     expect(rows.length).toBe(1);
@@ -120,6 +122,26 @@ describe("Nakit akışı simülasyon sekmesi", () => {
     const t = txt(rows[0]);
     expect(t).toContain("20.000");
     expect(t).not.toContain("harcandı");
+    dom.window.close();
+  });
+
+  it("tahmin çıkış toplamına ve ay sonu kalanına yansır", async () => {
+    const dom = boot(seed());
+    const w = dom.window;
+    await flush();
+    click(w, w.document.querySelectorAll(".cash-tabseg button")[1]);
+    await flush();
+    // Elde 39.000 (100.000 - 61.000) ve cari ayın kalan tahmini 19.000.
+    let cells = [...w.document.querySelectorAll(".cash-sum > div")];
+    expect(txt(cells[1])).toContain("19.000"); // çıkış
+    expect(txt(cells[2])).toContain("20.000"); // 39.000 - 19.000
+    // Gelecek ay: tahminin tamamı düşer (20.000 - 20.000 = 0).
+    const nav = [...w.document.querySelectorAll('.cash-nav [data-act="cash-open"]')];
+    click(w, nav[nav.length - 1]);
+    await flush();
+    cells = [...w.document.querySelectorAll(".cash-sum > div")];
+    expect(txt(cells[1])).toContain("20.000");
+    expect(txt(cells[2])).toContain("0,00");
     dom.window.close();
   });
 

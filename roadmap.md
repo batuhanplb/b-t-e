@@ -48,4 +48,10 @@
 - [x] Simülasyon tahminleri paylaşılan sayfada yok; paylaşım her zaman Orijinal görünümü ve salt okunur satırları gönderiyor.
 - [x] Birim testleri: `src/test/cash-sim.test.js` (tahmin/kırpma/kalan/aylık toplam) ve `src/test/cash-sim-ui.test.js` (sekme, tahmin satırı, gelecek ay, kalem seçimi).
 
+## Nakit akışı simülasyonu düzeltmeleri (1.3.4.1)
+- [x] Tahmin satırları artık ayın çıkış toplamına ve "Ay sonu kalan"a giriyor: `cashPlan({sim})` satırları `on:true` ile ekleniyor, böylece simülasyon kalemleri sonraki ayların bakiyesinden gerçekten düşüyor (önce çıkış toplamı `l.on` filtrelediği için tahmin hiç sayılmıyordu).
+- [x] Simülasyon kartı site diliyle hizalandı: kesikli çerçeve, "≈" rozeti ve uzun not kaldırıldı; normal kart + satır listesi + ince toplam satırı, sağ üstte sade "**+ Gider**" butonu (eskiden "+ Kalem").
+- [x] Sekme çubuğu (`.cash-tabseg`) kompaktlaştı (32px buton, sunk zemin, aktif beyaz + gölge); ay kartındaki tahmin satırı tick hizasına girintili, soluk italik.
+- [x] UI testine "tahmin çıkış toplamına ve ay sonu kalanına yansır" eklendi (cari ay 19.000 kalan, gelecek ay 20.000 tam tahmin).
+
 

@@ -2,7 +2,7 @@ import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
-const APP_VERSION = "1.3.4.0";
+const APP_VERSION = "1.3.4.1";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -754,9 +754,11 @@ function cashPlan(opt) {
     // Simülasyon: tahmini kalemler. Cari ayda sadece "kalan tahmin" düşülür;
     // eldeki bakiye ay içinde yapılan harcamayı zaten yansıttığı için tahminin
     // tamamını düşmek çift sayım olur.
+    // on:true → çıkış toplamına ve ay sonu kalanına girer (tick yok, cashRow
+    // tahmin satırı olarak çizer).
     if (sim) sim.items.forEach(x => { const now = m === cm, amt = now ? x.rem.rem : x.est.avg;
       if (!(amt > 0)) return;
-      lines.push({ k: "-", n: x.label, a: C.r2(amt), day: 0, sim: true, cur: now, est: x.est.avg, spent: now ? x.rem.spent : 0, trend: x.est.trend, ref: "sim|" + x.key }); });
+      lines.push({ k: "-", n: x.label, a: C.r2(amt), day: 0, on: true, sim: true, cur: now, est: x.est.avg, spent: now ? x.rem.spent : 0, trend: x.est.trend, ref: "sim|" + x.key }); });
     // Gün 0 → plan/tahmin toplam satırları; listenin sonunda dururlar.
     lines.sort((a, b) => (a.k === b.k ? 0 : a.k === "+" ? -1 : 1) || (a.day || 99) - (b.day || 99));
     const inc = lines.filter(l => l.k === "+" && l.on).reduce((s, l) => s + l.a, 0), exp = lines.filter(l => l.k === "-" && l.on).reduce((s, l) => s + l.a, 0);
@@ -800,15 +802,15 @@ function simPickList(kind, q) {
 const simTrendTxt = t => t > 0.05 ? "↑ artıyor" : t < -0.05 ? "↓ azalıyor" : "→ sabit";
 function simCard(sim) {
   const rows = sim.items.length
-    ? '<div class="simlist">' + sim.items.map(x => '<div class="simrow"><span class="simtag" aria-hidden="true">≈</span><span class="grow"><b>' + esc(x.label) + '</b><span class="small muted" style="display:block">' + (x.t === "cat" ? "Kategori" : "Lehdar") + ' · ' + x.est.active + '/' + x.est.span + ' ay · ' + simTrendTxt(x.est.trend) + '</span></span><span class="r"><b>' + f0(x.est.avg) + '</b><span class="small muted simrem" style="display:block">' + (x.rem.done ? "bu ay tamam" : "bu ay " + f0(x.rem.rem) + " kaldı") + '</span></span><button class="ib simdel" data-act="sim-del" data-k="' + esc(x.key) + '" aria-label="Kaldır">' + ICON.x + '</button></div>').join("") + '</div>'
-    : '<p class="small muted simempty">Henüz kalem seçilmedi. Kategori ya da lehdar ekleyin; tahmin geçmiş aylarınızdan çıkarılır.</p>';
-  return '<div class="card simcard"><div class="simhead"><div><span class="sim-eyebrow">Simülasyon</span><b>Tahmini düzenli giderler</b></div><button class="btn sm" data-act="sim-pick">+ Kalem</button></div>' + rows +
+    ? '<div class="simlist">' + sim.items.map(x => '<div class="simrow"><span class="grow"><b>' + esc(x.label) + '</b><span class="simsub">' + (x.t === "cat" ? "Kategori" : "Lehdar") + ' · ' + x.est.active + '/' + x.est.span + ' ay · ' + simTrendTxt(x.est.trend) + '</span></span><span class="r"><b>' + f0(x.est.avg) + '</b><span class="simsub">' + (x.rem.done ? "bu ay tamam" : "bu ay " + f0(x.rem.rem) + " kaldı") + '</span></span><button class="ib simdel" data-act="sim-del" data-k="' + esc(x.key) + '" aria-label="Kaldır">' + ICON.x + '</button></div>').join("") + '</div>'
+    : '<p class="small muted simempty">Henüz gider seçilmedi. “+ Gider” ile kategori ya da lehdar ekleyin; tahmini geçmiş aylarınızdan çıkarılır.</p>';
+  return '<div class="card simcard"><div class="simhead"><div class="simttl"><span class="sim-eyebrow">Simülasyon</span><b>Tahmini düzenli giderler</b></div><button class="btn sm ghost" data-act="sim-pick">+ Gider</button></div>' + rows +
     (sim.items.length ? '<div class="simtot"><span>Toplam aylık tahmin</span><b>' + f2(sim.total) + '</b></div>' : '') +
-    '<p class="small muted simnote">Son ' + sim.months + ' ayın <b>ağırlıklı</b> ortalaması: yakın aylar daha çok etkiler, tek seferlik uç harcamalar kırpılır. Ay içinde harcadıkça tahminin kalanı nakitten düşer. Düzenli gelir/gider kalemleri aynen sayılır.</p></div>';
+    '<p class="small muted simnote">Tahmin son ' + sim.months + ' ayın ağırlıklı ortalamasıdır: yakın aylar daha çok etkiler, tek seferlik uç harcamalar kırpılır. Ay içinde harcadıkça tahminin kalanı düşer.</p></div>';
 }
-// Nakit akışı satırı: gerçek kalemler (tick + düzenle) ve tahminler (≈, soluk).
+// Nakit akışı satırı: gerçek kalemler (tick + düzenle) ve tahminler (soluk).
 function cashRow(l) {
-  if (l.sim) return '<div class="crow sim"><span class="simtag" aria-hidden="true">≈</span><span class="cl"><span>' + esc(l.n) + (l.cur ? ' <span class="small muted">bu ay</span>' : '') + '</span><span class="neg">' + f2(l.a) + (l.cur && l.spent > 0 ? '<span class="small muted" style="display:block">tahmin ' + f0(l.est) + ' · ' + f0(l.spent) + ' harcandı</span>' : '') + '</span></span></div>';
+  if (l.sim) return '<div class="crow sim"><span class="cl"><span>' + esc(l.n) + (l.cur ? ' <span class="small muted">bu ay</span>' : '') + '</span><span class="neg">' + f2(l.a) + (l.cur && l.spent > 0 ? '<span class="simsub">tahmin ' + f0(l.est) + ' · ' + f0(l.spent) + ' harcandı</span>' : '') + '</span></span></div>';
   return '<div class="crow' + (l.on ? '' : ' off') + '"><button class="ck' + (l.on ? '' : ' on') + '" data-act="cash-tick" data-ref="' + esc(l.ref) + '" aria-label="Gerçekleşti / gerçekleşmedi"></button>' + (l.id ? '<span class="cl"><button data-act="ci-edit" data-id="' + esc(l.id) + '" style="text-align:left;flex:1">' + esc(l.n) + (l.day ? ' <span class="small muted">' + dayTxt(l.day) + '</span>' : '') + '</button><button data-act="ci-actual" data-id="' + esc(l.id) + '" data-m="' + l.am + '" title="Bu ayın gerçek tutarı" style="text-align:right" class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + (l.plan != null ? '<span class="small muted" style="display:block">plan ' + f0(l.plan) + '</span>' : '') + '</button></span>' : '<span class="cl"><span>' + esc(l.n) + '</span><span class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + '</span></span>') + '</div>';
 }
 
@@ -1470,7 +1472,7 @@ function renderSettings() {
     h = head("Tablo ayarları") + '<div class="sh-bd"><label class="fld"><span>Tablo adı</span><input class="in" data-gn="name" value="' + esc(D.name || "") + '"></label><p class="small muted" style="margin-top:0">' + (multi ? 'Her grubun sonunda bir ara toplam sütunu olur. ' : '') + 'Ana kategori seçerseniz alt kategorileri de dahil edilir. Çıkarmak için sütuna dokunun.</p>' + ks.map((g, i) => grpH(g, (i + 1) + ". grup")).join("") + '<button class="btn sm ghost" data-act="gt-gadd">' + (multi ? '+ Grup ekle' : 'Gruplara ayır') + '</button></div><div class="sh-ft">' + (gtTabs().length > 1 ? '<button class="btn danger" data-act="gt-del">Tabloyu sil</button>' : '') + '<button class="btn" data-act="gt-save">Kaydet</button></div>';
   } else if (v === "sim") {
     const selK = simSel(), q = D.q || {};
-    h = head("Simülasyon kalemleri") + '<div class="sh-bd">' +
+    h = head("Simülasyon giderleri") + '<div class="sh-bd">' +
       '<p class="small muted" style="margin-top:0">Seçtiğiniz kategori ve lehdarların son ' + SIM_LOOKBACK + ' ayındaki harcamasından ağırlıklı bir tahmin çıkarılır. Tahmin, Nakit akışı > Simülasyon sekmesinde gider satırı olarak görünür; ay içinde harcadıkça tahminin kalanı düşer.</p>' +
       (selK.length ? '<div class="chips" style="margin-bottom:14px">' + selK.map(x => '<span class="chip" style="padding:4px 6px 4px 10px"><i style="background:' + (x.t === "cat" ? catColor(x.v) : "var(--tr)") + '"></i><span>' + esc(x.t === "cat" ? catLabel(x.v) : x.v) + '</span> <button class="ib" style="width:26px;height:26px" data-act="sim-tog" data-t="' + x.t + '" data-v="' + esc(x.v) + '" aria-label="Kaldır">' + ICON.x + '</button></span>').join("") + '</div>' : '') +
       '<div class="fld"><span>Kategoriler</span><div class="catsel cat-search">' + ICON.search + '<input data-simq="cat" autocomplete="off" placeholder="Kategori ara…" value="' + esc(q.cat || "") + '"></div><div class="tx-catlist" id="siml-cat">' + simPickList("cat", q.cat) + '</div></div>' +
