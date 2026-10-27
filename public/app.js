@@ -1,7 +1,7 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.3.0.0";
+const APP_VERSION = "1.3.0.1";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -178,7 +178,7 @@ function catLabel(id, short) {
   const p = c.parent ? catOf(c.parent) : null;
   return p && !short ? p.name + ":" + c.name : c.name;
 }
-const payName = t => (t.t || (t.k !== "tr" && t.cat ? catLabel(t.cat, true) : "")).trim();
+const payName = t => (t.t || (t.k !== "tr" && t.cat ? catLabel(t.cat) : "")).trim();
 function allPayees(k) { const m = new Map(); derived().all.forEach(t => { if (t.k === "tr" || (k && t.k !== k)) return; const n = payName(t); if (!n) return; const key = n.toLocaleLowerCase("tr"); const e = m.get(key) || { t: n, n: 0, a: 0, k: t.k }; e.n++; e.a += t.a; m.set(key, e); }); return [...m.values()].sort((a, b) => a.t.localeCompare(b.t, "tr")); }
 const catColor = id => { const c = catOf(id); return c ? c.color : "#9a9fa3"; };
 const accName = id => (derived().accMap[id] || {}).name || "Hesap yok";
@@ -193,7 +193,7 @@ function fixSep() {
     let n = t.t; if (n && re.test(n)) { n = n.replace(re, ":"); } re.lastIndex = 0;
     // Lehdar sadece alt kategori adıysa (örn "hediye") → "Hatun:hediye". Özel adlara dokunma.
     const c = t.k !== "tr" && cm[t.cat], p = c && c.parent && cm[c.parent];
-    if (p && n && lc(n) === lc(c.name)) n = p.name + ":" + c.name;
+    if (p && (!n || lc(n) === lc(c.name))) n = p.name + ":" + c.name;
     if (n !== t.t) { ch = true; return { ...t, t: n }; } return t; }); if (ch) saveMonth(m, it); });
 }
 
@@ -352,7 +352,7 @@ function txRow(t, m, rb) {
     title = t.t || "Transfer"; sub = accName(t.acc) + " → " + accName(t.to); amt = f2(t.a); cls = "muted"; color = "var(--tr)";
   } else {
     const sp = t.sp && t.sp.length ? t.sp.slice().sort((x, y) => y.a - x.a) : null;
-    title = t.t || (sp ? sp.map(x => catLabel(x.cat, true)).join(" + ") : catLabel(t.cat, true));
+    title = t.t || (sp ? sp.map(x => catLabel(x.cat, true)).join(" + ") : catLabel(t.cat));
     sub = sp ? "(" + sp.map(x => f0(x.a) + " × " + catLabel(x.cat, true)).join(", ") + ") " + accName(t.acc)
       : (t.t ? catLabel(t.cat) + ", " : (catOf(t.cat) && catOf(t.cat).parent ? catLabel(t.cat) + ", " : "")) + accName(t.acc);
     amt = (t.k === "e" ? "-" : "+") + f2(t.a); cls = t.k === "e" ? "neg" : "pos"; color = catColor(spc);
@@ -1763,7 +1763,7 @@ document.addEventListener("change", e => {
 });
 document.addEventListener("focusout", e => {
   if (e.target.id !== "f-t") return;
-  setTimeout(() => { const el = $("#f-t"); if (D && dlg.open && el && !el.value.trim() && !D.t && D.cat && D.k !== "tr") { D.t = catLabel(D.cat, true); el.value = D.t; } }, 220);
+  setTimeout(() => { const el = $("#f-t"); if (D && dlg.open && el && !el.value.trim() && !D.t && D.cat && D.k !== "tr") { D.t = catLabel(D.cat); el.value = D.t; } }, 220);
 });
 document.addEventListener("keydown", e => {
   if (D && (e.target.id === "cq" || e.target.closest(".tx-catlist"))) {
