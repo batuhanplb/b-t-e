@@ -40,3 +40,12 @@
 - [x] Dağılım satırlarındaki "geçen aya göre değişim" (↑/↓ %) mobilde gizlenmiyor: 230px altındaki modüllerde tutarın altında 9-9,5px'lik sağa yaslı satır olarak görünüyor.
 - [x] Önceki ay verisi olmayan satırlarda gelen "—" işareti dar modülde gizli kalır (kalabalık yapmasın); satır yüksekliği artmadı, liste yoğunluğu aynı.
 
+# Nakit akışı simülasyonu (1.3.4.0)
+- [x] Nakit akışı sayfasına **Orijinal / Simülasyon** sekmesi: seçilen kategori ve lehdarlar geçmiş aylardan tahmin edilip gider satırı olarak ekleniyor.
+- [x] Tahmin düz ortalama değil: son 12 ay, 3 aylık yarı ömürle ağırlıklı; tek seferlik uç harcamalar medyanın 2,5 katında kırpılıyor; kalemin ilk göründüğü aydan öncesi "veri yok" sayılıyor.
+- [x] Ay içinde yalnızca kalan tahmin düşülüyor (tahmin 20.000, 1.000 harcandı → 19.000); gelecek aylarda tahminin tamamı sayılıyor.
+- [x] "Maaş / dönem başlangıcı" mekaniği tamamen kaldırıldı: nakit akışı artık düz takvim ayı (1 → ay sonu) ile çalışıyor, ayarlardaki gün seçimi kaldırıldı.
+- [x] Simülasyon tahminleri paylaşılan sayfada yok; paylaşım her zaman Orijinal görünümü ve salt okunur satırları gönderiyor.
+- [x] Birim testleri: `src/test/cash-sim.test.js` (tahmin/kırpma/kalan/aylık toplam) ve `src/test/cash-sim-ui.test.js` (sekme, tahmin satırı, gelecek ay, kalem seçimi).
+
+

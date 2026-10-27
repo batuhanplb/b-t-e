@@ -1,7 +1,8 @@
 import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
-const APP_VERSION = "1.3.3.0";
+import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
+const APP_VERSION = "1.3.4.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -160,6 +161,7 @@ const S = { gtab: "sum",
   ver: 0, cache: null
 };
 S.accFs = []; S.per = "m"; S.showPastTx = true; S.showFutTx = false; S.showE = true; S.showI = true;
+S.cashTab = "orig";
 S.pFrom = CUR() + "-01"; S.pTo = today(); S.pCat = ""; S.pSel = null; S.catF = null; S.showPast = false;
 const meta = () => S.meta || DEFAULT_META;
 function derived() {
@@ -467,7 +469,7 @@ function vHome() {
   const M = {};
   M.exp = () => mod(svgI(CI.bag), "Toplam gider", "g:e", '<div class="mod-n inl"><b>' + f0(te) + '</b>' + delta(te, pe, true) + '</div>' + chartBox("line", cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp), lbl, cumTips(cum(cur, "e", dm, lastDay), cum(prev, "e", dp, dp))) + leg);
   M.inc = () => mod(svgI(CI.coin), "Toplam gelir", "g:i", '<div class="mod-n inl"><b>' + f0(ti) + '</b>' + delta(ti, pi) + '</div>' + chartBox("line", cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp), lbl, cumTips(cum(cur, "i", dm, lastDay), cum(prev, "i", dp, dp))) + leg);
-  M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + (salDay() > 1 ? salDay() + "'ine kadar" : "bu ay sonu") + '</span></div>' + chartBox("bar", pl.map(p => Math.max(0, p.kalan)), [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]], pl.map(p => mLabel(p.m) + ": " + f2(p.kalan)), 0) ); };
+  M.cash = () => { const pl = cashPlan(); return mod(svgI(CI.home), "Nakit akışı", "cash", '<div class="mod-n tr"><b class="' + (pl[0].kalan < 0 ? "neg" : "") + '">' + f0(pl[0].kalan) + '</b><span class="muted small">' + "ay sonu" + '</span></div>' + chartBox("bar", pl.map(p => Math.max(0, p.kalan)), [[0, C.TR_M[Number(pl[0].m.slice(5)) - 1].slice(0, 3)], [3, C.TR_M[Number(pl[3].m.slice(5)) - 1].slice(0, 3)], [6, C.TR_M[Number(pl[6].m.slice(5)) - 1].slice(0, 3)], [9, C.TR_M[Number(pl[9].m.slice(5)) - 1].slice(0, 3)], [11, C.TR_M[Number(pl[11].m.slice(5)) - 1].slice(0, 3)]], pl.map(p => mLabel(p.m) + ": " + f2(p.kalan)), 0) ); };
   const tops = (arr) => { const o = {}; arr.filter(t => t.k === "e").forEach(t => catParts(t).forEach(pp => { const c = C.topCat(D.catMap, pp.cat); const k = c ? c.id : "_"; o[k] = (o[k] || 0) + pp.a; })); return o; };
   const tc = tops(cur), tp = tops(prev), rows = Object.entries(tc).sort((a, b) => b[1] - a[1]);
   M.cats = () => mod(svgI(CI.tag), "Dağılım", "pie", (rows.length ? '<div class="klist">' + rows.slice(0, 20).map(([id, v]) => '<button class="krow" data-act="' + (id === "_" ? "nav" : "cat-tx") + '" data-id="' + esc(id) + '" data-v="tx"><span class="cic kcic" style="--c:' + catColor(id === "_" ? null : id) + '">' + catIcon(id === "_" ? null : id) + '</span><span><b>' + esc(id === "_" ? "Kategorisiz" : catOf(id).name) + '</b><span class="muted small">%' + nfp.format(te ? v / te * 100 : 0).replace(/,00$/, "") + ' pay</span></span><span class="r"><b>' + f0(v) + '</b>' + delta(v, tp[id] || 0, true) + '</span></button>').join("") + '</div>' : '<div class="empty">Bu ay gider yok.</div>'));
@@ -727,49 +729,106 @@ function cashAmt(it, m) {
 function cashPlanAmt(it, m) {
   let a = 0, f = ""; (it.amts || []).forEach(x => { if (x.from <= m && x.from >= f) { f = x.from; a = x.a; } }); return a;
 }
-const salDay = () => Math.min(31, Math.max(1, parseInt(meta().salaryDay) || 1));
-// Dönem anahtarı: maaş günü sd ise, "K" dönemi K ayının sd'si ile sonraki ayın sd-1'i arasıdır.
-const cycKey = (m, day) => (day >= salDay() ? m : C.addM(m, -1));
-function cycEnd(K) { const sd = salDay(); if (sd === 1) return K + "-" + String(C.daysIn(K)).padStart(2, "0"); const n = C.addM(K, 1); return n + "-" + String(Math.min(sd - 1, C.daysIn(n))).padStart(2, "0"); }
-function cashPlan() {
-  const tdy = today(), sd = salDay(), cm = cycKey(CUR(), Number(tdy.slice(8, 10))), Dd = derived();
+// Nakit akışı takvim ayına göre çalışır: her dönem bir ayın tamamıdır
+// (1'inden son gününe). "Maaş / dönem başlangıcı" mekaniği 1.3.4.0'da kaldırıldı.
+// opt.sim verilirse simülasyondan gelen tahmini gider satırları da eklenir.
+function cashPlan(opt) {
+  const tdy = today(), cm = CUR(), Dd = derived();
   const accs = meta().accounts.filter(a => a.type !== "kart" && !a.exclude && !a.hidden), ids = new Set(accs.map(a => a.id));
   const bal = C.accountBalances(meta().accounts, Dd.all.filter(t => t.d <= tdy));
   let elde = C.r2(accs.reduce((s, a) => s + (bal[a.id] || 0), 0));
   const items = (meta().cash || {}).items || [], exd = (meta().cash || {}).exDebts || [], cols = debtCols().filter(([id]) => !exd.includes(id)), out = [];
+  const sim = opt && opt.sim && opt.sim.items && opt.sim.items.length ? opt.sim : null;
   for (let i = 0; i < 12; i++) {
     const m = C.addM(cm, i), lines = [];
     const skip = (meta().cash || {}).skip || {};
     items.forEach(it => { const day = it.rep === "once" ? Number((it.date || "").slice(8, 10)) : (it.day || 1);
-      const am = it.rep === "once" ? (it.date ? cycKey(it.date.slice(0, 7), day) === m ? it.date.slice(0, 7) : null : null) : (day >= sd ? m : C.addM(m, 1));
-      if (!am) return; const a = cashAmt(it, am); if (!a) return;
-      lines.push({ k: it.k === "inc" ? "+" : "-", n: it.name, a, day, id: it.id, am, plan: it.rep !== "once" && it.act && it.act[am] != null ? cashPlanAmt(it, am) : null, on: !(it.skip || []).includes(m), ref: "ci|" + it.id + "|" + m }); });
-    cols.forEach(([id, d]) => { (d.sched || []).forEach((x, xi) => { if (cycKey(x.m, d.day || 1) !== m || !(x.a > 0)) return; const pd = isPaid(d, x);
+      const am = it.rep === "once" ? (it.date || "").slice(0, 7) : m;
+      if (!am || am !== m) return; const a = cashAmt(it, m); if (!a) return;
+      lines.push({ k: it.k === "inc" ? "+" : "-", n: it.name, a, day, id: it.id, am, plan: it.rep !== "once" && it.act && it.act[m] != null ? cashPlanAmt(it, m) : null, on: !(it.skip || []).includes(m), ref: "ci|" + it.id + "|" + m }); });
+    cols.forEach(([id, d]) => { (d.sched || []).forEach((x, xi) => { if (x.m !== m || !(x.a > 0)) return; const pd = isPaid(d, x);
       lines.push({ k: "-", n: d.name + (d.kind === "kart" ? " ekstresi" : " taksiti"), a: C.r2(x.a), day: d.day || 1, debt: true, on: !pd, ref: "debt|" + id + "|" + d.src + "|" + xi }); }); });
-    const plan = Dd.all.filter(t => cycKey(t.d.slice(0, 7), Number(t.d.slice(8, 10))) === m && t.d > tdy && t.k !== "tr" && ids.has(t.acc));
+    const plan = Dd.all.filter(t => t.d.slice(0, 7) === m && t.d > tdy && t.k !== "tr" && ids.has(t.acc));
     const pi = plan.filter(t => t.k === "i").reduce((s, t) => s + t.a, 0), pe = plan.filter(t => t.k === "e").reduce((s, t) => s + t.a, 0);
     if (pi) lines.push({ k: "+", n: "Planlı gelir işlemleri", a: C.r2(pi), day: 0, on: !skip["pi|" + m], ref: "plan|pi|" + m }); if (pe) lines.push({ k: "-", n: "Planlı gider işlemleri", a: C.r2(pe), day: 0, on: !skip["pe|" + m], ref: "plan|pe|" + m });
-    const ord = dd => (dd >= sd ? dd - sd : dd + 31);
-    lines.sort((a, b) => (a.k === b.k ? 0 : a.k === "+" ? -1 : 1) || ord(a.day) - ord(b.day));
+    // Simülasyon: tahmini kalemler. Cari ayda sadece "kalan tahmin" düşülür;
+    // eldeki bakiye ay içinde yapılan harcamayı zaten yansıttığı için tahminin
+    // tamamını düşmek çift sayım olur.
+    if (sim) sim.items.forEach(x => { const now = m === cm, amt = now ? x.rem.rem : x.est.avg;
+      if (!(amt > 0)) return;
+      lines.push({ k: "-", n: x.label, a: C.r2(amt), day: 0, sim: true, cur: now, est: x.est.avg, spent: now ? x.rem.spent : 0, trend: x.est.trend, ref: "sim|" + x.key }); });
+    // Gün 0 → plan/tahmin toplam satırları; listenin sonunda dururlar.
+    lines.sort((a, b) => (a.k === b.k ? 0 : a.k === "+" ? -1 : 1) || (a.day || 99) - (b.day || 99));
     const inc = lines.filter(l => l.k === "+" && l.on).reduce((s, l) => s + l.a, 0), exp = lines.filter(l => l.k === "-" && l.on).reduce((s, l) => s + l.a, 0);
     const kalan = C.r2(elde + inc - exp);
-    out.push({ m, end: cycEnd(m), elde, inc: C.r2(inc), exp: C.r2(exp), kalan, lines }); elde = kalan;
+    out.push({ m, elde, inc: C.r2(inc), exp: C.r2(exp), kalan, lines }); elde = kalan;
   }
   return out;
 }
-const cycLabel = p => salDay() === 1 ? mLabel(p.m) : dLabel(p.end) + "’e kadar";
+/* ---- Simülasyon: geçmiş aylardan tahmin ---- */
+const simSel = () => { const s = ((meta().cash || {}).sim || {}).sel; return Array.isArray(s) ? s.filter(x => x && (x.t === "cat" || x.t === "pay") && x.v) : []; };
+function simSave(fn) { saveMetaChange(m => { m.cash = m.cash || {}; const s = m.cash.sim = m.cash.sim || {}; s.sel = Array.isArray(s.sel) ? s.sel : []; fn(s); }); }
+const simOn = (t, v) => simSel().some(x => x.t === t && x.v === v);
+function simKeyOf(k) { const s = String(k), i = s.indexOf(":"); return { t: s.slice(0, i), v: s.slice(i + 1) }; }
+// Seçili kalemler için ağırlıklı tahmin + cari ayın kalanı.
+function simPlan() {
+  const sel = simSel();
+  if (!sel.length) return { items: [], total: 0, months: SIM_LOOKBACK };
+  const months = simMonths(CUR(), SIM_LOOKBACK), catMap = derived().catMap;
+  const acc = { catMap, payOf: payName, partsOf: catParts };
+  const hist = simMonthlyTotals(derived().all.filter(t => t.k === "e"), sel, acc);
+  // Cari ayda "harcanan" yalnızca bugüne kadarki gerçekleşen giderdir; ileri
+  // tarihli planlı işlemler ayrıca "Planlı gider işlemleri" satırında sayılır.
+  const nowM = simMonthlyTotals(monthItems(CUR()).filter(t => t.k === "e" && t.d <= today()), sel, acc);
+  const items = sel.map(s => {
+    const key = s.t + ":" + s.v, per = hist[key] || {};
+    const est = simEstimate(months.map(m => per[m] || 0));
+    const rem = simRemaining(est.avg, (nowM[key] || {})[CUR()] || 0);
+    return { t: s.t, v: s.v, key, label: s.t === "cat" ? catLabel(s.v) : s.v, est, rem };
+  });
+  return { items, months: months.length, total: C.r2(items.reduce((s, x) => s + x.est.avg, 0)) };
+}
+function simPickList(kind, q) {
+  q = (q || "").trim().toLocaleLowerCase("tr");
+  const list = kind === "cat"
+    ? catTree().filter(({ c }) => c.type === "E").map(({ c, depth }) => ({ v: c.id, l: catLabel(c.id), col: c.color, depth }))
+    : allPayees("e").sort((a, b) => b.a - a.a).map(p => ({ v: p.t, l: p.t, col: "var(--tr)", depth: 0 }));
+  const f = list.filter(x => !q || x.l.toLocaleLowerCase("tr").includes(q));
+  if (!f.length) return '<p class="small muted cat-noresults">' + (q ? "Eşleşen yok." : "Henüz kalem yok.") + '</p>';
+  return f.map(x => '<button class="tx-catoption" role="option" aria-selected="' + simOn(kind, x.v) + '" data-act="sim-tog" data-t="' + kind + '" data-v="' + esc(x.v) + '"><i style="background:' + x.col + '"></i><span' + (x.depth ? ' style="padding-left:14px"' : '') + '>' + esc(x.l) + '</span>' + (simOn(kind, x.v) ? '<span class="cat-check">✓</span>' : '') + '</button>').join("");
+}
+const simTrendTxt = t => t > 0.05 ? "↑ artıyor" : t < -0.05 ? "↓ azalıyor" : "→ sabit";
+function simCard(sim) {
+  const rows = sim.items.length
+    ? '<div class="simlist">' + sim.items.map(x => '<div class="simrow"><span class="simtag" aria-hidden="true">≈</span><span class="grow"><b>' + esc(x.label) + '</b><span class="small muted" style="display:block">' + (x.t === "cat" ? "Kategori" : "Lehdar") + ' · ' + x.est.active + '/' + x.est.span + ' ay · ' + simTrendTxt(x.est.trend) + '</span></span><span class="r"><b>' + f0(x.est.avg) + '</b><span class="small muted simrem" style="display:block">' + (x.rem.done ? "bu ay tamam" : "bu ay " + f0(x.rem.rem) + " kaldı") + '</span></span><button class="ib simdel" data-act="sim-del" data-k="' + esc(x.key) + '" aria-label="Kaldır">' + ICON.x + '</button></div>').join("") + '</div>'
+    : '<p class="small muted simempty">Henüz kalem seçilmedi. Kategori ya da lehdar ekleyin; tahmin geçmiş aylarınızdan çıkarılır.</p>';
+  return '<div class="card simcard"><div class="simhead"><div><span class="sim-eyebrow">Simülasyon</span><b>Tahmini düzenli giderler</b></div><button class="btn sm" data-act="sim-pick">+ Kalem</button></div>' + rows +
+    (sim.items.length ? '<div class="simtot"><span>Toplam aylık tahmin</span><b>' + f2(sim.total) + '</b></div>' : '') +
+    '<p class="small muted simnote">Son ' + sim.months + ' ayın <b>ağırlıklı</b> ortalaması: yakın aylar daha çok etkiler, tek seferlik uç harcamalar kırpılır. Ay içinde harcadıkça tahminin kalanı nakitten düşer. Düzenli gelir/gider kalemleri aynen sayılır.</p></div>';
+}
+// Nakit akışı satırı: gerçek kalemler (tick + düzenle) ve tahminler (≈, soluk).
+function cashRow(l) {
+  if (l.sim) return '<div class="crow sim"><span class="simtag" aria-hidden="true">≈</span><span class="cl"><span>' + esc(l.n) + (l.cur ? ' <span class="small muted">bu ay</span>' : '') + '</span><span class="neg">' + f2(l.a) + (l.cur && l.spent > 0 ? '<span class="small muted" style="display:block">tahmin ' + f0(l.est) + ' · ' + f0(l.spent) + ' harcandı</span>' : '') + '</span></span></div>';
+  return '<div class="crow' + (l.on ? '' : ' off') + '"><button class="ck' + (l.on ? '' : ' on') + '" data-act="cash-tick" data-ref="' + esc(l.ref) + '" aria-label="Gerçekleşti / gerçekleşmedi"></button>' + (l.id ? '<span class="cl"><button data-act="ci-edit" data-id="' + esc(l.id) + '" style="text-align:left;flex:1">' + esc(l.n) + (l.day ? ' <span class="small muted">' + dayTxt(l.day) + '</span>' : '') + '</button><button data-act="ci-actual" data-id="' + esc(l.id) + '" data-m="' + l.am + '" title="Bu ayın gerçek tutarı" style="text-align:right" class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + (l.plan != null ? '<span class="small muted" style="display:block">plan ' + f0(l.plan) + '</span>' : '') + '</button></span>' : '<span class="cl"><span>' + esc(l.n) + '</span><span class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + '</span></span>') + '</div>';
+}
+
+
 function vCash() {
-  const pl = cashPlan(), items = (meta().cash || {}).items || [];
+  const sim = S.cashTab === "sim" ? simPlan() : null;
+  const pl = cashPlan({ sim }), items = (meta().cash || {}).items || [];
   const mx = Math.max(1, ...pl.map(p => Math.abs(p.kalan)));
   let si = Math.max(0, pl.findIndex(p => p.m === S.cashOpen)); const sel = pl[si];
   const negP = pl.find(p => p.kalan < 0);
-  let h = negP ? '<div class="cash-warn">Dikkat: ' + esc(cycLabel(negP)) + ' bakiye eksiye düşüyor (' + f2(negP.kalan) + ')</div>' : '';
-  h += '<div class="card cashbars">' + pl.map((p, i) => '<button class="cb' + (i === si ? ' sel' : '') + (p.kalan < 0 ? ' neg' : '') + '" data-act="cash-open" data-m="' + p.m + '" title="' + mLabel(p.m) + ': ' + f2(p.kalan) + '"><i style="height:' + Math.max(3, Math.abs(p.kalan) / mx * 100).toFixed(1) + '%;background:' + (p.kalan < 0 ? "var(--exp)" : "var(--primary)") + '"></i><span class="cbv">' + f0(p.kalan) + '</span><span>' + C.TR_M[Number(p.m.slice(5)) - 1].slice(0, 3) + '</span></button>').join("") + '</div>';
-  if (sel) { const p = sel, row = l => '<div class="crow' + (l.on ? '' : ' off') + '"><button class="ck' + (l.on ? '' : ' on') + '" data-act="cash-tick" data-ref="' + esc(l.ref) + '" aria-label="Gerçekleşti / gerçekleşmedi"></button>' + (l.id ? '<span class="cl"><button data-act="ci-edit" data-id="' + esc(l.id) + '" style="text-align:left;flex:1">' + esc(l.n) + (l.day ? ' <span class="small muted">' + dayTxt(l.day) + '</span>' : '') + '</button><button data-act="ci-actual" data-id="' + esc(l.id) + '" data-m="' + l.am + '" title="Bu ayın gerçek tutarı" style="text-align:right" class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + (l.plan != null ? '<span class="small muted" style="display:block">plan ' + f0(l.plan) + '</span>' : '') + '</button></span>' : '<span class="cl"><span>' + esc(l.n) + '</span><span class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + '</span></span>') + '</div>'; const incL = p.lines.filter(l => l.k === "+"), expL = p.lines.filter(l => l.k === "-");
+  const tab = (v, l) => { const on = (v === "sim") === !!sim; return '<button style="flex:1" role="tab" data-act="cash-tab" data-v="' + v + '" aria-selected="' + on + '" aria-pressed="' + on + '">' + l + '</button>'; };
+  let h = '<div class="seg cash-tabseg" role="tablist" aria-label="Nakit akışı görünümü">' + tab("orig", "Orijinal") + tab("sim", "Simülasyon") + '</div>';
+  if (sim) h += simCard(sim);
+  if (negP) h += '<div class="cash-warn">Dikkat: ' + esc(mLabel(negP.m)) + ' sonunda bakiye eksiye düşüyor (' + f2(negP.kalan) + ')</div>';
+  h += '<div class="card cashbars' + (sim ? ' simbars' : '') + '">' + pl.map((p, i) => '<button class="cb' + (i === si ? ' sel' : '') + (p.kalan < 0 ? ' neg' : '') + '" data-act="cash-open" data-m="' + p.m + '" title="' + mLabel(p.m) + ': ' + f2(p.kalan) + '"><i style="height:' + Math.max(3, Math.abs(p.kalan) / mx * 100).toFixed(1) + '%;background:' + (p.kalan < 0 ? "var(--exp)" : sim ? "color-mix(in srgb,var(--primary) 60%,var(--muted))" : "var(--primary)") + '"></i><span class="cbv">' + f0(p.kalan) + '</span><span>' + C.TR_M[Number(p.m.slice(5)) - 1].slice(0, 3) + '</span></button>').join("") + '</div>';
+  if (sel) { const p = sel; const incL = p.lines.filter(l => l.k === "+"), expL = p.lines.filter(l => l.k === "-");
     const prev = pl[si - 1], next = pl[si + 1];
-    h += '<div class="cash-nav"><button class="btn sm ghost" data-act="cash-open" data-m="' + (prev ? prev.m : "") + '"' + (prev ? '' : ' disabled') + ' aria-label="Önceki ay">‹</button><b>' + cycLabel(p) + '</b><button class="btn sm ghost" data-act="cash-open" data-m="' + (next ? next.m : "") + '"' + (next ? '' : ' disabled') + ' aria-label="Sonraki ay">›</button></div>';
+    h += '<div class="cash-nav"><button class="btn sm ghost" data-act="cash-open" data-m="' + (prev ? prev.m : "") + '"' + (prev ? '' : ' disabled') + ' aria-label="Önceki ay">‹</button><b>' + mLabel(p.m) + '</b><button class="btn sm ghost" data-act="cash-open" data-m="' + (next ? next.m : "") + '"' + (next ? '' : ' disabled') + ' aria-label="Sonraki ay">›</button></div>';
     h += '<div class="cash-sum"><div><span>Giriş</span><b class="pos">+' + f2(C.r2(p.elde + p.inc)) + '</b></div><div><span>Çıkış</span><b class="neg">−' + f2(p.exp) + '</b></div><div class="' + (p.kalan < 0 ? "bad" : "ok") + '"><span>Ay sonu kalan</span><b>' + f2(p.kalan) + '</b></div></div>';
-    h += '<div class="card mcard" id="cm-' + p.m + '"><div class="cash-cols"><div><div class="cash-colh">Gelirler</div><div class="crow elde-row"><span>Elde</span><span>' + f2(p.elde) + '</span></div>' + (incL.length ? incL.map(row).join("") : '<div class="crow muted"><span>—</span></div>') + '</div><div><div class="cash-colh">Giderler</div>' + (expL.length ? expL.map(row).join("") : '<div class="crow muted"><span>—</span></div>') + '</div></div></div>'; }
+    h += '<div class="card mcard" id="cm-' + p.m + '"><div class="cash-cols"><div><div class="cash-colh">Gelirler</div><div class="crow elde-row"><span>Elde</span><span>' + f2(p.elde) + '</span></div>' + (incL.length ? incL.map(cashRow).join("") : '<div class="crow muted"><span>—</span></div>') + '</div><div><div class="cash-colh">Giderler</div>' + (expL.length ? expL.map(cashRow).join("") : '<div class="crow muted"><span>—</span></div>') + '</div></div></div>'; }
   h += '<div class="toolbar" style="margin-top:12px"><span style="flex:1"></span><button class="btn sm ghost" data-act="ci-new" data-k="inc">Gelir ekle</button><button class="btn sm" data-act="ci-new" data-k="exp">Gider ekle</button></div>';
   if (items.length) h += '<div class="sec-h" style="margin-top:18px"><h2>Düzenli gelir ve giderler</h2></div><div class="card"><ul class="list">' + items.map(it => '<li><button class="set-row" data-act="ci-edit" data-id="' + esc(it.id) + '"><span class="cic" style="--c:' + (it.k === "inc" ? "var(--inc)" : "var(--exp)") + ';width:32px;height:32px">' + svgI(it.k === "inc" ? CI.coin : CI.bolt) + '</span><span class="grow">' + esc(it.name) + '<span class="small muted" style="display:block">' + (it.rep === "once" ? "Tek seferlik, " + it.date : "Her ay, " + dayTxt(it.day) + (it.end ? ", " + mLabel(it.end) + "’e kadar" : "")) + '</span></span><span class="' + (it.k === "inc" ? "pos" : "") + '">' + f2(cashAmt(it, it.rep === "once" ? it.date.slice(0, 7) : (CUR() < it.start ? it.start : CUR()))) + '</span></button></li>').join("") + '</ul></div>';
   return h + '<p class="small muted">Elde: kredi kartı dışındaki hesapların bugünkü bakiyesi. Bu ay için sadece henüz gerçekleşmemiş kalemler sayılır. Her ayın kalanı bir sonraki aya devreder; böylece ileriye dönük nakit akışınızın tamamını burada görürsünüz.</p>';
@@ -811,7 +870,7 @@ function buildShare() {
   const yr = Number(CUR().slice(0, 4)), sy = S.year; S.year = yr;
   const pg = (meta().share && meta().share.pages) || ["debt", "cash", "table"];
   let cashM = null;
-  if (pg.includes("cash")) { const so = S.cashOpen; cashM = {}; cashPlan().forEach(p => { S.cashOpen = p.m; cashM[p.m] = stripAct(vCash()); }); S.cashOpen = so; }
+  if (pg.includes("cash")) { const so = S.cashOpen, stb = S.cashTab; S.cashTab = "orig"; cashM = {}; cashPlan().forEach(p => { S.cashOpen = p.m; cashM[p.m] = stripAct(vCash()).replace(/<div class="seg cash-tabseg"[\s\S]*?<\/div>/, ""); }); S.cashOpen = so; S.cashTab = stb; }
   let tbls = null;
   if (pg.includes("table")) { const sel = meta().share && meta().share.tables; tbls = gtTabs().filter(t => !sel || sel.includes(t.id)).map(t => ({ id: t.id, name: t.name, html: stripAct(tCat(t.id)) })); }
   const g = { pages: pg, debt: pg.includes("debt") ? stripAct(tDebt(debtCols())) : "", cash: cashM ? Object.values(cashM)[0] || "" : "", cashM, tables: tbls, table: tbls && tbls[0] ? tbls[0].html : "", year: yr, ts: Date.now(), name: (S.user && S.user.name) || "" };
@@ -1368,7 +1427,7 @@ function renderSettings() {
         : '<button class="btn sm" data-act="sh-on">Paylaşım bağlantısı oluştur</button>') + '</div>';
     h += '<div class="sec-h"><h2>Bildirimler</h2></div><div class="card" style="padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:10px"><span class="small" style="flex:1">Bugün/yarın ödenecek taksit, abonelik ve ekstre kesimlerinde telefona bildirim (uygulama açıldığında).</span><button class="btn sm" data-act="notif">' + (meta().notif && window.Notification && Notification.permission === "granted" ? "Kapat" : "Aç") + '</button></div>';
     h += '<div class="sec-h"><h2>Görünüm</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><label class="fld" style="margin:0"><span>Tema</span><select class="in" onchange="setTheme(this.value)"><option value="light"' + (!["dark","soft"].includes(document.documentElement.dataset.theme) ? " selected" : "") + '>Açık</option><option value="soft"' + (document.documentElement.dataset.theme === "soft" ? " selected" : "") + '>Yumuşak açık</option><option value="dark"' + (document.documentElement.dataset.theme === "dark" ? " selected" : "") + '>Koyu</option></select></label></div>';
-    h += '<div class="sec-h"><h2>Nakit akışı</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><label class="fld" style="margin:0"><span>Maaş / dönem başlangıcı</span><select class="in" onchange="setSalDay(this.value)">' + [...Array(31)].map((_, i) => '<option value="' + (i + 1) + '"' + (salDay() === i + 1 ? " selected" : "") + '>' + (i ? "Ayın " + (i + 1) + "’i" : "Ayın 1’i (takvim ayı)") + '</option>').join("") + '</select></label><p class="small muted" style="margin:8px 0 0">Nakit akışındaki kalan para, bir sonraki maaş gününden önceki güne kadar hesaplanır.</p></div>';
+    h += '<div class="sec-h"><h2>Nakit akışı</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0">Nakit akışı takvim ayına göre hesaplanır: her dönem ayın 1’inden son gününe kadardır; her ayın kalanı sonraki aya devreder. Simülasyon sekmesindeki tahminler geçmiş aylarınızdan çıkarılır.</p></div>';
     h += '<div class="sec-h"><h2>Veri</h2></div><div class="card" style="padding:14px">' +
       '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">İçe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
       '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
@@ -1409,6 +1468,14 @@ function renderSettings() {
     const ks = gtKs(D), multi = ks.length > 1;
     const grpH = (g, l) => (multi ? '<div style="display:flex;gap:8px;align-items:end"><label class="fld" style="flex:1"><span>Grup adı</span><input class="in" data-gn="' + g.replace("g", "n") + '" value="' + esc(D[g.replace("g", "n")] || l) + '"></label><button class="btn sm ghost" style="margin-bottom:14px" data-act="gt-grm" data-g="' + g + '">Grubu kaldır</button></div>' : '') + '<div class="chips" style="margin-bottom:8px">' + (D[g].length ? D[g].map((id, i) => '<span class="chip" style="padding:4px 6px 4px 10px"><i style="background:' + (id.startsWith("p:") ? "var(--tr)" : catColor(id)) + '"></i><span' + ((D.hid || []).includes(id) ? ' style="opacity:.45;text-decoration:line-through"' : '') + '>' + esc(id.startsWith("p:") ? id.slice(2) : catLabel(id, true)) + '</span> <button class="ib" style="width:26px;height:26px" data-act="gt-hide" data-id="' + esc(id) + '" aria-label="Gizle">' + ((D.hid || []).includes(id) ? ICON.eyeoff : ICON.eye) + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="-1" aria-label="Sola taşı"' + (i === 0 ? ' disabled' : '') + '>' + ICON.l + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-mv" data-g="' + g + '" data-i="' + i + '" data-d="1" aria-label="Sağa taşı"' + (i === D[g].length - 1 ? ' disabled' : '') + '>' + ICON.r + '</button><button class="ib" style="width:26px;height:26px" data-act="gt-rm" data-g="' + g + '" data-i="' + i + '" aria-label="Kaldır">' + ICON.x + '</button></span>').join("") : '<span class="small muted">Henüz sütun yok.</span>') + '</div><div class="row2" style="margin-bottom:18px"><div><div class="catsel cat-search">' + ICON.search + '<input data-gtq="' + g + '" autocomplete="off" placeholder="Kategori ara…"></div><div class="tx-catlist" id="gtl-c-' + g + '"></div></div><div><div class="catsel cat-search">' + ICON.search + '<input data-gtpq="' + g + '" autocomplete="off" placeholder="Lehdar ara…"></div><div class="tx-catlist" id="gtl-p-' + g + '"></div></div></div>';
     h = head("Tablo ayarları") + '<div class="sh-bd"><label class="fld"><span>Tablo adı</span><input class="in" data-gn="name" value="' + esc(D.name || "") + '"></label><p class="small muted" style="margin-top:0">' + (multi ? 'Her grubun sonunda bir ara toplam sütunu olur. ' : '') + 'Ana kategori seçerseniz alt kategorileri de dahil edilir. Çıkarmak için sütuna dokunun.</p>' + ks.map((g, i) => grpH(g, (i + 1) + ". grup")).join("") + '<button class="btn sm ghost" data-act="gt-gadd">' + (multi ? '+ Grup ekle' : 'Gruplara ayır') + '</button></div><div class="sh-ft">' + (gtTabs().length > 1 ? '<button class="btn danger" data-act="gt-del">Tabloyu sil</button>' : '') + '<button class="btn" data-act="gt-save">Kaydet</button></div>';
+  } else if (v === "sim") {
+    const selK = simSel(), q = D.q || {};
+    h = head("Simülasyon kalemleri") + '<div class="sh-bd">' +
+      '<p class="small muted" style="margin-top:0">Seçtiğiniz kategori ve lehdarların son ' + SIM_LOOKBACK + ' ayındaki harcamasından ağırlıklı bir tahmin çıkarılır. Tahmin, Nakit akışı > Simülasyon sekmesinde gider satırı olarak görünür; ay içinde harcadıkça tahminin kalanı düşer.</p>' +
+      (selK.length ? '<div class="chips" style="margin-bottom:14px">' + selK.map(x => '<span class="chip" style="padding:4px 6px 4px 10px"><i style="background:' + (x.t === "cat" ? catColor(x.v) : "var(--tr)") + '"></i><span>' + esc(x.t === "cat" ? catLabel(x.v) : x.v) + '</span> <button class="ib" style="width:26px;height:26px" data-act="sim-tog" data-t="' + x.t + '" data-v="' + esc(x.v) + '" aria-label="Kaldır">' + ICON.x + '</button></span>').join("") + '</div>' : '') +
+      '<div class="fld"><span>Kategoriler</span><div class="catsel cat-search">' + ICON.search + '<input data-simq="cat" autocomplete="off" placeholder="Kategori ara…" value="' + esc(q.cat || "") + '"></div><div class="tx-catlist" id="siml-cat">' + simPickList("cat", q.cat) + '</div></div>' +
+      '<div class="fld"><span>Lehdarlar</span><div class="catsel cat-search">' + ICON.search + '<input data-simq="pay" autocomplete="off" placeholder="Lehdar ara…" value="' + esc(q.pay || "") + '"></div><div class="tx-catlist" id="siml-pay">' + simPickList("pay", q.pay) + '</div></div>' +
+      '</div><div class="sh-ft"><button class="btn" data-act="sim-done">Tamam</button></div>';
   } else if (v === "ci") {
     const c = D.ci, mon = c.rep !== "once";
     h = head(c._new ? (c.k === "inc" ? "Gelir ekle" : "Gider ekle") : "Düzenle") + '<div class="sh-bd">' +
@@ -1434,7 +1501,6 @@ function catTree() {
   return out;
 }
 window.setTheme = v => { applyTheme(v); saveMetaChange(m => { m.theme = v; }); render(); };
-window.setSalDay = v => { saveMetaChange(m => { m.salaryDay = Number(v) || 1; }); render(); toast("Kaydedildi"); };
 function saveMetaChange(fn) {
   if (!S.loaded.meta) { toast("Veriler henüz yüklenmedi, biraz sonra tekrar deneyin."); return; }
   const m = clone(meta()); fn(m); S.meta = m; bump(); S.store.setMeta(m);
@@ -1640,6 +1706,12 @@ document.addEventListener("click", e => {
         else { const d = S.debts[id]; if (!d) break; const it = d.sched[xi]; it.p = !isPaid(d, it); S.store.setDebt(id, d); }
         render(); } break; }
     case "cash-open": { if (!ds.m) break; S.cashOpen = ds.m; const y = window.scrollY; render(); window.scrollTo(0, y); break; }
+    case "cash-tab": { const tv = ds.v === "sim" ? "sim" : "orig"; if (S.cashTab === tv) break; S.cashTab = tv; const ty = window.scrollY; render(); window.scrollTo(0, ty); break; }
+    case "sim-pick": D = { view: "sim", q: { cat: "", pay: "" } }; renderSettings(); break;
+    case "sim-tog": { if (!ds.t || !ds.v) break; const st = ds.t, sv = ds.v;
+      simSave(s => { const i = s.sel.findIndex(x => x.t === st && x.v === sv); if (i >= 0) s.sel.splice(i, 1); else s.sel.push({ t: st, v: sv }); }); renderSettings(); break; }
+    case "sim-del": { const sk = simKeyOf(ds.k); simSave(s => { s.sel = s.sel.filter(x => !(x.t === sk.t && x.v === sk.v)); }); render(); break; }
+    case "sim-done": closeSheet(); render(); break;
     case "ci-new": D = { view: "ci", ci: { _new: true, id: "ci-" + C.rid(), k: ds.k, name: ds.n || "", a: ds.a ? amtIn(Number(ds.a)) : "", rep: "m", day: 15, start: CUR(), end: "", date: today() } }; renderSettings(); break;
     case "ci-edit": { const it = ((meta().cash || {}).items || []).find(x => x.id === ds.id); if (!it) break; const cur = it.rep === "once" ? it.date.slice(0, 7) : (CUR() < it.start ? it.start : CUR());
       D = { view: "ci", ci: { ...clone(it), a: amtIn(cashAmt(it, cur)), _orig: cashAmt(it, cur), eff: cur, end: it.end || "" } }; renderSettings(); break; }
@@ -1731,6 +1803,7 @@ document.addEventListener("input", e => {
   if (t.id === "p-date") { const g = t.value.replace(/\D/g, "").slice(0, 8); t.value = g.length > 4 ? g.slice(0, 2) + "." + g.slice(2, 4) + "." + g.slice(4) : g.length > 2 ? g.slice(0, 2) + "." + g.slice(2) : g; return; }
   if (t.dataset.d) { D[t.dataset.d] = t.dataset.d === "cnt" ? parseInt(t.value) || 0 : t.value; if (t.dataset.d === "t") renderSugg(); if (["aStr", "cnt"].includes(t.dataset.d)) renderPlanBox(); if (t.dataset.d === "cnt" || (t.dataset.d === "aStr" && D.rep !== "one")) { /* preview updates on next render */ } }
   if (t.dataset.f) { const k = t.dataset.num; let v = t.value; if (k === "amt") { v = v.trim() === "" ? null : C.parseAmt(v); if (v !== null && isNaN(v)) return; } else if (k === "int") v = v === "" ? null : parseInt(v); D[t.dataset.f] = v; }
+  if (t.dataset.simq) { D.q = D.q || {}; D.q[t.dataset.simq] = t.value; const sl = $("#siml-" + t.dataset.simq); if (sl) sl.innerHTML = simPickList(t.dataset.simq, t.value); return; }
   if (D && (t.dataset.gtq || t.dataset.gtpq)) { const g = t.dataset.gtq || t.dataset.gtpq, kd = t.dataset.gtq ? "c" : "p"; $("#gtl-" + kd + "-" + g).innerHTML = gtList(kd, g, t.value); return; }
   if (t.id === "cq") { D.cq = t.value; $("#catlist").innerHTML = catList(D.k, D.cq); return; }
   if (t.id === "spq") { D.spq = t.value; $("#spcatlist").innerHTML = catList(D.k, D.spq); return; }
