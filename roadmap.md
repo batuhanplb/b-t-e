@@ -36,3 +36,7 @@
 - [x] Anasayfa modül listelerinde (Dağılım, En büyük harcamalar, Hesaplar) tutar artık hiç kırılmıyor: "₺27.067" tek satırda kalıyor, ad ve "%22,44 pay" etiketi tek satırda üç nokta ile kısalıyor.
 - [x] Kırılma viewport'a değil modülün kendi genişliğine göre yönetiliyor (`@container`): dar modülde tutar/yüzde bir tık küçülür, 220px altında ad için yer açılır.
 
+# Mobilde ay farkı (1.3.3.0)
+- [x] Dağılım satırlarındaki "geçen aya göre değişim" (↑/↓ %) mobilde gizlenmiyor: 230px altındaki modüllerde tutarın altında 9-9,5px'lik sağa yaslı satır olarak görünüyor.
+- [x] Önceki ay verisi olmayan satırlarda gelen "—" işareti dar modülde gizli kalır (kalabalık yapmasın); satır yüksekliği artmadı, liste yoğunluğu aynı.
+

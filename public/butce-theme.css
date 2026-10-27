@@ -456,7 +456,7 @@ img{-webkit-user-drag:none}
    satırda kalır; ad ve yüzde etiketi kısalır. Satırın tek sırada kalması 187-197
    satırlarındaki kurallarla zaten sağlanıyor; burada eksik olan "tutar kırılmasın"
    güvencesi ve modül genişliğine göre uyarlanan tipografi eklenir. */
-.mod .krow .r{flex:0 0 auto;max-width:100%;flex-wrap:nowrap;justify-content:flex-end}
+.mod .krow .r{flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
 .mod .krow .r b{white-space:nowrap;overflow-wrap:normal;word-break:keep-all}
 .mod .krow>span:not(.r):not(.kcic){min-width:0;overflow:hidden}
 .mod .krow>span:not(.r):not(.kcic)>b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;word-break:keep-all}
@@ -469,6 +469,18 @@ img{-webkit-user-drag:none}
 @container (max-width:170px){
   .mod .krow .r b{font-size:11px}
   .mod .krow>span:not(.r):not(.kcic)>.small{font-size:9.5px}
+}
+
+/* 13. Geçen aya göre değişim (↑/↓ %). 230px altındaki modüllerde (mobil kutucuklar
+   dahil) gizleniyordu; artık tutarın altında küçük bir satır olarak görünür.
+   Önceki ay verisi yoksa gelen "—" işareti kalabalık yapmasın diye gizli kalır. */
+@container (max-width:230px){
+  .mod .krow .r{flex-direction:column;align-items:flex-end;justify-content:flex-start;row-gap:0}
+  .mod .krow .r .dl{display:inline-block;font-size:9.5px;line-height:1.2;margin-top:1px;white-space:nowrap}
+  .mod .krow .r .dl.muted{display:none}
+}
+@container (max-width:170px){
+  .mod .krow .r .dl{font-size:9px}
 }
 
 
