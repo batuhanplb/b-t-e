@@ -67,3 +67,12 @@
 
 
 
+
+# Simülasyon ekranı görsel düzeni (1.3.6.0)
+- [x] Tahmin kartı ve ay kartı satırları sitenin ritmine oturdu: kart içi 14px boşluk, satır başına 9-10px dikey pay ve 1px ayırıcı; metinler artık kart kenarına/çizgiye yapışmıyor (eskiden `.card` padding'siz ve `.simrow` yatay payı sıfırdı).
+- [x] Sekme sitenin `.seg` bileşenine indirildi (6/4px köşe, 30px yükseklik, 12px yazı, siyah `box-shadow` yerine `--line` çerçeve); uyarı kutusu pembe çerçeve yerine `--sunk` hücre + "DİKKAT" eyebrow, tutar sağda.
+- [x] Özet hücrelerinde mavi "ok" tinti kaldırıldı (yalnız eksi durumda %7 `--exp` tint, `.sum` ile aynı oran); grafikte tarayıcının native `title` balonu kaldırıldı, bar renkleri satır içi stilden CSS'e taşındı (seçili ay `--sunk` sütun + ince çerçeve, eksi aylar `--exp`).
+- [x] Ay kartında gelir/gider sütunları ince dikey çizgiyle ayrıldı, satırlar 1px çizgiyle bölündü ve 44px tick hizası korundu; 599px altında tek sütuna iner.
+- [x] Tahmin satırı kesikli kenar/italik/bej zemin yerine sitenin "soluk" dili: soluk ad + tutar ve `tahmin` etiketi; ay gezinmesi ikon butonlara (`.ib`) döndü, başlıkla birlikte ortalanıyor.
+- [x] Tüm stiller `butce-theme.css` sonundaki "Simülasyon / nakit akışı görsel düzeni (1.3.6.0)" bloğunda; hesaplama, `cash-sim.js`, paylaşım görünümü ve testler değişmedi. Doğrulama: headless Chrome ile 1400px açık/koyu ve 390px ekran görüntüleri, yatay taşma yok (`scrollWidth == clientWidth`).
+

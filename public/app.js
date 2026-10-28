@@ -2,7 +2,7 @@ import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
-const APP_VERSION = "1.3.5.1";
+const APP_VERSION = "1.3.6.0";
 const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -833,7 +833,7 @@ function simCard(sim) {
 }
 // Nakit akışı satırı: gerçek kalemler (tick + düzenle) ve tahminler (soluk).
 function cashRow(l) {
-  if (l.sim) return '<div class="crow sim"><span class="cl"><span>' + esc(l.n) + (l.cur ? ' <span class="small muted">bu ay</span>' : '') + '</span><span class="neg">' + f2(l.a) + (l.cur && l.spent > 0 ? '<span class="simsub">tahmin ' + f0(l.est) + ' · ' + f0(l.spent) + ' harcandı</span>' : '') + '</span></span></div>';
+  if (l.sim) return '<div class="crow sim"><span class="cl"><span>' + esc(l.n) + (l.cur ? ' <span class="small muted">bu ay</span>' : '') + ' <span class="tag">tahmin</span></span><span class="neg">' + f2(l.a) + (l.cur && l.spent > 0 ? '<span class="simsub">tahmin ' + f0(l.est) + ' · ' + f0(l.spent) + ' harcandı</span>' : '') + '</span></span></div>';
   return '<div class="crow' + (l.on ? '' : ' off') + '"><button class="ck' + (l.on ? '' : ' on') + '" data-act="cash-tick" data-ref="' + esc(l.ref) + '" aria-label="Gerçekleşti / gerçekleşmedi"></button>' + (l.id ? '<span class="cl"><button data-act="ci-edit" data-id="' + esc(l.id) + '" style="text-align:left;flex:1">' + esc(l.n) + (l.day ? ' <span class="small muted">' + dayTxt(l.day) + '</span>' : '') + '</button><button data-act="ci-actual" data-id="' + esc(l.id) + '" data-m="' + l.am + '" title="Bu ayın gerçek tutarı" style="text-align:right" class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + (l.plan != null ? '<span class="small muted" style="display:block">plan ' + f0(l.plan) + '</span>' : '') + '</button></span>' : '<span class="cl"><span>' + esc(l.n) + '</span><span class="' + (l.k === "+" ? "pos" : "") + '">' + f2(l.a) + '</span></span>') + '</div>';
 }
 
@@ -847,11 +847,12 @@ function vCash() {
   const tab = (v, l) => { const on = (v === "sim") === !!sim; return '<button style="flex:1" role="tab" data-act="cash-tab" data-v="' + v + '" aria-selected="' + on + '" aria-pressed="' + on + '">' + l + '</button>'; };
   let h = '<div class="seg cash-tabseg" role="tablist" aria-label="Nakit akışı görünümü">' + tab("orig", "Orijinal") + tab("sim", "Simülasyon") + '</div>';
   if (sim) h += simCard(sim);
-  if (negP) h += '<div class="cash-warn">Dikkat: ' + esc(mLabel(negP.m)) + ' sonunda bakiye eksiye düşüyor (' + f2(negP.kalan) + ')</div>';
-  h += '<div class="card cashbars' + (sim ? ' simbars' : '') + '">' + pl.map((p, i) => '<button class="cb' + (i === si ? ' sel' : '') + (p.kalan < 0 ? ' neg' : '') + '" data-act="cash-open" data-m="' + p.m + '" title="' + mLabel(p.m) + ': ' + f2(p.kalan) + '"><i style="height:' + Math.max(3, Math.abs(p.kalan) / mx * 100).toFixed(1) + '%;background:' + (p.kalan < 0 ? "var(--exp)" : sim ? "color-mix(in srgb,var(--primary) 60%,var(--muted))" : "var(--primary)") + '"></i><span class="cbv">' + f0(p.kalan) + '</span><span>' + C.TR_M[Number(p.m.slice(5)) - 1].slice(0, 3) + '</span></button>').join("") + '</div>';
+  if (negP) h += '<div class="cash-warn"><b>Dikkat</b><span>' + esc(mLabel(negP.m)) + ' sonunda bakiye eksiye düşüyor</span><b class="neg">' + f2(negP.kalan) + '</b></div>';
+  // Barların rengi artık CSS'te (temasal --primary/--exp); burada yalnız yükseklik verilir.
+  h += '<div class="card cashbars' + (sim ? ' simbars' : '') + '">' + pl.map((p, i) => '<button class="cb' + (i === si ? ' sel' : '') + (p.kalan < 0 ? ' neg' : '') + '" data-act="cash-open" data-m="' + p.m + '" aria-label="' + mLabel(p.m) + ': ' + f2(p.kalan) + '"><i style="height:' + Math.max(3, Math.abs(p.kalan) / mx * 100).toFixed(1) + '%"></i><span class="cbv">' + f0(p.kalan) + '</span><span>' + C.TR_M[Number(p.m.slice(5)) - 1].slice(0, 3) + '</span></button>').join("") + '</div>';
   if (sel) { const p = sel; const incL = p.lines.filter(l => l.k === "+"), expL = p.lines.filter(l => l.k === "-");
     const prev = pl[si - 1], next = pl[si + 1];
-    h += '<div class="cash-nav"><button class="btn sm ghost" data-act="cash-open" data-m="' + (prev ? prev.m : "") + '"' + (prev ? '' : ' disabled') + ' aria-label="Önceki ay">‹</button><b>' + mLabel(p.m) + '</b><button class="btn sm ghost" data-act="cash-open" data-m="' + (next ? next.m : "") + '"' + (next ? '' : ' disabled') + ' aria-label="Sonraki ay">›</button></div>';
+    h += '<div class="cash-nav"><button class="ib" data-act="cash-open" data-m="' + (prev ? prev.m : "") + '"' + (prev ? '' : ' disabled') + ' aria-label="Önceki ay">' + ICON.l + '</button><b>' + mLabel(p.m) + '</b><button class="ib" data-act="cash-open" data-m="' + (next ? next.m : "") + '"' + (next ? '' : ' disabled') + ' aria-label="Sonraki ay">' + ICON.r + '</button></div>';
     h += '<div class="cash-sum"><div><span>Giriş</span><b class="pos">+' + f2(C.r2(p.elde + p.inc)) + '</b></div><div><span>Çıkış</span><b class="neg">−' + f2(p.exp) + '</b></div><div class="' + (p.kalan < 0 ? "bad" : "ok") + '"><span>Ay sonu kalan</span><b>' + f2(p.kalan) + '</b></div></div>';
     h += '<div class="card mcard" id="cm-' + p.m + '"><div class="cash-cols"><div><div class="cash-colh">Gelirler</div><div class="crow elde-row"><span>Elde</span><span>' + f2(p.elde) + '</span></div>' + (incL.length ? incL.map(cashRow).join("") : '<div class="crow muted"><span>—</span></div>') + '</div><div><div class="cash-colh">Giderler</div>' + (expL.length ? expL.map(cashRow).join("") : '<div class="crow muted"><span>—</span></div>') + '</div></div></div>'; }
   h += '<div class="toolbar" style="margin-top:12px"><span style="flex:1"></span><button class="btn sm ghost" data-act="ci-new" data-k="inc">Gelir ekle</button><button class="btn sm" data-act="ci-new" data-k="exp">Gider ekle</button></div>';
