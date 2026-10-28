@@ -21,8 +21,12 @@ export function formatAmountInput(value) {
     const last = clean.lastIndexOf(".");
     const before = clean.slice(0, last);
     const after = stripSeps(clean.slice(last + 1));
-    // "1.250" / "5120.000": a 3-digit tail is thousands grouping, not decimals
-    const grouped = after.length === 3 && /\d/.test(before);
+    // "1.250" / "5120.000": 3+ digits after the dot is thousands grouping, not
+    // decimals. It has to be "3 or more", not "exactly 3": after "4.000" the next
+    // typed digit makes "4.0000", which used to be read as decimals and collapsed
+    // the field to "4,00" (a 400.000 credit-card limit could not be typed).
+    // Two decimals is the maximum anyway, so a longer tail is always grouping.
+    const grouped = after.length > DECIMALS && /\d/.test(before);
     if (grouped) integer = stripSeps(clean);
     else { integer = stripSeps(before); decimal = after.slice(0, DECIMALS); hasDecimal = true; }
   }

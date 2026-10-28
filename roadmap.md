@@ -60,5 +60,10 @@
 - [x] `src/test/landing.test.js`: her özelliğin bir örneği olduğunu, örneklerde sabit renk kullanılmadığını ve gerçek sayfa adları/tutarların gösterildiğini doğrular; örneksiz yeni özellik eklenirse test kırılır.
 - [x] `AGENTS.md` kuralı: uygulamada görsel değişiklik yapıldığında tanıtım ekranındaki `.ld-shot` / `.ld-mini` örnekleri de güncellenir.
 
+## Tutar alanlarında binlik ayırıcı düzeltmesi (1.3.5.1)
+- [x] Binlik ayırıcıdan sonra yazılan hane artık sayıyı büyütüyor: `"4.000"` + `0` eskiden `"4,0000"` gibi okunup alanı **4,00**'a düşürüyordu, bu yüzden Hesaplar > kredi kartı **Limiti** 400.000 yazılamıyordu; noktadan sonra 3+ hane artık her zaman binlik kabul ediliyor (`"40.000"`, `"400.000"`).
+- [x] Düzeltme `public/transaction-input.js` içinde tek kural (`after.length > DECIMALS`), yani işlem tutarı, açılış bakiyesi, taksit satırları, borç limiti gibi tüm tutar alanlarında geçerli; ondalık yazım (`1.250,5`) ve `parseAmt` ile kaydetme değişmedi.
+- [x] `src/test/transaction-input.test.js`: `"4.0000" → "40.000"`, `"40.0000" → "400.000"`, `"400.0000" → "4.000.000"` tablo satırları + "400000'i tuş tuş yaz" ve "binlikten sonra ondalık yazılabilir" testleri (21 → 27 test).
+
 
 
