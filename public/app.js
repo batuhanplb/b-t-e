@@ -503,7 +503,7 @@ function vHome() {
   M.ratio = () => { const r = ti ? te / ti * 100 : 0, sav = ti - te;
     return mod(svgI(CI.coin), "Gelir-gider dengesi", null, '<div class="mod-n"><b class="' + (sav < 0 ? "neg" : "pos") + '">' + f0(sav) + '</b><span class="muted small">bu ay kalan</span></div><div class="ratiobar"><i style="width:' + Math.min(100, r).toFixed(1) + '%;background:' + (r > 100 ? "var(--exp)" : "var(--primary)") + '"></i></div><div class="legend" style="justify-content:space-between"><span>Gider gelirin %' + nfp.format(r).replace(/,00$/, "") + '\'i</span><span>' + f0(te) + ' / ' + f0(ti) + '</span></div>'); };
   M.sub = () => { const sr = subList().map(x => [x, x.items.filter(t => t.d.slice(0, 7) === m)]).filter(([, a]) => a.length), tot = sr.reduce((s, [, a]) => s + a.reduce((q, t) => q + t.a, 0), 0);
-    return mod(svgI(CI.swap), "Abonelikler", "subs", '<div class="mod-n tr"><b>' + f0(tot) + '</b></div>' + (sr.length ? '<div class="klist">' + sr.slice(0, 20).map(([x, a]) => '<button class="krow" data-act="edit-tx" data-id="' + esc(a[0].id) + '" data-m="' + m + '"><span style="display:flex;align-items:center;gap:6px">' + subIco(x, 18) + '<b>' + esc(x.name) + '</b></span><span class="r"><b>' + f0(a.reduce((q, t) => q + t.a, 0)) + '</b></span></button>').join("") + '</div>' : '<div class="empty">Abonelik yok.</div>')); };
+    return mod(svgI(CI.swap), "Abonelikler", "subs", '<div class="mod-n tr"><b>' + f0(tot) + '</b></div>' + (sr.length ? '<div class="klist">' + sr.slice(0, 20).map(([x, a]) => '<button class="krow" data-act="edit-tx" data-id="' + esc(a[0].id) + '" data-m="' + m + '"><span class="subnm">' + subIco(x, 18) + '<b>' + esc(x.name) + '</b></span><span class="r"><b>' + f0(a.reduce((q, t) => q + t.a, 0)) + '</b></span></button>').join("") + '</div>' : '<div class="empty">Abonelik yok.</div>')); };
   M.tips = () => { const tips = [];
     const pl = cashPlan(), neg = pl.find(p => p.kalan < 0);
     if (neg) tips.push(["warn", "Nakit eksiye düşüyor", mLabel(neg.m) + " sonunda " + f2(neg.kalan) + ". Gelir ekleyin ya da gideri öne alın.", "cash"]);
@@ -570,7 +570,7 @@ function vSubs() {
   const spent = L.reduce((s, x) => s + x.items.filter(t => t.d <= tdy && t.d.slice(0, 4) === tdy.slice(0, 4)).reduce((q, t) => q + t.a, 0), 0);
   const nxt = act.filter(x => x.nx).sort((a, b) => a.nx.d.localeCompare(b.nx.d))[0];
   let h = '<div class="kpis"><div class="card kpi"><span>Aylık toplam</span><b>' + f2(mt) + '</b></div><div class="card kpi"><span>Yıllık tahmini</span><b>' + f2(mt * 12) + '</b></div><div class="card kpi"><span>Bu yıl ödenen</span><b>' + f2(spent) + '</b></div><div class="card kpi"><span>Sıradaki ödeme</span><b>' + (nxt ? esc(nxt.name) : "—") + '</b>' + (nxt ? '<span class="small muted">' + dLabel(nxt.nx.d) + ' · ' + f2(nxt.nx.a) + '</span>' : '') + '</div></div>';
-  const row = x => '<li><button class="set-row" data-act="edit-tx" data-id="' + esc(x.ref.id) + '" data-m="' + x.ref.d.slice(0, 7) + '">' + (subLogo(x.name) ? subIco(x, 32) : '<span class="cic" style="--c:' + catColor(x.cat) + ';width:32px;height:32px">' + catIcon(x.cat) + '</span>') + '<span class="grow">' + esc(x.name) + '<span class="small muted" style="display:block">' + (x.nx ? "Sonraki: " + dLabel(x.nx.d) : "Son: " + dLabel(x.ref.d)) + ' · ' + x.paid + ' ödeme yapıldı</span></span><span><b>' + f2(x.mon || x.ref.a) + '</b><span class="small muted" style="display:block;text-align:right">/ay</span></span></button></li>';
+  const row = x => '<li><button class="set-row" data-act="edit-tx" data-id="' + esc(x.ref.id) + '" data-m="' + x.ref.d.slice(0, 7) + '">' + (subLogo(x.name) ? subIco(x, 32) : '<span class="cic" style="--c:' + catColor(x.cat) + ';width:32px;height:32px">' + catIcon(x.cat) + '</span>') + '<span class="grow">' + esc(x.name) + '<span class="small muted" style="display:block">' + ((meta().recs || []).some(r => r.grp === x.grp && r.paused) ? "Duraklatıldı" : x.nx ? "Sonraki: " + dLabel(x.nx.d) : "Son: " + dLabel(x.ref.d)) + ' · ' + x.paid + ' ödeme yapıldı</span></span><span><b>' + f2(x.mon || x.ref.a) + '</b><span class="small muted" style="display:block;text-align:right">/ay</span></span></button></li>';
   h += '<div class="sec-h" style="margin-top:18px"><h2>Aktif abonelikler (' + act.length + ')</h2><button class="btn sm" data-act="add-sub">Abonelik ekle</button></div>';
   h += act.length ? '<div class="card"><ul class="list">' + act.map(row).join("") + '</ul></div>' : '<div class="card empty">Aktif abonelik yok. Yeni işlemde "Abonelik" seçerek ekleyebilirsin.</div>';
   if (old.length) h += '<div class="sec-h" style="margin-top:18px"><h2>Biten abonelikler</h2></div><div class="card"><ul class="list">' + old.map(row).join("") + '</ul></div>';
@@ -1025,13 +1025,22 @@ function tDebt(list) {
 }
 function dayTxt(n) { n = n || 1; const o = n % 10, t = Math.floor(n / 10); const sfx = o ? { 1: "i", 2: "si", 3: "ü", 4: "ü", 5: "i", 6: "sı", 7: "si", 8: "i", 9: "u" }[o] : { 1: "u", 2: "si", 3: "u" }[t]; return "ayın " + n + "'" + sfx; }
 function extendRecs() {
-  const recs = meta().recs || [], hz = C.addM(CUR(), 12); if (!recs.length) return;
-  const add = {}, upd = {};
-  recs.forEach(r => { const ev = r.ev || "m", base = ev === "w" ? r.last : r.last.slice(0, 8) + C.pad(r.day); for (let i = 1; i < 400; i++) { const d = repDate(base, ev, i), m = d.slice(0, 7); if (m > hz) break; (add[m] = add[m] || []).push({ ...r.tpl, id: C.rid(), d, ts: new Date(d + "T12:00").getTime(), grp: r.grp }); upd[r.grp] = d; } });
+  const recs = meta().recs || [], tdy = today(); if (!recs.length) return;
+  const add = {}, upd = {}, cut = {};
+  recs.forEach(r => { if (r.paused) return; const ev = r.ev || "m", base = ev === "w" ? r.last : r.last.slice(0, 8) + C.pad(r.day);
+    const fut = []; Object.values(S.months).forEach(a => a.forEach(t => { if (t.grp === r.grp && t.d > tdy) fut.push(t.d); })); fut.sort();
+    if (fut.length > 1) { cut[r.grp] = fut[0]; upd[r.grp] = fut[0]; return; }
+    if (fut.length || r.last > tdy) return;
+    for (let i = 1; i < 400; i++) { const d = repDate(base, ev, i), m = d.slice(0, 7); (add[m] = add[m] || []).push({ ...r.tpl, id: C.rid(), d, ts: new Date(d + "T12:00").getTime(), grp: r.grp }); upd[r.grp] = d; if (d > tdy) break; } });
   if (!Object.keys(upd).length) return;
+  if (Object.keys(cut).length) Object.keys(S.months).forEach(m => { const arr = S.months[m], keep = arr.filter(t => !(cut[t.grp] && t.d > cut[t.grp])); if (keep.length !== arr.length) saveMonth(m, keep); });
   Object.entries(add).forEach(([m, arr]) => saveMonth(m, monthItems(m).concat(arr)));
   saveMetaChange(mm => { mm.recs.forEach(r => { if (upd[r.grp]) r.last = upd[r.grp]; }); });
 }
+function subPause(grp) { const r = (meta().recs || []).find(x => x.grp === grp); if (!r) return; const tdy = today();
+  if (!r.paused) { Object.keys(S.months).forEach(m => { const arr = S.months[m], keep = arr.filter(t => !(t.grp === grp && t.d > tdy)); if (keep.length !== arr.length) saveMonth(m, keep); }); saveMetaChange(mm => { const x = (mm.recs || []).find(y => y.grp === grp); if (x) x.paused = true; }); toast("Abonelik duraklatıldı"); }
+  else { const ev = r.ev || "m", base = ev === "w" ? r.last : r.last.slice(0, 8) + C.pad(r.day); let last = r.last; for (let i = 1; i < 400; i++) { const d = repDate(base, ev, i); if (d > tdy) break; last = d; }
+    saveMetaChange(mm => { const x = (mm.recs || []).find(y => y.grp === grp); if (x) { delete x.paused; x.last = last; } }); setTimeout(extendRecs, 50); toast("Abonelik devam ediyor"); } }
 function perRange() {
   const cm = CUR(), y = cm.slice(0, 4), t = today();
   if (S.per && S.per.startsWith("d:")) return [S.per.slice(2), S.per.slice(2)];
@@ -1213,7 +1222,7 @@ function renderTx(keep) {
     if (D.rep !== "one" && !((D.rep === "mon" || D.rep === "reg") && D.open)) h += '<label class="fld"><span>' + (D.rep === "inst" ? "Taksit sayısı" : "Kaç kez") + '</span><input class="in" type="number" min="2" max="60" value="' + D.cnt + '" data-d="cnt"></label>';
     if (D.rep !== "one") h += '<div id="planlist"></div>';
   } else if (D.ins) h += '<p class="small muted">Taksit ' + esc(D.ins) + '. Bu değişiklik sadece bu taksiti etkiler.</p>';
-  else if (D.grp) { h += '<p class="small muted">' + (D.reg ? "Düzenli işlem" : "Abonelik") + '. Durdurmak için Sil → "Gelecek işlemleri de sil".</p>';
+  else if (D.grp) { { const rc = (meta().recs || []).find(r => r.grp === D.grp); h += '<div class="chips" style="align-items:center;margin-bottom:8px"><span class="small muted" style="flex:1">' + (D.reg ? "Düzenli işlem" : "Abonelik") + (rc && rc.paused ? " · duraklatıldı" : "") + '</span>' + (rc ? '<button class="btn sm ghost" data-act="sub-pause">' + (rc.paused ? "Devam ettir" : "Aboneliği duraklat") + '</button>' : '') + '</div>'; }
     if (D.gl && D.gl.length) { const tdy = today(), all = D.gl.concat([{ me: 1, d: D.d, a: C.parseAmt(D.aStr) }]).sort((a, b) => a.d.localeCompare(b.d));
       h += '<div class="fld"><span>Tüm ödemeler</span></div><div class="schedwrap" id="glwrap" style="max-height:232px;overflow-y:auto;position:relative"><table class="sched"><tbody>' + all.map(p => p.me ? '<tr class="gl-me"><td class="muted small" style="white-space:nowrap;width:1%">Bu işlem</td><td colspan="2" class="small"><b>' + dLabel(p.d) + ' · ' + f2(p.a) + '</b></td></tr>' : (i => '<tr' + (p.d < tdy ? ' style="opacity:.7"' : '') + '><td class="muted small" style="white-space:nowrap;width:1%">' + (p.d < tdy ? "Geçmiş" : "Gelecek") + '</td><td><input type="date" data-gd="' + i + '" value="' + p.d + '" style="text-align:left"></td><td><input inputmode="decimal" data-ga="' + i + '" value="' + esc(amtIn(p.a)) + '"></td></tr>')(D.gl.indexOf(p))).join("") + '</tbody></table></div>'; } }
   h += '<div id="e-gen"></div></div><div class="sh-ft">';
@@ -1242,13 +1251,14 @@ function catList(k, q) {
   return matches.length ? matches.map(row).join("") : '<p class="small muted cat-noresults">' + (q ? 'Eşleşen kategori yok.' : 'Henüz kategori yok.') + '</p>';
 }
 const REP_EV = [["w", "Haftalık"], ["m", "Aylık"], ["q", "3 ayda bir"], ["y", "Yıllık"]];
+function recN(d0, ev) { const t = today(); let i = 0; while (i < 400 && repDate(d0, ev, i) <= t) i++; return Math.max(1, i + 1); }
 function repDate(start, ev, i) {
   if (ev === "w") { const t = new Date(start.slice(0, 10) + "T12:00"); t.setDate(t.getDate() + 7 * i); return t.getFullYear() + "-" + C.pad(t.getMonth() + 1) + "-" + C.pad(t.getDate()); }
   const st = ev === "q" ? 3 : ev === "y" ? 12 : 1, [y, m, d] = start.split("-").map(Number), mm = C.addM(y + "-" + C.pad(m), i * st);
   return mm + "-" + C.pad(Math.min(d, C.daysIn(mm)));
 }
 function buildPlan() {
-  const a = C.parseAmt(D.aStr), ev = (D.rep === "mon" || D.rep === "reg") ? (D.ev || "m") : "m", n = (D.rep === "mon" || D.rep === "reg") && D.open ? ({ w: 52, m: 12, q: 4, y: 2 })[ev] : Math.max(2, Math.min(60, parseInt(D.cnt) || 2));
+  const a = C.parseAmt(D.aStr), ev = (D.rep === "mon" || D.rep === "reg") ? (D.ev || "m") : "m", n = (D.rep === "mon" || D.rep === "reg") && D.open ? recN(D.d, ev) : Math.max(2, Math.min(60, parseInt(D.cnt) || 2));
   if (!(a > 0) || !D.d) return [];
   const per = D.rep === "inst" ? Math.floor(a / n * 100) / 100 : C.r2(a), [y0, m0, d0] = D.d.split("-").map(Number);
   return [...Array(n)].map((_, i) => { return { d: repDate(D.d, ev, i), a: D.rep === "inst" && i === n - 1 ? C.r2(a - per * (n - 1)) : per }; });
@@ -1679,6 +1689,7 @@ document.addEventListener("click", e => {
     case "tx-rep": D.rep = ds.v; D.plan = null; D.planEdited = false; if (ds.v !== "one" && D.cnt < 2) D.cnt = 2; renderTx(true); break;
     case "sugg": { const p = derived().payees.find(x => x.t === ds.t); if (p) { D.t = p.t; if (p.cat) D.cat = p.cat; if (p.acc && !D.accTouched) D.acc = p.acc; } renderTx(true); setTimeout(() => $("#f-amt") && !$("#f-amt").value && $("#f-amt").focus(), 30); break; }
     case "tx-save": saveTx(!!ds.more); break;
+    case "sub-pause": { const g = D && D.grp; if (!g) break; if (dlg.open) dlg.close(); D = null; subPause(g); render(); break; }
     case "tx-del": if (D.grp) { const rd = 'style="background:var(--exp);color:#fff;border-color:var(--exp)"'; dlgIn.querySelector(".sh-ft").innerHTML = '<button class="btn ghost" data-act="tx-del-x">Vazgeç</button><button class="btn" ' + rd + ' data-act="tx-del-one">İşlemi sil</button><button class="btn" ' + rd + ' data-act="tx-del-rest">Gelecek işlemleri de sil</button>'; } else ask("Bu işlem silinsin mi?").then(v => v && deleteTx(false)); break;
     case "tx-del-one": deleteTx(false); break;
     case "tx-del-rest": deleteTx(true); break;
