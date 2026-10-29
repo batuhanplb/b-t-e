@@ -306,8 +306,7 @@ function mbar() {
   const bub = list => '<div class="bubs tan">' + list.map(([v, l, i], k) => '<button class="bub" data-act="nav" data-v="' + v + '" style="--k:' + k + '"' + (S.view === v ? ' aria-current="page"' : '') + '><span class="bi">' + i + '</span><span class="bl">' + l + '</span></button>').join("") + '</div>';
   return '<div class="mbar' + (op ? " open" : "") + '">' + (op ? '<button class="scrim" data-act="bub" data-v="" aria-label="Kapat"></button>' + bub(TAN) : '') +
     '<nav class="mnav" aria-label="Bölümler">' +
-    nv("home", "Anasayfa", ICON.home) + nv("tx", "İşlemler", ICON.list) + nv("table", "Gider", ICON.table) + nv("pie", "Dağılım", ICON.pie) + nv("cash", "Nakit", ICON.trend) + nv("debt", "Borç", ICON.card) +
-    '<button class="mx ' + (op ? "on" : "") + '" data-act="bub" data-v="tan" aria-current="' + (inT ? "page" : "false") + '">' + (op ? ICON.x : ICON.tag) + 'Tanımlar</button>' +
+    nv("home", "Anasayfa", ICON.home) + nv("tx", "İşlemler", ICON.list) + '<i class="msep" aria-hidden="true"></i>' + nv("table", "Gider", ICON.table) + nv("pie", "Dağılım", ICON.pie) + '<i class="msep" aria-hidden="true"></i>' + nv("cash", "Nakit", ICON.trend) + nv("debt", "Borç", ICON.card) +
     '</nav></div>';
 }
 const monthBar = () => '<div class="monthbar"><button class="ib" data-act="mprev" aria-label="Önceki ay">' + ICON.l + '</button><span class="l">' + mLabel(S.month) + '</span><button class="ib" data-act="mnext" aria-label="Sonraki ay">' + ICON.r + '</button></div>';
@@ -1738,7 +1737,7 @@ document.addEventListener("click", e => {
     case "app-reload": (async () => { toast("Yenileniyor…"); try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update().catch(() => {}))); } catch (e) {} setTimeout(() => location.reload(), 300); })(); break;
     case "acct": openSettings(); break;
     case "set-back": D.view = D.back === "reps" && D.view === "rep" ? "reps" : "main"; renderSettings(); break;
-    case "set-nav": closeSheet(); act({ dataset: { act: "nav", v: ds.v } }); break;
+    case "set-nav": closeSheet(); S.stmt = null; S.sel = null; S.bub = null; S.view = ds.v; S.catF = null; S.payF = null; if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
     case "set-view": D.view = ds.v; renderSettings(); break;
     case "theme": setTheme(ds.v); renderSettings(); break;
     case "acc-new": D = { view: "acc" }; D.acc = { _new: true, id: "a-" + C.rid(), name: "", type: "banka", color: "#3166c9", start: 0, exclude: false, hidden: false, order: meta().accounts.length }; renderSettings(); break;
