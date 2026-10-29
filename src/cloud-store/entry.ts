@@ -213,7 +213,12 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     if (s) setTimeout(() => flush(), 50);
   });
   let data: { session: { user: SUser; access_token: string; refresh_token: string } | null } = { session: null };
-  try { data = (await supabase.auth.getSession()).data as typeof data; } catch { /* offline */ }
+  // Open instantly on a slow/no connection: wait at most 1.5s for the session,
+  // otherwise continue with the last signed-in user and the local cache.
+  try {
+    const r = await Promise.race([supabase.auth.getSession(), new Promise<null>((res) => setTimeout(() => res(null), navigator.onLine ? 1500 : 0))]);
+    if (r) data = r.data as typeof data;
+  } catch { /* offline */ }
   // Offline with an expired token: keep the last signed-in user working locally.
   const lastUser = lsGet<SUser | null>(LS_USER, null);
   setTimeout(() => handle(data.session ?? (lastUser ? { user: lastUser } : null)), 0);
