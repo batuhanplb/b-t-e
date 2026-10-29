@@ -3,7 +3,7 @@ import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
 const APP_VERSION = "1.3.6.0";
-const applyTheme = t => { t = t === "dark" || t === "soft" ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
+const applyTheme = t => { t = ["dark", "soft", "softdark"].includes(t) ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "softdark" ? "#2a2c30" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
   opts = opts || [{ l: "Sil", v: true, red: 1 }];
@@ -1468,27 +1468,31 @@ function renderSettings() {
   let h;
   if (v === "main") {
     h = head("Ayarlar") + '<div class="sh-bd">';
+    const th = document.documentElement.dataset.theme || "light", sr = (v, l, x) => '<button class="set-row setl" data-act="set-view" data-v="' + v + '"><span class="grow">' + l + '</span>' + (x || '') + '<span class="muted">›</span></button>';
+    const navr = (v, l) => '<button class="set-row setl" data-act="nav" data-v="' + v + '"><span class="grow">' + l + '</span><span class="muted">›</span></button>';
+    h += '<div class="card setlist">' + sr("share", "Paylaşım", meta().share && meta().share.token ? '<span class="small muted">Açık</span>' : '') +
+      '<div class="set-row setl"><span class="grow">Tema</span><span class="seg thseg">' + [["light", "Açık"], ["dark", "Koyu"], ["soft", "Yumuşak açık"], ["softdark", "Yumuşak koyu"]].map(([k, l]) => '<button data-act="theme" data-v="' + k + '" aria-pressed="' + (th === k) + '">' + l + '</button>').join("") + '</span></div>' +
+      sr("data", "Yedekle / geri yükle") + sr("reps", "Aylık raporlar") + '</div>';
+    h += '<div class="card setlist" style="margin-top:12px">' + navr("acc", "Hesaplar") + navr("cat", "Kategoriler") + navr("pay", "Lehdarlar") + '</div>';
+    h += '<div class="card setlist" style="margin-top:12px"><div class="set-row setl" style="flex-wrap:wrap;gap:6px"><span class="grow small muted" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button><button class="btn sm ghost" style="color:var(--exp)" data-act="wipe-all">Tüm verileri sil</button><button class="btn sm ghost" style="color:var(--exp)" data-act="del-acc">Hesabı sil</button></div></div>';
+    h += '<p class="small muted" style="text-align:center;margin:20px 0 4px">Bütçe v' + APP_VERSION + '</p></div>';
+  } else if (v === "share") {
+    h = head("Paylaşım", "", "set-back") + '<div class="sh-bd">';
     const shr = meta().share, shUrl = shr && shr.token ? SITE + "/?s=" + shr.token : "";
-    h += '<div class="sec-h"><h2>Paylaşım</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0 0 10px">Seçtiğiniz sayfaları bağlantıya sahip kişilerle salt okunur paylaşın. Verileriniz değiştikçe paylaşılan sayfa kendiliğinden güncellenir.</p>' +
+    h += '<div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0 0 10px">Seçtiğiniz sayfaları bağlantıya sahip kişilerle salt okunur paylaşın. Verileriniz değiştikçe paylaşılan sayfa kendiliğinden güncellenir.</p>' +
       (shUrl ? '<div class="chips" style="margin-bottom:10px">' + [["debt", "Borç takvimi"], ["cash", "Nakit akışı"], ["table", "Gider tablosu"]].map(([k, l]) => '<label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" onchange="setShPage(\'' + k + '\',this.checked)"' + ((shr.pages || ["debt", "cash", "table"]).includes(k) ? " checked" : "") + '>' + l + '</label>').join("") + '</div>' + ((shr.pages || ["debt", "cash", "table"]).includes("table") && gtTabs().length > 1 ? '<div class="chips" style="margin:0 0 10px 6px">' + gtTabs().map(t => '<label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" onchange="setShTable(\'' + esc(t.id) + '\',this.checked)"' + ((shr.tables || gtTabs().map(x => x.id)).includes(t.id) ? " checked" : "") + '>' + esc(t.name) + '</label>').join("") + '</div>' : "") + '<input class="in" readonly id="shurl" value="' + esc(shUrl) + '" style="margin-bottom:10px"><div class="chips"><button class="btn sm" data-act="sh-copy">Bağlantıyı kopyala</button><button class="btn sm ghost" data-act="sh-now">Şimdi güncelle</button><button class="btn sm ghost danger" data-act="sh-off">Paylaşımı kapat</button></div>'
         : '<button class="btn sm" data-act="sh-on">Paylaşım bağlantısı oluştur</button>') + '</div>';
-    h += '<div class="sec-h"><h2>Bildirimler</h2></div><div class="card" style="padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:10px"><span class="small" style="flex:1">Bugün/yarın ödenecek taksit, abonelik ve ekstre kesimlerinde telefona bildirim (uygulama açıldığında).</span><button class="btn sm" data-act="notif">' + (meta().notif && window.Notification && Notification.permission === "granted" ? "Kapat" : "Aç") + '</button></div>';
-    h += '<div class="sec-h"><h2>Görünüm</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><label class="fld" style="margin:0"><span>Tema</span><select class="in" onchange="setTheme(this.value)"><option value="light"' + (!["dark","soft"].includes(document.documentElement.dataset.theme) ? " selected" : "") + '>Açık</option><option value="soft"' + (document.documentElement.dataset.theme === "soft" ? " selected" : "") + '>Yumuşak açık</option><option value="dark"' + (document.documentElement.dataset.theme === "dark" ? " selected" : "") + '>Koyu</option></select></label></div>';
-    h += '<div class="sec-h"><h2>Nakit akışı</h2></div><div class="card" style="padding:14px;margin-bottom:16px"><p class="small muted" style="margin:0">Nakit akışı takvim ayına göre hesaplanır: her dönem ayın 1’inden son gününe kadardır; her ayın kalanı sonraki aya devreder. Simülasyon sekmesindeki tahminler geçmiş aylarınızdan çıkarılır.</p></div>';
-    h += '<div class="sec-h"><h2>Veri</h2></div><div class="card" style="padding:14px">' +
-      '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">İçe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
-      '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedek indir</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
+    h += '</div>';
+  } else if (v === "data") {
+    h = head("Yedekle / geri yükle", "", "set-back") + '<div class="sh-bd"><div class="card" style="padding:14px">' +
+      '<label class="btn sm ghost" style="display:inline-flex;align-items:center;margin:0 8px 8px 0">Geri yükle / içe aktar<input type="file" id="f-imp" accept=".csv,.tsv,.txt,.xlsx,.xls,.qif,.ofx,.qfx,.bak,.json" hidden></label>' +
+      '<button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-json">Yedekle (indir)</button><button class="btn sm ghost" style="margin:0 8px 8px 0" data-act="exp-csv">CSV indir</button>' +
       '<p class="small muted" style="margin:6px 0 0">İçe aktarma: Başka bütçe uygulamalarının (Money Manager, Spendee, Wallet, YNAB, Monefy, Toshl, Bluecoins, Mint, 1Money, Cashew, Money Lover vb.) ve bankaların CSV, Excel (.xlsx), QIF ve OFX dosyaları mevcut verilere eklenir; aynı işlemler tekrar eklenmez. Expense IQ .bak dosyası hesapları, kategorileri ve işlemleri değiştirir; bu uygulamanın .json yedeği ise içinde ne varsa onu yükler.</p></div>';
-    { const ms = [...new Set(Dd.all.map(t => t.d.slice(0, 7)))].filter(m => m < CUR()).sort().reverse().slice(0, 24); if (ms.length) h += '<div class="sec-h" style="margin-top:20px"><h2>Aylık raporlar</h2></div><div class="rep-chips">' + ms.map(m => '<button class="chip" data-act="rep" data-m="' + m + '" data-back="1">' + mLabel(m) + '</button>').join("") + '</div>'; }
-    // Uygulama bilgisi: kurulum tarayıcı / ana ekran kısayolu; güncellemeler her açılışta sunucudan gelir.
-    h += '<div class="sec-h" style="margin-top:20px"><h2>Uygulama</h2></div><div class="card" style="padding:14px">' +
-      '<div class="small" style="line-height:1.75">Web sürümü: <b>' + APP_VERSION + '</b>' +
-      '<br>Kurulum: <b>tarayıcı · ana ekran kısayolu</b>' +
-      '<br>Güncellemeler her açılışta kendiliğinden gelir.</div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
-      '<button class="btn sm ghost" data-act="app-reload">Yenile</button></div></div>';
-    h += '<div class="sec-h" style="margin-top:20px"><h2>Oturum</h2></div><div class="card" style="padding:14px;display:flex;align-items:center;gap:10px"><span class="grow small" style="flex:1">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button></div><div class="card" style="padding:14px;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"><button class="btn sm ghost" style="color:var(--exp)" data-act="wipe-all">Tüm verileri sil</button><button class="btn sm ghost" style="color:var(--exp)" data-act="del-acc">Hesabı sil</button></div>';
-    h += '<p class="small muted" style="text-align:center;margin:20px 0 4px">Bütçe v' + APP_VERSION + '</p></div>';
+    h += '</div>';
+  } else if (v === "reps") {
+    h = head("Aylık raporlar", "", "set-back") + '<div class="sh-bd">';
+    { const ms = [...new Set(Dd.all.map(t => t.d.slice(0, 7)))].filter(m => m < CUR()).sort().reverse().slice(0, 24); if (ms.length) h += '<div class="rep-chips">' + ms.map(m => '<button class="chip" data-act="rep" data-m="' + m + '" data-back="reps">' + mLabel(m) + '</button>').join("") + '</div>'; }
+    h += '</div>';
   } else if (v === "rep") {
     h = head(mLabel(D.m) + " raporu", "", D.back ? "set-back" : null) + '<div class="sh-bd">' + repHtml(D.m) + '</div>';
   } else if (v === "acc") {
@@ -1733,7 +1737,9 @@ document.addEventListener("click", e => {
     case "settings": openSettings(); break;
     case "app-reload": (async () => { toast("Yenileniyor…"); try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update().catch(() => {}))); } catch (e) {} setTimeout(() => location.reload(), 300); })(); break;
     case "acct": openSettings(); break;
-    case "set-back": D.view = "main"; renderSettings(); break;
+    case "set-back": D.view = D.back === "reps" && D.view === "rep" ? "reps" : "main"; renderSettings(); break;
+    case "set-view": D.view = ds.v; renderSettings(); break;
+    case "theme": setTheme(ds.v); renderSettings(); break;
     case "acc-new": D = { view: "acc" }; D.acc = { _new: true, id: "a-" + C.rid(), name: "", type: "banka", color: "#3166c9", start: 0, exclude: false, hidden: false, order: meta().accounts.length }; renderSettings(); break;
     case "acc-edit": D = { view: "acc" }; D.acc = clone(meta().accounts.find(x => x.id === ds.id)); renderSettings(); break;
     case "acc-save": { const a = D.acc; if (!a.name || !a.name.trim()) { $("#s-err").innerHTML = '<p class="err">Hesap adı girin.</p>'; break; } const isNew = a._new; delete a._new; a.name = a.name.trim(); a.cut = parseInt(a.cut) || null; a.due = parseInt(a.due) || null; a.limit = a.limit == null || a.limit === "" ? null : (C.parseAmt(a.limit) || null);
