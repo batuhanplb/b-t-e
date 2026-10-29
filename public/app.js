@@ -1802,7 +1802,7 @@ document.addEventListener("click", e => {
     case "per-more": S.perMore = !S.perMore; render(); break;
     case "accf-t": { const i = S.accFs.indexOf(ds.id); i >= 0 ? S.accFs.splice(i, 1) : S.accFs.push(ds.id); render(); break; }
     case "accf-clear": S.accFs = []; render(); break;
-    case "per": S.per = ds.v; render(); break;
+    case "per": S.per = ds.v; S.perMore = false; render(); break;
     case "tx-reset": S.per = "m"; S.cFrom = ""; S.cTo = ""; S.q = ""; S.catF = null; S.payF = null; S.fYear = null; S.accFs = []; S.accOpen = false; S.stmt = null; S.showPastTx = true; S.showFutTx = false; S.showE = true; S.showI = true; render(); break;
     case "tgl-past": S.showPastTx = !S.showPastTx; render(); break;
     case "tgl-e": S.showE = !S.showE; render(); break;
