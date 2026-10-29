@@ -584,7 +584,7 @@ function vTx() {
   else if (S.payF) { const pf = S.payF.toLocaleLowerCase("tr"); items = D.all.filter(t => t.k !== "tr" && payName(t).toLocaleLowerCase("tr") === pf); }
   else if (qy) items = D.all.filter(t => ((t.t || "") + " " + (t.n || "") + " " + catLabel(t.cat) + " " + accName(t.acc)).toLocaleLowerCase("tr").includes(qs));
 
-  else if (S.stmt) items = D.all.filter(t => t.d >= S.stmt.r[0] && t.d <= S.stmt.r[1]);
+  else if (S.stmt) items = D.all.filter(inStmt);
   else { const r = perRange(); items = D.all.filter(t => t.d >= r[0] && t.d <= r[1]); }
   if (S.stmt) return vStmt(items.filter(t => t.acc === S.stmt.acc && t.k === "e"));
   if (S.fYear) items = items.filter(t => Number(t.d.slice(0, 4)) === S.fYear);
@@ -623,8 +623,10 @@ function vTx() {
     }
     out += txRow(t, null, rbm);
   }
+  S._vis = items.map(t => [t.id, t.d.slice(0, 7)]);
   return h + out + '</ul></div>' + selBar();
 }
+function inStmt(t) { const st = S.stmt; if (!t.so) return t.d >= st.r[0] && t.d <= st.r[1]; const a = meta().accounts.find(x => x.id === st.acc) || {}, r = stmtRange(a.cut || 1, new Date(), st.off - t.so); return t.d >= r[0] && t.d <= r[1]; }
 function vStmt(items) {
   const st = S.stmt, a = meta().accounts.find(x => x.id === st.acc) || { name: "Kart" };
   items.sort((x, y) => y.d.localeCompare(x.d));
@@ -648,14 +650,15 @@ function vStmt(items) {
       h += sec("Ekstrede var, uygulamada yok", R.missing, "miss") + sec("Tutarı farklı", R.diff, "diff") + sec("Uygulamada var, ekstrede yok", R.extra, "extra") + sec("Eşleşenler ✓", R.ok, "ok");
       if (!R.missing.length && !R.diff.length && !R.extra.length) h += '<div class="empty">Her şey eşleşiyor ✓</div>';
     }
-  } else h += items.length ? '<div class="card"><ul class="list">' + items.map(txRow).join("") + '</ul></div>' : '<div class="empty">Bu dönemde işlem yok.</div>';
-  return h;
+  } else h += items.length ? '<div class="card"><ul class="list">' + items.map(t => txRow(t)).join("") + '</ul></div>' : '<div class="empty">Bu dönemde işlem yok.</div>';
+  S._vis = items.map(t => [t.id, t.d.slice(0, 7)]);
+  return h + selBar();
 }
 function stmtRun() { const st = S.stmt; if (!st || !st.bank) return; const mine = derived().all.filter(t => t.acc === st.acc && t.k === "e" && t.d >= C.ymd(new Date(new Date(st.r[0]) - 3 * 864e5)) && t.d <= C.ymd(new Date(new Date(st.r[1]).getTime() + 3 * 864e5))); const inR = st.bank.filter(b => !b.credit); st.res = { ...reconcile(st.bank, mine, ((meta().stmtLinks || {})[st.acc]) || []), bankTot: inR.reduce((q, b) => q + b.a, 0) }; st.res.extra = st.res.extra.filter(t => t.d >= st.r[0] && t.d <= st.r[1]); if (st.pick) { const R = st.res, pb = st.pick.b; R.diff = R.diff.filter(x => { if (x.b.d === pb.d && x.b.a === pb.a && x.b.t === pb.t) { R.extra.push(x.t); return false; } return true; }); } }
 function selBar() {
   if (!S.sel) return "";
   const ids = Object.keys(S.sel), all = derived().all, tot = ids.reduce((s, id) => { const t = all.find(x => x.id === id); return !t || t.k === "tr" ? s : s + (t.k === "e" ? -t.a : t.a); }, 0);
-  return '<div class="selbar"><div class="selinfo"><b>' + ids.length + ' seçildi</b><span class="' + (tot < 0 ? "neg" : "pos") + '">Toplam: ' + (tot < 0 ? "-" : "") + f2(Math.abs(tot)) + '</span></div><button class="btn sm ghost" data-act="sel-x">Vazgeç</button><button class="btn sm" style="background:var(--exp);color:#fff" data-act="sel-del"' + (ids.length ? "" : " disabled") + '>Sil</button></div>';
+  return '<div class="selbar"><div class="selinfo"><b>' + ids.length + ' seçildi</b><span class="' + (tot < 0 ? "neg" : "pos") + '">Toplam: ' + (tot < 0 ? "-" : "") + f2(Math.abs(tot)) + '</span></div>' + (S.stmt ? '<button class="btn sm ghost" data-act="sel-so" data-v="1" title="Önceki ekstreye taşı">← Önceki</button><button class="btn sm ghost" data-act="sel-so" data-v="-1" title="Sonraki ekstreye taşı">Sonraki →</button>' : '') + '<button class="btn sm ghost" data-act="sel-all">Tümünü seç</button><button class="btn sm ghost" data-act="sel-x">Vazgeç</button><button class="btn sm" style="background:var(--exp);color:#fff" data-act="sel-del"' + (ids.length ? "" : " disabled") + '>Sil</button></div>';
 }
 
 /* ---- debts ---- */
@@ -669,7 +672,7 @@ const sortedDebts = () => Object.entries(S.debts).sort((a, b) => (a[1].order || 
 function cardSched(a) {
   const cut = a.cut || 31, due = a.due || 15, by = {};
   derived().all.forEach(t => { if (t.acc !== a.id) return; const v = t.k === "i" ? -t.a : t.a; const dd = Number(t.d.slice(8, 10));
-    let m = t.d.slice(0, 7); if (dd > cut) m = C.addM(m, 1); if (due <= cut) m = C.addM(m, 1); by[m] = (by[m] || 0) + v; });
+    let m = t.d.slice(0, 7); if (dd > cut) m = C.addM(m, 1); if (due <= cut) m = C.addM(m, 1); if (t.so) m = C.addM(m, t.so); by[m] = (by[m] || 0) + v; });
   const paid = a.paid || {};
   return Object.keys(by).sort().filter(m => C.r2(by[m]) > 0).map(m => { const o = { m, a: C.r2(by[m]) }; if (m in paid) o.p = paid[m]; return o; });
 }
@@ -1640,7 +1643,7 @@ document.addEventListener("click", e => {
     case "wipe-all": (async () => { if (!await ask("Tüm işlemler, borçlar ve ayarlar silinecek. Emin misin?", [{ l: "Devam", v: true, red: 1 }])) return; if (!await ask("Bu işlem geri alınamaz. Önce yedek indirmeni öneririz. Devam edilsin mi?", [{ l: "Evet, devam", v: true, red: 1 }])) return; if (!await ask("Son onay: tüm veriler kalıcı olarak silinsin mi?", [{ l: "Tüm verileri sil", v: true, red: 1 }])) return; Object.keys(S.months).forEach(m => saveMonth(m, [])); Object.keys(S.debts || {}).forEach(id => S.store.delDebt(id)); const sh = (meta().share || {}).token; if (sh) S.store.delShare(sh); S.meta = clone(DEFAULT_META); S.store.setMeta(S.meta); closeSheet(); render(); toast("Tüm veriler silindi"); })(); break;
     case "del-acc": (async () => { if (!await ask("Hesabın ve tüm verilerin kalıcı olarak silinecek. Emin misin?", [{ l: "Devam", v: true, red: 1 }])) return; if (!await ask("Bu işlem geri alınamaz. Son kez soruyoruz: hesap silinsin mi?", [{ l: "Hesabı sil", v: true, red: 1 }])) return; try { await S.store.deleteAccount(); closeSheet(); toast("Hesabın silindi"); } catch (e) { toast("Hesap silinemedi, internet bağlantını kontrol et"); } })(); break;
     case "bub": S.bub = S.bub === ds.v || !ds.v ? null : ds.v; render(); break;
-    case "nav": S.stmt = null; S.sel = null; S.bub = null; S.dashEdit = false; S.dashDraft = null; S.dashTray = false; S.view = ds.v; S.catF = null; S.payF = null; S.fYear = null; if (ds.v === "tx") { S.month = S.month || CUR(); S.accFs = []; S.q = ""; S.showFutTx = false; } if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
+    case "nav": S.stmt = null; S.sel = null; S.bub = null; S.dashEdit = false; S.dashDraft = null; S.dashTray = false; S.view = ds.v; S.catF = null; S.payF = null; S.fYear = null; if (ds.v === "tx") { S.month = S.month || CUR(); S.accFs = []; S.q = ""; S.showFutTx = false; S.accOpen = true; } if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
     case "mprev": S.month = C.addM(S.month, -1); render(); break;
     case "hprev": S.hm = C.addM(S.hm || CUR(), -1); render(); break;
     case "hnext": S.hm = C.addM(S.hm || CUR(), 1); render(); break;
@@ -1667,6 +1670,10 @@ document.addEventListener("click", e => {
       if (location.hash.slice(1) !== S.view) location.hash = S.view; render(); window.scrollTo(0, 0); break; }
     case "close": closeSheet(); break;
     case "sel-x": S.sel = null; render(); break;
+    case "sel-all": S.sel = S.sel || {}; (S._vis || []).forEach(([id, m]) => { S.sel[id] = m; }); render(); break;
+    case "sel-so": { const sel = S.sel || {}, dv = +ds.v, ms = new Set(Object.values(sel)); let n = 0;
+      ms.forEach(m => { const arr = monthItems(m).map(t => { if (!sel[t.id]) return t; n++; const so = (t.so || 0) - dv, o = { ...t }; if (so) o.so = so; else delete o.so; return o; }); S.months[m] = arr; saveMonth(m, arr); });
+      S.sel = null; stmtRun(); render(); toast(n + " işlem " + (dv > 0 ? "önceki" : "sonraki") + " ekstreye taşındı"); break; }
     case "sel-del": { const ids = Object.keys(S.sel || {}); if (!ids.length) break; const sel = S.sel, all = derived().all, txOf = id => all.find(x => x.id === id), subs = ids.filter(id => { const t = txOf(id); return t && t.grp && !t.ins; });
       const q = subs.length ? ask("Seçilenlerin " + subs.length + " tanesi abonelik. Abonelikleri ne yapalım?", [{ l: "Sadece seçili işlemleri sil", v: "sel", red: 1 }, { l: "Abonelikleri tut, diğerlerini sil", v: "keep", red: 1 }, { l: "Seçilileri ve gelecek abonelikleri de sil", v: "fut", red: 1 }]) : ask("Seçilen " + ids.length + " işlem silinsin mi?").then(v => v ? "sel" : null);
       q.then(mode => { if (!mode) return; const del = new Set(mode === "keep" ? ids.filter(id => !subs.includes(id)) : ids), from = {};
