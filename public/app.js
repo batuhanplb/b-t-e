@@ -1469,7 +1469,7 @@ function renderSettings() {
   if (v === "main") {
     h = head("Ayarlar") + '<div class="sh-bd">';
     const th = document.documentElement.dataset.theme || "light", sr = (v, l, x) => '<button class="set-row setl" data-act="set-view" data-v="' + v + '"><span class="grow">' + l + '</span>' + (x || '') + '<span class="muted">›</span></button>';
-    const navr = (v, l) => '<button class="set-row setl" data-act="nav" data-v="' + v + '"><span class="grow">' + l + '</span><span class="muted">›</span></button>';
+    const navr = (v, l) => '<button class="set-row setl" data-act="set-nav" data-v="' + v + '"><span class="grow">' + l + '</span><span class="muted">›</span></button>';
     h += '<div class="card setlist">' + sr("share", "Paylaşım", meta().share && meta().share.token ? '<span class="small muted">Açık</span>' : '') +
       '<div class="set-row setl"><span class="grow">Tema</span><span class="seg thseg">' + [["light", "Açık"], ["dark", "Koyu"], ["soft", "Yumuşak açık"], ["softdark", "Yumuşak koyu"]].map(([k, l]) => '<button data-act="theme" data-v="' + k + '" aria-pressed="' + (th === k) + '">' + l + '</button>').join("") + '</span></div>' +
       sr("data", "Yedekle / geri yükle") + sr("reps", "Aylık raporlar") + '</div>';
@@ -1663,7 +1663,7 @@ document.addEventListener("click", e => {
     case "stmt": { const a = meta().accounts.find(x => x.id === ds.id); if (!a) break; S.stmt = { acc: a.id, off: 0, r: stmtRange(a.cut || 1) }; S.view = "tx"; S.sel = null; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break; }
     case "stmt-per": { const a = meta().accounts.find(x => x.id === S.stmt.acc); S.stmt.off += +ds.v; S.stmt.r = stmtRange(a.cut || 1, new Date(), S.stmt.off); stmtRun(); render(); break; }
     case "stmt-close": S.stmt = null; render(); break;
-    case "rep": { const m = ds.m; D = { view: "rep", m, back: !!ds.back }; renderSettings(); if (!(meta().reportSeen || {})[m] && S.loaded.meta) saveMetaChange(x => { x.reportSeen = { ...(x.reportSeen || {}), [m]: 1 }; }); break; }
+    case "rep": { const m = ds.m; D = { view: "rep", m, back: ds.back || false }; renderSettings(); if (!(meta().reportSeen || {})[m] && S.loaded.meta) saveMetaChange(x => { x.reportSeen = { ...(x.reportSeen || {}), [m]: 1 }; }); break; }
     case "stmt-pick": { const R = S.stmt.res; let b; if (ds.di != null) { const x = R.diff[+ds.di]; b = x.b; S.stmt.pick = { b, ids: [x.t.id] }; } else { b = R.missing[+ds.i]; S.stmt.pick = { b, ids: [] }; } render(); window.scrollTo(0, 0); break; }
     case "stmt-pick-x": S.stmt.pick = null; stmtRun(); render(); break;
     case "stmt-ck": { const pk = S.stmt.pick; if (!pk) break; const k = pk.ids.indexOf(ds.id); k >= 0 ? pk.ids.splice(k, 1) : pk.ids.push(ds.id); render(); break; }
@@ -1738,6 +1738,7 @@ document.addEventListener("click", e => {
     case "app-reload": (async () => { toast("Yenileniyor…"); try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update().catch(() => {}))); } catch (e) {} setTimeout(() => location.reload(), 300); })(); break;
     case "acct": openSettings(); break;
     case "set-back": D.view = D.back === "reps" && D.view === "rep" ? "reps" : "main"; renderSettings(); break;
+    case "set-nav": closeSheet(); act({ dataset: { act: "nav", v: ds.v } }); break;
     case "set-view": D.view = ds.v; renderSettings(); break;
     case "theme": setTheme(ds.v); renderSettings(); break;
     case "acc-new": D = { view: "acc" }; D.acc = { _new: true, id: "a-" + C.rid(), name: "", type: "banka", color: "#3166c9", start: 0, exclude: false, hidden: false, order: meta().accounts.length }; renderSettings(); break;
