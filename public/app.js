@@ -236,7 +236,7 @@ async function boot() {
   const VIEWS = ["home", "tx", "debt", "cash", "table", "pie", "inv", "acc", "cat", "pay", "subs"];
   const hv = location.hash.slice(1).split("?")[0];
   if (VIEWS.includes(hv)) { S.view = hv; try { const u = new URLSearchParams(location.hash.split("?")[1] || ""); if (u.get("per")) S.per = u.get("per"); if (u.get("from")) S.cFrom = u.get("from"); if (u.get("to")) S.cTo = u.get("to"); if (u.get("acc")) S.accFs = u.get("acc").split(","); if (u.get("cat")) S.catF = u.get("cat"); if (u.get("pay")) S.payF = u.get("pay"); if (u.get("q")) S.q = u.get("q"); } catch (e) { } }
-  addEventListener("hashchange", () => { const h = location.hash.slice(1).split("?")[0]; if (VIEWS.includes(h) && h !== S.view) { S.view = h; S.catF = null; S.payF = null; render(); window.scrollTo(0, 0); } });
+  addEventListener("hashchange", () => { const h = location.hash.slice(1).split("?")[0]; if (VIEWS.includes(h) && h !== S.view) { S.view = h; S.catF = null; S.payF = null; const y = (S._sy || {})[h] || 0; render(); window.scrollTo(0, y); if (y) requestAnimationFrame(() => window.scrollTo(0, y)); } });
   const onUser = (u, err) => {
     if (err !== undefined) { S.authErr = err; render(); return; }
     S.user = u;
@@ -1784,7 +1784,7 @@ document.addEventListener("click", e => {
     case "cat-icon": D.cat.icon = ds.v || null; D.cat.img = null; renderSettings(); break;
     case "cat-img-rm": D.cat.img = null; renderSettings(); break;
     case "past-toggle": S.showPast = !S.showPast; render(); break;
-    case "cat-tx": closeSheet(); S.view = "tx"; S.catF = ds.id; S.q = ""; S.accF = ""; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
+    case "cat-tx": (S._sy = S._sy || {})[S.view] = window.scrollY; closeSheet(); S.view = "tx"; S.catF = ds.id; S.q = ""; S.accF = ""; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
     case "cat-mode": S.catMode = ds.v; S.catSel = new Set(); render(); break;
     case "cat-sel": { const ss = S.catSel || (S.catSel = new Set()); ss.has(ds.id) ? ss.delete(ds.id) : ss.add(ds.id); render(); break; }
     case "cat-sort": { const cust = meta().catSort === "custom"; saveMetaChange(m => { m.catSort = cust ? "alpha" : "custom"; if (!cust) { const ord = catTree().map(x => x.c.id); m.categories.sort((a, b) => ord.indexOf(a.id) - ord.indexOf(b.id)); } }); render(); break; }
@@ -1793,7 +1793,7 @@ document.addEventListener("click", e => {
     case "cat-bmg": { const ids = [...S.catSel]; pickCat("Seçilenler hangi kategoride birleşsin?", new Set()).then(t => { if (!t) return; toast(catRemove(ids.filter(x => x !== t), "merge", t) + " işlem taşındı"); S.catMode = ""; render(); }); break; }
     case "cat-bmv": { const ids = new Set(S.catSel); pickCat("Hangi kategorinin altına taşınsın?", ids, true, true).then(t => { if (!t) return; const p = t === "__none" ? null : t, pt = p && meta().categories.find(x => x.id === p); saveMetaChange(m => { m.categories.forEach(c => { if (ids.has(c.id)) { m.categories.forEach(k => { if (k.parent === c.id) k.parent = p; }); c.parent = p; if (pt) c.type = pt.type; } }); }); toast("Taşındı"); S.catMode = ""; render(); }); break; }
     case "cat-exp": (S.catExp = S.catExp || {})[ds.id] = !S.catExp[ds.id]; render(); break;
-    case "pay-tx": S.view = "tx"; S.payF = ds.t; S.catF = null; S.q = ""; S.accFs = []; S.fYear = null; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
+    case "pay-tx": (S._sy = S._sy || {})[S.view] = window.scrollY; S.view = "tx"; S.payF = ds.t; S.catF = null; S.q = ""; S.accFs = []; S.fYear = null; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break;
     case "pay-sort": { const cur = S.paySort || "isim"; const nx = cur === "isim" ? "n" : cur === "n" ? "a" : "isim"; S.paySort = nx; S.payDir = nx === "isim" ? "az" : "cok"; saveMetaChange(m => { m.paySort = nx; m.payDir = S.payDir; }); render(); break; }
     case "pay-dir": { const s = S.paySort || "isim"; const d = S.payDir === "cok" ? "cok" : S.payDir === "az" ? "az" : (s === "isim" ? "az" : "cok"); S.payDir = d === "az" ? "cok" : "az"; saveMetaChange(m => { m.paySort = s; m.payDir = S.payDir; }); render(); break; }
     case "pay-ren": { const old = ds.t, ok = old.toLocaleLowerCase("tr"); askText("Lehdarın yeni adı", old).then(nv => { if (!nv || nv === old) return; const n = bulkTx(t => t.k !== "tr" && payName(t).toLocaleLowerCase("tr") === ok, t => { t.t = nv; return t; }); render(); toast(n + " işlem güncellendi"); }); break; }
