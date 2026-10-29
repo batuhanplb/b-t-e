@@ -2,7 +2,7 @@ import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
-const APP_VERSION = "1.3.6.0";
+const APP_VERSION = "1.3.7.0";
 const applyTheme = t => { t = ["dark", "soft", "softdark"].includes(t) ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "softdark" ? "#2a2c30" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1021,11 +1021,11 @@ function tDebt(list) {
   const ms = []; for (let m = mn; m <= mx; m = C.addM(m, 1)) ms.push(m);
   const past = ms.filter(m => m < now), show = S.showPast ? ms : ms.filter(m => m >= now);
   const idx = {}; list.forEach(([id, d]) => { idx[id] = {}; (d.sched || []).forEach((it, i) => idx[id][it.m] = { it, i }); });
-  let h = '<div class="tw"><table class="sh"><thead><tr><th>Ay</th>' + list.map(([id, d]) => '<th class="click" data-act="' + (d.src === "acc" ? "acc-edit" : "edit-debt") + '" data-id="' + esc(id) + '" title="Düzenle">' + esc(d.name) + '<span class="hs">' + dayTxt(d.day) + '</span></th>').join("") + '<th class="st">Toplam</th></tr></thead><tbody>';
-  if (past.length) h += '<tr><td class="past" colspan="' + (list.length + 2) + '" data-act="past-toggle"><span class="pst">' + (S.showPast ? "▾ Geçmiş ayları gizle" : "▸ Geçmiş " + past.length + " ay") + '</span></td></tr>';
-  show.forEach(m => { let rt = 0; h += '<tr' + (m === now ? ' class="cur"' : '') + '><td>' + mLabel(m) + '</td>' + list.map(([id, d]) => { const x = idx[id][m]; if (!x) return '<td class="fut">' + f2(0) + '</td>'; rt += x.it.a; return '<td class="' + (isPaid(d, x.it) ? "paid" : "") + '" data-act="toggle-paid" data-id="' + esc(id) + '" data-src="' + d.src + '" data-i="' + x.i + '" style="cursor:pointer">' + nf(x.it.a) + '</td>'; }).join("") + '<td class="st">' + nf(rt) + '</td></tr>'; });
+  let h = '<div class="tw"><table class="sh"><thead><tr><th>Ay</th>' + list.map(([id, d]) => '<th class="click" data-act="' + (d.src === "acc" ? "acc-edit" : "edit-debt") + '" data-id="' + esc(id) + '" title="Düzenle">' + esc(d.name) + '<span class="hs">' + dayTxt(d.day) + '</span></th>').join("") + '</tr></thead><tbody>';
+  if (past.length) h += '<tr><td class="past" colspan="' + (list.length + 1) + '" data-act="past-toggle"><span class="pst">' + (S.showPast ? "▾ Geçmiş ayları gizle" : "▸ Geçmiş " + past.length + " ay") + '</span></td></tr>';
+  show.forEach(m => { let rt = 0; let row = list.map(([id, d]) => { const x = idx[id][m]; if (!x) return '<td class="fut">' + f2(0) + '</td>'; rt += x.it.a; return '<td class="' + (isPaid(d, x.it) ? "paid" : "") + '" data-act="toggle-paid" data-id="' + esc(id) + '" data-src="' + d.src + '" data-i="' + x.i + '" style="cursor:pointer">' + nf(x.it.a) + '</td>'; }).join(""); h += '<tr' + (m === now ? ' class="cur"' : '') + '><td class="dm">' + mLabel(m) + '<span class="hs">' + nf(rt) + '</span></td>' + row + '</tr>'; });
   const kal = list.map(([, d]) => debtKalan(d));
-  h += '</tbody><tfoot><tr><td>Kalan</td>' + kal.map(v => '<td>' + nf(v) + '</td>').join("") + '<td class="st">' + nf(kal.reduce((a, b) => a + b, 0)) + '</td></tr></tfoot></table></div>';
+  h += '</tbody><tfoot><tr><td class="dm">Kalan<span class="hs">' + nf(kal.reduce((a, b) => a + b, 0)) + '</span></td>' + kal.map(v => '<td>' + nf(v) + '</td>').join("") + '</tr></tfoot></table></div>';
   return h + '<p class="small muted">Ödenenler ✓ ile gösterilir, dokunarak değiştirebilirsiniz. Düzenlemek için başlığa dokunun.</p>';
 }
 function dayTxt(n) { n = n || 1; const o = n % 10, t = Math.floor(n / 10); const sfx = o ? { 1: "i", 2: "si", 3: "ü", 4: "ü", 5: "i", 6: "sı", 7: "si", 8: "i", 9: "u" }[o] : { 1: "u", 2: "si", 3: "u" }[t]; return "ayın " + n + "'" + sfx; }
