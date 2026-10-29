@@ -183,7 +183,7 @@ const S = { gtab: "sum",
   view: "home", month: CUR(), q: "", accF: "", year: Number(CUR().slice(0, 4)), tTab: "cat", tKind: "e", expanded: new Set(), onlyMine: false, borcMine: true,
   ver: 0, cache: null
 };
-S.accFs = []; S.per = "m"; S.showPastTx = true; S.showFutTx = false; S.showE = true; S.showI = true;
+S.accFs = []; S.accOpen = true; S.per = "m"; S.showPastTx = true; S.showFutTx = false; S.showE = true; S.showI = true;
 S.cashTab = "orig";
 S.pFrom = CUR() + "-01"; S.pTo = today(); S.pCat = ""; S.pSel = null; S.catF = null; S.showPast = false;
 const meta = () => S.meta || DEFAULT_META;
@@ -606,10 +606,13 @@ function vTx() {
   const fsep = '<span class="fsep" aria-hidden="true"></span>';
   let fs = "";
   if (S.catF || S.payF) fs += '<button class="chip" aria-pressed="true" data-act="catf-clear">' + esc(S.payF ? S.payF : catLabel(S.catF)) + (S.fYear ? " · " + S.fYear : "") + ' ✕</button>' + fsep;
-  if (!qs && !S.catF && !S.payF) fs += [["30", "Son 30 gün"], ["m", "Bu ay"], ["pm", "Geçen ay"], ["3", "Son 3 ay"], ["6", "Son 6 ay"], ["y", "Bu yıl"], ["all", "Tümü"], ["c", "Özel aralık"]].map(perChip).join("") + (S.per && S.per.startsWith("d:") ? '<button class="chip" data-act="per" data-v="all" aria-pressed="true">' + dLabel(S.per.slice(2)) + " ✕</button>" : "") + fsep;
+  if (!qs && !S.catF && !S.payF) fs += [["30", "Son 30 gün"], ["m", "Bu ay"], ["pm", "Geçen ay"]].map(perChip).join("") + (oth => '<button class="chip" data-act="per-more" aria-pressed="' + !!(oth || S.perMore) + '">' + (oth ? oth[1] : "Diğer") + ' ▾</button>')(PER_MORE.find(([v]) => v === S.per)) + perChip(["all", "Tümü"]) + (S.per && S.per.startsWith("d:") ? '<button class="chip" data-act="per" data-v="all" aria-pressed="true">' + dLabel(S.per.slice(2)) + " ✕</button>" : "") + fsep;
   fs += '<button class="chip" data-act="tgl-past" aria-pressed="' + S.showPastTx + '">Geçmiş</button><button class="chip" data-act="tgl-fut" aria-pressed="' + S.showFutTx + '">Gelecek</button><button class="chip" data-act="tgl-e" aria-pressed="' + S.showE + '">Gider</button><button class="chip" data-act="tgl-i" aria-pressed="' + S.showI + '">Gelir</button>';
   if (dirty) fs += fsep + '<button class="chip chip-reset" data-act="tx-reset">Seçimleri kaldır ✕</button>';
-  h += '<div class="fstrip" role="group" aria-label="İşlem filtreleri">' + fs + '</div>';
+  const fsi = fs.indexOf('<button class="chip" data-act="tgl-past"');
+  h += '<div class="fstrip" role="group" aria-label="Dönem">' + fs.slice(0, fsi).replace(/<span class="fsep" aria-hidden="true"><\/span>$/, "") + '</div>';
+  if (S.perMore && !qs && !S.catF && !S.payF) h += '<div class="card permore">' + PER_MORE.map(([v, l]) => '<button class="set-row" data-act="per" data-v="' + v + '" aria-pressed="' + (S.per === v) + '"><span class="grow">' + l + '</span>' + (S.per === v ? '✓' : '') + '</button>').join("") + '</div>';
+  h += '<div class="fstrip" role="group" aria-label="İşlem filtreleri">' + fs.slice(fsi) + '</div>';
   if (S.per === "c" && !qs && !S.catF && !S.payF) h += '<div class="chips" style="margin-bottom:10px;align-items:center"><input class="search" type="date" style="flex:1;min-width:0" data-in="cfrom" value="' + (S.cFrom || "") + '"><span class="muted">–</span><input class="search" type="date" style="flex:1;min-width:0" data-in="cto" value="' + (S.cTo || "") + '"></div>';
   h += '<div class="card"><div class="sum"><div>Gider<b class="neg">' + f2(te) + '</b></div><div>Gelir<b class="pos">' + f2(ti) + '</b></div><div>' + (qy ? "Sonuç" : "Fark") + '<b>' + (qy ? items.length : f2(ti - te)) + '</b></div></div></div>';
   if (!items.length) return h + '<div class="empty">' + "Eşleşen işlem yok." + '</div>';
@@ -997,7 +1000,7 @@ function vPay() {
   const cmp = (a, b) => dir === "az" ? bs(a, b) : -bs(a, b);
   const lbls = { isim: "İsme göre", n: "İşlem sayısı", a: "Hacim" };
   const sec = (k, l) => { const rows = allPayees(k).filter(p => !q || p.t.toLocaleLowerCase("tr").includes(q)).sort(cmp); if (!rows.length) return ''; return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(p => '<li><div class="set-row catrow"><button class="grow" style="text-align:left" data-act="pay-tx" data-t="' + esc(p.t) + '">' + esc(p.t) + '<span class="small muted" style="display:block">' + p.n + ' işlem · ' + f2(p.a) + '</span></button><button class="ib pen" data-act="pay-ren" data-t="' + esc(p.t) + '" aria-label="Adını değiştir">' + ICON.pen + '</button></div></li>').join("") + '</ul></div>'; };
-  const body = sec("e", "Gider lehdarları") + sec("i", "Gelir lehdarları");
+  const body = sec(null, "Lehdarlar");
   return '<div class="narrow"><div class="toolbar"><input class="search" type="search" placeholder="Lehdar ara" value="' + esc(S.payQ || "") + '" data-in="payq"><button class="btn sm" data-act="pay-sort" title="Sırala">' + lbls[sort] + '</button><button class="btn sm pay-dir" data-act="pay-dir" title="' + (dir === "az" ? "Azdan çoka" : "Çoktan aza") + '" aria-label="Sıralama yönü: ' + (dir === "az" ? "azdan çoka" : "çoktan aza") + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' + (dir === "az" ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6") + '"/></svg></button></div>' + (body || '<div class="card empty">Lehdar bulunamadı.</div>') + '</div>';
 }
 function askText(msg, val) {
@@ -1044,6 +1047,7 @@ function subPause(grp) { const r = (meta().recs || []).find(x => x.grp === grp);
   if (!r.paused) { Object.keys(S.months).forEach(m => { const arr = S.months[m], keep = arr.filter(t => !(t.grp === grp && t.d > tdy)); if (keep.length !== arr.length) saveMonth(m, keep); }); saveMetaChange(mm => { const x = (mm.recs || []).find(y => y.grp === grp); if (x) x.paused = true; }); toast("Abonelik duraklatıldı"); }
   else { const ev = r.ev || "m", base = ev === "w" ? r.last : r.last.slice(0, 8) + C.pad(r.day); let last = r.last; for (let i = 1; i < 400; i++) { const d = repDate(base, ev, i); if (d > tdy) break; last = d; }
     saveMetaChange(mm => { const x = (mm.recs || []).find(y => y.grp === grp); if (x) { delete x.paused; x.last = last; } }); setTimeout(extendRecs, 50); toast("Abonelik devam ediyor"); } }
+const PER_MORE = [["3", "Son 3 ay"], ["6", "Son 6 ay"], ["12", "Son 12 ay"], ["y", "Bu yıl"], ["py", "Geçen yıl"], ["c", "Özel aralık"]];
 function perRange() {
   const cm = CUR(), y = cm.slice(0, 4), t = today();
   if (S.per && S.per.startsWith("d:")) return [S.per.slice(2), S.per.slice(2)];
@@ -1054,6 +1058,8 @@ function perRange() {
   if (S.per === "3") return [C.addM(cm, -2) + "-01", cm + "-" + C.daysIn(cm)];
   if (S.per === "6") return [C.addM(cm, -5) + "-01", cm + "-" + C.daysIn(cm)];
   if (S.per === "y") return [y + "-01-01", y + "-12-31"];
+  if (S.per === "py") return [(y - 1) + "-01-01", (y - 1) + "-12-31"];
+  if (S.per === "12") return [C.addM(cm, -11) + "-01", cm + "-" + C.daysIn(cm)];
   return ["0000-01-01", "9999-12-31"];
 }
 const catParts = t => (t.sp && t.sp.length) ? t.sp : [{ cat: t.cat, a: t.a }];
@@ -1290,7 +1296,9 @@ function renderSugg() {
   const qy = (D.t || "").trim().toLocaleLowerCase("tr");
   if (qy.length < 1) { box.innerHTML = ""; return; }
   const list = derived().payees.filter(p => p.k === D.k && p.t.toLocaleLowerCase("tr").includes(qy) && p.t.toLocaleLowerCase("tr") !== qy).slice(0, 5);
-  box.innerHTML = list.map((p, i) => '<button data-act="sugg" data-i="' + i + '" data-t="' + esc(p.t) + '"><b style="font-weight:500">' + esc(p.t) + '</b><span>' + esc(catLabel(p.cat)) + '</span></button>').join("");
+  const seen = new Set(list.map(p => p.t.toLocaleLowerCase("tr")));
+  const cats = meta().categories.map(c => ({ id: c.id, l: catLabel(c.id, true) })).filter(c => c.l && !seen.has(c.l.toLocaleLowerCase("tr")) && c.l.toLocaleLowerCase("tr").includes(qy) && c.l.toLocaleLowerCase("tr") !== qy).slice(0, 8 - list.length);
+  box.innerHTML = list.map((p, i) => '<button data-act="sugg" data-i="' + i + '" data-t="' + esc(p.t) + '"><b style="font-weight:500">' + esc(p.t) + '</b><span>' + esc(catLabel(p.cat)) + '</span></button>').join("") + cats.map(c => '<button data-act="sugg" data-cat="' + esc(c.id) + '" data-t="' + esc(c.l) + '"><b style="font-weight:500">' + esc(c.l) + '</b><span>Kategori</span></button>').join("");
 }
 function genTxs() {
   const a = C.parseAmt(D.aStr);
@@ -1694,7 +1702,7 @@ document.addEventListener("click", e => {
     case "tx-day": D.d = C.ymd(new Date(Date.now() + Number(ds.v) * 864e5)); renderTx(true); break;
     case "tx-ev": D.ev = ds.v; D.plan = null; D.planEdited = false; renderTx(true); break;
     case "tx-rep": D.rep = ds.v; D.plan = null; D.planEdited = false; if (ds.v !== "one" && D.cnt < 2) D.cnt = 2; renderTx(true); break;
-    case "sugg": { const p = derived().payees.find(x => x.t === ds.t); if (p) { D.t = p.t; if (p.cat) D.cat = p.cat; if (p.acc && !D.accTouched) D.acc = p.acc; } renderTx(true); setTimeout(() => $("#f-amt") && !$("#f-amt").value && $("#f-amt").focus(), 30); break; }
+    case "sugg": { if (ds.cat) { D.t = ds.t; D.cat = ds.cat; renderTx(true); setTimeout(() => $("#f-amt") && !$("#f-amt").value && $("#f-amt").focus(), 30); break; } const p = derived().payees.find(x => x.t === ds.t); if (p) { D.t = p.t; if (p.cat) D.cat = p.cat; if (p.acc && !D.accTouched) D.acc = p.acc; } renderTx(true); setTimeout(() => $("#f-amt") && !$("#f-amt").value && $("#f-amt").focus(), 30); break; }
     case "tx-save": saveTx(!!ds.more); break;
     case "sub-pause": { const g = D && D.grp; if (!g) break; if (dlg.open) dlg.close(); D = null; subPause(g); render(); break; }
     case "tx-del": if (D.grp) { const rd = 'style="background:var(--exp);color:#fff;border-color:var(--exp)"'; dlgIn.querySelector(".sh-ft").innerHTML = '<button class="btn ghost" data-act="tx-del-x">Vazgeç</button><button class="btn" ' + rd + ' data-act="tx-del-one">İşlemi sil</button><button class="btn" ' + rd + ' data-act="tx-del-rest">Gelecek işlemleri de sil</button>'; } else ask("Bu işlem silinsin mi?").then(v => v && deleteTx(false)); break;
@@ -1791,6 +1799,7 @@ document.addEventListener("click", e => {
     case "pay-ren": { const old = ds.t, ok = old.toLocaleLowerCase("tr"); askText("Lehdarın yeni adı", old).then(nv => { if (!nv || nv === old) return; const n = bulkTx(t => t.k !== "tr" && payName(t).toLocaleLowerCase("tr") === ok, t => { t.t = nv; return t; }); render(); toast(n + " işlem güncellendi"); }); break; }
     case "catf-clear": S.catF = null; S.payF = null; S.fYear = null; render(); break;
     case "accf-open": S.accOpen = !S.accOpen; render(); break;
+    case "per-more": S.perMore = !S.perMore; render(); break;
     case "accf-t": { const i = S.accFs.indexOf(ds.id); i >= 0 ? S.accFs.splice(i, 1) : S.accFs.push(ds.id); render(); break; }
     case "accf-clear": S.accFs = []; render(); break;
     case "per": S.per = ds.v; render(); break;
