@@ -697,3 +697,4 @@ html[data-theme=softdark]{
 .permore{padding:0;margin:-4px 0 10px;overflow:hidden}.permore .set-row{width:100%;padding:9px 14px;border-bottom:1px solid var(--line)}.permore .set-row:last-child{border-bottom:0}
 .permore .set-row[aria-pressed=true]{color:var(--primary);font-weight:600}
 .selbar{flex-wrap:wrap;gap:6px}
+.setlist .setl:has(.thseg){flex-wrap:wrap}.thseg{max-width:100%}

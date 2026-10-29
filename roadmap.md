@@ -76,3 +76,20 @@
 - [x] Tahmin satırı kesikli kenar/italik/bej zemin yerine sitenin "soluk" dili: soluk ad + tutar ve `tahmin` etiketi; ay gezinmesi ikon butonlara (`.ib`) döndü, başlıkla birlikte ortalanıyor.
 - [x] Tüm stiller `butce-theme.css` sonundaki "Simülasyon / nakit akışı görsel düzeni (1.3.6.0)" bloğunda; hesaplama, `cash-sim.js`, paylaşım görünümü ve testler değişmedi. Doğrulama: headless Chrome ile 1400px açık/koyu ve 390px ekran görüntüleri, yatay taşma yok (`scrollWidth == clientWidth`).
 
+
+# 1.3.7.0 toplu revizyon
+- [x] Abonelik modülünde logo + isim yan yana
+- [x] Ekstrede basılı tut: sil / önceki-sonraki ekstreye taşı (tarih değişmez), seçim çubuğu ekstrede de çıkıyor
+- [x] Lehdar önerisinde kategoriler de (lehdarlar sayfasına yansımaz)
+- [x] Seçim modunda "Tümünü seç"
+- [x] Lehdarlar sayfasında gider/gelir ayrımı yok
+- [x] Aboneliği duraklat / devam ettir
+- [x] Lehdar/kategori sayfasına geri dönünce kaydırma yeri korunur
+- [x] Klavye açılınca alt menü klavyenin altında kalır
+- [x] Uygulama önce önbellekten açılır, arka planda bağlanır
+- [x] Borç ve gider tabloları kompakt; borçta ay toplamı ay adının altında
+- [x] İşlemler: dönem ve geçmiş/gelecek ayrı satırlarda; hesap seçimi varsayılan açık
+- [x] Abonelik: mevcut + bir sonraki ödeme, sonraki tarih gelince yenisi eklenir
+- [x] Dönemler: Son 30 gün, Bu ay, Geçen ay, Diğer ▾, Tümü
+- [x] Mobil alt menü 6 sekme + ayırıcılar; Tanımlar ayarlara taşındı
+- [x] Ayarlar liste düzeni, 4 tema, yedekle/geri yükle, uygulama/bildirim/nakit kutuları kaldırıldı
