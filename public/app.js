@@ -1458,14 +1458,16 @@ function saveDebt() {
 
 /* ---- settings ---- */
 function openSettings(tab, fromHash) {
-  const view = tab || "main"; S.settingsOpen = true; D = { view };
+  const view = tab || "main"; S.settingsOpen = true;
+  const params = new URLSearchParams(location.hash.split("?")[1] || "");
+  D = view === "rep" ? { view, m: params.get("m") || C.addM(CUR(), -1), back: "reps" } : { view };
   const hash = "#settings" + (view === "main" ? "" : "/" + view);
   if (!fromHash && location.hash !== hash) history.pushState(history.state, "", location.pathname + location.search + hash);
   renderSettings();
 }
 addEventListener("popstate", () => {
   const h = location.hash.slice(1);
-  if (h === "settings" || h.startsWith("settings/")) openSettings(h.split("/")[1] || "main", true);
+  if (h === "settings" || h.startsWith("settings/")) openSettings(h.split("/")[1]?.split("?")[0] || "main", true);
   else if (S.settingsOpen) closeSheet(true);
 });
 function ciDraftPlan(c) {
@@ -1716,7 +1718,7 @@ document.addEventListener("click", e => {
     case "stmt": { const a = meta().accounts.find(x => x.id === ds.id); if (!a) break; S.stmt = { acc: a.id, off: 0, r: stmtRange(a.cut || 1) }; S.view = "tx"; S.sel = null; if (location.hash.slice(1) !== "tx") location.hash = "tx"; render(); window.scrollTo(0, 0); break; }
     case "stmt-per": { const a = meta().accounts.find(x => x.id === S.stmt.acc); S.stmt.off += +ds.v; S.stmt.r = stmtRange(a.cut || 1, new Date(), S.stmt.off); stmtRun(); render(); break; }
     case "stmt-close": S.stmt = null; render(); break;
-    case "rep": { const m = ds.m; D = { view: "rep", m, back: ds.back || false }; renderSettings(); if (!(meta().reportSeen || {})[m] && S.loaded.meta) saveMetaChange(x => { x.reportSeen = { ...(x.reportSeen || {}), [m]: 1 }; }); break; }
+    case "rep": { const m = ds.m; if (S.settingsOpen) history.pushState(history.state, "", location.pathname + location.search + "#settings/rep?m=" + m); D = { view: "rep", m, back: ds.back || false }; renderSettings(); if (!(meta().reportSeen || {})[m] && S.loaded.meta) saveMetaChange(x => { x.reportSeen = { ...(x.reportSeen || {}), [m]: 1 }; }); break; }
     case "stmt-pick": { const R = S.stmt.res; let b; if (ds.di != null) { const x = R.diff[+ds.di]; b = x.b; S.stmt.pick = { b, ids: [x.t.id] }; } else { b = R.missing[+ds.i]; S.stmt.pick = { b, ids: [] }; } render(); window.scrollTo(0, 0); break; }
     case "stmt-pick-x": S.stmt.pick = null; stmtRun(); render(); break;
     case "stmt-ck": { const pk = S.stmt.pick; if (!pk) break; const k = pk.ids.indexOf(ds.id); k >= 0 ? pk.ids.splice(k, 1) : pk.ids.push(ds.id); render(); break; }
@@ -1801,7 +1803,7 @@ document.addEventListener("click", e => {
     case "app-reload": (async () => { toast("Yenileniyor…"); try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update().catch(() => {}))); } catch (e) {} setTimeout(() => location.reload(), 300); })(); break;
     case "acct": openSettings(); break;
     case "set-back": openSettings(D.back === "reps" && D.view === "rep" ? "reps" : "main"); break;
-    case "set-nav": closeSheet(); S.stmt = null; S.sel = null; S.bub = null; S.view = ds.v; S.catF = null; S.payF = null; if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
+    case "set-nav": closeSheet(true); S.stmt = null; S.sel = null; S.bub = null; S.view = ds.v; S.catF = null; S.payF = null; if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
     case "set-view": openSettings(ds.v); break;
     case "theme": setTheme(ds.v); renderSettings(); break;
     case "acc-new": D = { view: "acc" }; D.acc = { _new: true, id: "a-" + C.rid(), name: "", type: "banka", color: "#3166c9", start: 0, exclude: false, hidden: false, order: meta().accounts.length }; renderSettings(); break;
