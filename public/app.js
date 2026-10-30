@@ -4,7 +4,7 @@ import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
 import { incomeAmount, applyIncomeRange, periodsToAmts } from "./cash-income.js";
 import { changeSelected } from "./transaction-bulk.js";
-const APP_VERSION = "1.3.9.0";
+const APP_VERSION = "1.3.9.1";
 const applyTheme = t => { t = ["dark", "soft", "softdark"].includes(t) ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "softdark" ? "#2a2c30" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1528,7 +1528,7 @@ function renderSettings() {
     const navr = (v, l) => '<button class="set-row setl" data-act="set-nav" data-v="' + v + '"><span class="grow">' + l + '</span><span class="muted">›</span></button>';
     h += '<div class="card setlist">' + sr("share", "Paylaşım", meta().share && meta().share.token ? '<span class="small muted">Açık</span>' : '') +
       '<div class="set-row setl"><span class="grow">Tema</span><span class="seg thseg">' + [["light", "Açık"], ["dark", "Koyu"], ["soft", "Yumuşak açık"], ["softdark", "Yumuşak koyu"]].map(([k, l]) => '<button data-act="theme" data-v="' + k + '" aria-pressed="' + (th === k) + '">' + l + '</button>').join("") + '</span></div>' +
-      sr("data", "Yedekle / geri yükle") + sr("reps", "Aylık raporlar") + '</div>';
+      sr("data", "Yedekle / geri yükle") + sr("reps", "Aylık raporlar") + '<button class="set-row" data-act="app-reload"><span class="grow">Uygulamayı güncelle<span class="small muted" style="display:block">Sürüm ' + APP_VERSION + ' · önbelleği temizleyip en son sürümü yükler</span></span></button></div>';
     h += '<div class="card setlist" style="margin-top:12px">' + navr("acc", "Hesaplar") + navr("cat", "Kategoriler") + navr("pay", "Lehdarlar") + '</div>';
     h += '<div class="card setlist" style="margin-top:12px"><div class="set-row setl" style="flex-wrap:wrap;gap:6px"><span class="grow small muted" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(S.user && S.user.email || "") + '</span><button class="btn sm ghost" data-act="signout">Çıkış yap</button><button class="btn sm ghost" style="color:var(--exp)" data-act="wipe-all">Tüm verileri sil</button><button class="btn sm ghost" style="color:var(--exp)" data-act="del-acc">Hesabı sil</button></div></div>';
     h += '<p class="small muted" style="text-align:center;margin:20px 0 4px">Bütçe v' + APP_VERSION + '</p></div>';
@@ -1807,7 +1807,7 @@ document.addEventListener("click", e => {
     case "expand": S.expanded.has(ds.k) ? S.expanded.delete(ds.k) : S.expanded.add(ds.k); render(); break;
     case "onlymine": S.onlyMine = ds.v === "1"; render(); break;
     case "settings": openSettings(); break;
-    case "app-reload": (async () => { toast("Yenileniyor…"); try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update().catch(() => {}))); } catch (e) {} setTimeout(() => location.reload(), 300); })(); break;
+    case "app-reload": (async () => { toast("Yenileniyor…"); try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.unregister().catch(() => {}))); const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith("butce-")).map(k => caches.delete(k))); } catch (e) {} setTimeout(() => location.reload(), 300); })(); break;
     case "acct": openSettings(); break;
     case "set-back": openSettings(D.back === "reps" && D.view === "rep" ? "reps" : "main"); break;
     case "set-nav": closeSheet(true); S.stmt = null; S.sel = null; S.bub = null; S.view = ds.v; S.catF = null; S.payF = null; if (location.hash.slice(1) !== ds.v) location.hash = ds.v; render(); window.scrollTo(0, 0); break;
