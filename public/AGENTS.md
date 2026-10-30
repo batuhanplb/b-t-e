@@ -1,6 +1,6 @@
 # public/ rules
 
-- Recurring income retains the existing effective-month `amts` schedule; `cash-income.js` applies finite ranges with a restoring boundary and preserves past entries and actual/skip overrides. Why: future salary plans must not rewrite history.
+- Recurring income retains the existing effective-month `amts` schedule; `cash-income.js` builds plans via `periodsToAmts` (monthly items: "İptal edene kadar" or "Değişken" period list, no end month) and preserves past entries and actual/skip overrides. Why: future salary plans must not rewrite history.
 - Selected transaction changes live in `transaction-bulk.js`; category changes preserve income/expense type and account changes skip self-transfers. Why: bulk edits must preserve transaction meaning.
 - Settings subviews use settings hash history; page scroll positions are stored per view. Why: Back must return to the parent context.
 
