@@ -36,7 +36,25 @@ const errOf = (e: { message?: string; code?: string } | null) => {
 type Pending = { coll: string; id: string; data: unknown | null };
 const LS_CACHE = (u: string) => "butce.cache." + u;
 const LS_OUT = (u: string) => "butce.outbox." + u;
+const LS_BASE = (u: string) => "butce.base." + u;
 const LS_USER = "butce.lastUser";
+// Merge a locally edited month with the server copy so a stale device never
+// erases transactions another device added. base = last server copy we saw.
+type Tx = { id?: string; [k: string]: unknown };
+export function mergeMonth(base: Tx[], local: Tx[], server: Tx[]): Tx[] {
+  const key = (t: Tx, i: number) => t.id || "#" + i + JSON.stringify(t);
+  const b = new Map(base.map((t, i) => [key(t, i), JSON.stringify(t)]));
+  const l = new Map(local.map((t, i) => [key(t, i), t]));
+  const out: Tx[] = [];
+  const seen = new Set<string>();
+  server.forEach((t, i) => {
+    const k = key(t, i); seen.add(k);
+    if (l.has(k)) out.push(b.get(k) === JSON.stringify(l.get(k)) ? t : l.get(k)!);
+    else if (!b.has(k)) out.push(t); // added elsewhere: keep
+  });
+  local.forEach((t, i) => { const k = key(t, i); if (!seen.has(k)) out.push(t); });
+  return out;
+}
 const lsGet = <T,>(k: string, d: T): T => { try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : d; } catch { return d; } };
 const lsSet = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* quota */ } };
 
@@ -47,8 +65,19 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
   let outbox: Record<string, Pending> = {};
   let flushing: Promise<void> | null = null;
   let warned = false;
+  let base: Record<string, unknown[]> = {};
+  const saveBase = () => { if (uid) lsSet(LS_BASE(uid), base); };
+  const badge = () => {
+    const n = Object.keys(outbox).length;
+    let el = document.getElementById("sync-badge");
+    if (!n) { el?.remove(); return; }
+    if (!el) { el = document.createElement("div"); el.id = "sync-badge"; el.setAttribute("role", "status");
+      el.style.cssText = "position:fixed;top:calc(env(safe-area-inset-top) + 6px);right:8px;z-index:9999;padding:3px 9px;border-radius:999px;font:600 11px system-ui;background:var(--warn,#c9861a);color:var(--bg,#fff);box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer";
+      el.onclick = () => { flush(); }; document.body.appendChild(el); }
+    el.textContent = "⟳ " + n + " kayıt buluta gönderilmedi";
+  };
   const saveCache = () => { if (uid) lsSet(LS_CACHE(uid), cache); };
-  const saveOut = () => { if (uid) lsSet(LS_OUT(uid), outbox); };
+  const saveOut = () => { if (uid) lsSet(LS_OUT(uid), outbox); try { badge(); } catch { /* */ } };
   const emit = () => {
     if (!h) return;
     h.meta(clone(cache.meta));
@@ -56,12 +85,25 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     h.debts(clone(cache.debts));
   };
   const put = async (coll: string, id: string, data: unknown) => {
+    if (coll === "tx") {
+      const r = await supabase.from("user_docs").select("data").eq("user_id", uid!).eq("coll", "tx").eq("doc_id", id).maybeSingle();
+      if (r.error) throw errOf(r.error);
+      const srv = ((r.data?.data as { items?: Tx[] } | null)?.items) || [];
+      const merged = mergeMonth((base[id] as Tx[]) || [], ((data as { items?: Tx[] })?.items) || [], srv);
+      data = { items: merged };
+      const { error } = await supabase.from("user_docs").upsert({ user_id: uid!, coll, doc_id: id, data: data as never, updated_at: new Date().toISOString() });
+      if (error) throw errOf(error);
+      base[id] = clone(merged); saveBase();
+      if (JSON.stringify(merged) !== JSON.stringify(cache.months[id] || [])) { cache.months[id] = clone(merged); saveCache(); emit(); }
+      return;
+    }
     const { error } = await supabase.from("user_docs").upsert({ user_id: uid!, coll, doc_id: id, data: data as never, updated_at: new Date().toISOString() });
     if (error) throw errOf(error);
   };
   const del = async (coll: string, id: string) => {
     const { error } = await supabase.from("user_docs").delete().eq("user_id", uid!).eq("coll", coll).eq("doc_id", id);
     if (error) throw errOf(error);
+    if (coll === "tx") { delete base[id]; saveBase(); }
   };
   const applyLocal = (coll: string, id: string, data: unknown | null) => {
     if (coll === "meta") cache.meta = data;
@@ -71,6 +113,13 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
   const flush = (): Promise<void> => {
     if (flushing) return flushing;
     flushing = (async () => {
+      if (!Object.keys(outbox).length) return;
+      // Never write without a valid session: an expired token would be rejected
+      // and must not cost data. Keep everything queued until signed in again.
+      const { data: sd } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      let ses = sd.session;
+      if (ses && (ses.expires_at ?? 0) * 1000 - Date.now() < 60_000) ses = (await supabase.auth.refreshSession().catch(() => ({ data: { session: null } }))).data.session;
+      if (!ses || ses.user.id !== uid) { if (!warned) { warned = true; toast?.("Kayıtlar telefonda tutuluyor; oturum yenilenince buluta gönderilecek."); } return; }
       for (const key of Object.keys(outbox)) {
         const p = outbox[key]!;
         try {
@@ -78,8 +127,8 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
           if (outbox[key] === p) { delete outbox[key]; saveOut(); }
         } catch (err) {
           const e = err as { code?: string };
-          if (e?.code === "permission-denied") { delete outbox[key]; saveOut(); toast?.("Bu hesapla yazma izni yok."); continue; }
-          if (!warned) { warned = true; toast?.("Çevrimdışı kaydedildi, bağlantı gelince eşitlenecek."); }
+          // Never drop a pending write: keep it and retry later.
+          if (!warned) { warned = true; toast?.(e?.code === "permission-denied" ? "Kayıt telefonda tutuluyor; oturum yenilenmeli (çıkış yapmadan tekrar giriş yap)." : "Çevrimdışı kaydedildi, bağlantı gelince eşitlenecek."); }
           break;
         }
       }
@@ -108,6 +157,9 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
       if (!data || data.length < 1000) break;
     }
     cache = { meta: null, months: {}, debts: {} };
+    base = {};
+    rows.forEach((r) => { if (r.coll === "tx") base[r.doc_id] = clone(((r.data as { items?: unknown[] }) || {}).items || []); });
+    saveBase();
     rows.forEach((r) => applyLocal(r.coll, r.doc_id, r.data));
     Object.values(outbox).forEach((p) => applyLocal(p.coll, p.id, p.data));
     saveCache();
@@ -115,6 +167,7 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
 
   const store = {
     kind: "cloud",
+    pending() { return Object.keys(outbox).length; },
     user: null as User,
     async signIn() {
       // Native (Capacitor) app: popups don't work in the WebView, so run the
@@ -144,7 +197,10 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
       if (r.error) throw Object.assign(r.error, { code: /cancel/i.test(r.error.message) ? "auth/popup-closed" : "auth/failed" });
       if (!r.redirected && r.tokens) await supabase.auth.setSession(r.tokens);
     },
-    signOut() { return supabase.auth.signOut(); },
+    signOut() {
+      if (Object.keys(outbox).length && !confirm(Object.keys(outbox).length + " kayıt henüz buluta gönderilmedi. Çıkış yaparsan kaybolabilir. Yine de çıkılsın mı?")) return Promise.resolve();
+      return supabase.auth.signOut();
+    },
     async deleteAccount() {
       const { error } = await supabase.rpc("delete_my_account" as never);
       if (error) throw errOf(error);
@@ -199,6 +255,8 @@ export async function cloudStore(onUser: (u: User, err?: string) => void, toast?
     lastUid = u?.id ?? null;
     h = null; uid = lastUid;
     outbox = uid ? lsGet<Record<string, Pending>>(LS_OUT(uid), {}) : {};
+    base = uid ? lsGet<Record<string, unknown[]>>(LS_BASE(uid), {}) : {};
+    try { badge(); } catch { /* */ }
     if (u) lsSet(LS_USER, { id: u.id, email: u.email, user_metadata: u.user_metadata });
     const meta = u?.user_metadata ?? {};
     store.user = u ? { email: u.email ?? null, name: meta['full_name'] ?? meta['name'] ?? null } : null;
