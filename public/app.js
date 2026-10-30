@@ -2,9 +2,9 @@ import * as C from "./core.js";
 import { formatAmountField } from "./transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement.js";
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
-import { incomeAmount, applyIncomeRange } from "./cash-income.js";
+import { incomeAmount, applyIncomeRange, periodsToAmts } from "./cash-income.js";
 import { changeSelected } from "./transaction-bulk.js";
-const APP_VERSION = "1.3.8.0";
+const APP_VERSION = "1.3.9.0";
 const applyTheme = t => { t = ["dark", "soft", "softdark"].includes(t) ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "softdark" ? "#2a2c30" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -868,8 +868,8 @@ function vCash() {
     h += '<div class="cash-nav"><button class="ib" data-act="cash-open" data-m="' + (prev ? prev.m : "") + '"' + (prev ? '' : ' disabled') + ' aria-label="Önceki ay">' + ICON.l + '</button><b>' + mLabel(p.m) + '</b><button class="ib" data-act="cash-open" data-m="' + (next ? next.m : "") + '"' + (next ? '' : ' disabled') + ' aria-label="Sonraki ay">' + ICON.r + '</button></div>';
     h += '<div class="cash-sum"><div><span>Giriş</span><b class="pos">+' + f2(C.r2(p.elde + p.inc)) + '</b></div><div><span>Çıkış</span><b class="neg">−' + f2(p.exp) + '</b></div><div class="' + (p.kalan < 0 ? "bad" : "ok") + '"><span>Ay sonu kalan</span><b>' + f2(p.kalan) + '</b></div></div>';
     h += '<div class="card mcard" id="cm-' + p.m + '"><div class="cash-cols"><div><div class="cash-colh">Gelirler</div><div class="crow elde-row"><span>Elde</span><span>' + f2(p.elde) + '</span></div>' + (incL.length ? incL.map(cashRow).join("") : '<div class="crow muted"><span>—</span></div>') + '</div><div><div class="cash-colh">Giderler</div>' + (expL.length ? expL.map(cashRow).join("") : '<div class="crow muted"><span>—</span></div>') + '</div></div></div>'; }
-  h += '<div class="toolbar" style="margin-top:12px"><span style="flex:1"></span><button class="btn sm ghost" data-act="ci-new" data-k="inc">Gelir ekle</button><button class="btn sm" data-act="ci-new" data-k="exp">Gider ekle</button></div>';
-  if (items.length) h += '<div class="sec-h" style="margin-top:18px"><h2>Düzenli gelir ve giderler</h2></div><div class="card"><ul class="list">' + items.map(it => '<li><button class="set-row" data-act="ci-edit" data-id="' + esc(it.id) + '"><span class="cic" style="--c:' + (it.k === "inc" ? "var(--inc)" : "var(--exp)") + ';width:32px;height:32px">' + svgI(it.k === "inc" ? CI.coin : CI.bolt) + '</span><span class="grow">' + esc(it.name) + '<span class="small muted" style="display:block">' + (it.rep === "once" ? "Tek seferlik, " + it.date : "Her ay, " + dayTxt(it.day) + (it.end ? ", " + mLabel(it.end) + "’e kadar" : "")) + '</span></span><span class="' + (it.k === "inc" ? "pos" : "") + '">' + f2(cashAmt(it, it.rep === "once" ? it.date.slice(0, 7) : (CUR() < it.start ? it.start : CUR()))) + '</span></button></li>').join("") + '</ul></div>';
+  h += '<div class="toolbar" style="margin-top:12px"><span style="flex:1"></span><button class="btn sm" data-act="ci-new" data-k="inc">+ Ekle</button></div>';
+  if (items.length) h += '<div class="sec-h" style="margin-top:18px"><h2>Düzenli gelir ve giderler</h2></div><div class="card"><ul class="list">' + items.map(it => '<li><button class="set-row" data-act="ci-edit" data-id="' + esc(it.id) + '"><span class="cic" style="--c:' + (it.k === "inc" ? "var(--inc)" : "var(--exp)") + ';width:32px;height:32px">' + svgI(it.k === "inc" ? CI.coin : CI.bolt) + '</span><span class="grow">' + esc(it.name) + '<span class="small muted" style="display:block">' + (it.rep === "once" ? "Tek seferlik, " + it.date : "Her ay, " + dayTxt(it.day) + (it.mode === "var" ? ", değişken" : it.end ? ", " + mLabel(it.end) + "’e kadar" : "")) + '</span></span><span class="' + (it.k === "inc" ? "pos" : "") + '">' + f2(cashAmt(it, it.rep === "once" ? it.date.slice(0, 7) : (CUR() < it.start ? it.start : CUR()))) + '</span></button></li>').join("") + '</ul></div>';
   return h + '<p class="small muted">Elde: kredi kartı dışındaki hesapların bugünkü bakiyesi. Bu ay için sadece henüz gerçekleşmemiş kalemler sayılır. Her ayın kalanı bir sonraki aya devreder; böylece ileriye dönük nakit akışınızın tamamını burada görürsünüz.</p>';
 }
 const BANKS = { ziraat: "ziraatbank.com.tr", garanti: "garantibbva.com.tr", akbank: "akbank.com", yapi: "yapikredi.com.tr", "yapı": "yapikredi.com.tr", kredi: "yapikredi.com.tr", isbank: "isbank.com.tr", "iş": "isbank.com.tr", vakif: "vakifbank.com.tr", "vakıf": "vakifbank.com.tr", halk: "halkbank.com.tr", qnb: "qnb.com.tr", finans: "qnb.com.tr", deniz: "denizbank.com", teb: "teb.com.tr", ing: "ing.com.tr", hsbc: "hsbc.com.tr", enpara: "enpara.com", papara: "papara.com", ininal: "ininal.com", paycell: "paycell.com.tr", "şeker": "sekerbank.com.tr", odeabank: "odeabank.com.tr", "kuveyt": "kuveytturk.com.tr", "albaraka": "albaraka.com.tr", "emlak": "emlakkatilim.com.tr", "fibabanka": "fibabanka.com.tr", "anadolu": "anadolubank.com.tr", "burgan": "burgan.com.tr", "alternatif": "alternatifbank.com.tr", "n kolay": "aktifbank.com.tr", "aktif": "aktifbank.com.tr" };
@@ -1475,6 +1475,14 @@ function ciDraftPlan(c) {
   if (!c._planEdited && a > 0) { const i = amts.findIndex(x => x.from === from); const row = { from, a: C.r2(a) }; if (i >= 0) amts[i] = row; else amts.push(row); }
   return amts.sort((a, b) => a.from.localeCompare(b.from));
 }
+function ciPersHtml(c) {
+  const pers = c.pers || [];
+  let m = ciFrom(c);
+  const rows = pers.map((p, i) => { const s = m; m = C.addM(m, p.n); const last = i === pers.length - 1; return '<div class="set-row" style="gap:8px"><span class="grow">' + (last ? mLabel(s) + '’ten itibaren' : mLabel(s) + ' – ' + mLabel(C.addM(s, p.n - 1))) + '<span class="small muted" style="display:block">' + p.n + ' ay' + (last ? ', sonra aynı devam' : '') + '</span></span><b>' + f2(p.a) + '</b><button class="ib" data-act="ci-prm" data-i="' + i + '" aria-label="Kaldır">' + ICON.x + '</button></div>'; }).join("");
+  return '<div class="card" style="padding:6px 10px;margin-bottom:10px">' + (rows || '<p class="small muted">Henüz dönem yok. Örn. 6 ay 30.000, sonra 6 ay 35.000.</p>') + '</div>' +
+    '<div class="row2" style="align-items:end"><label class="fld"><span>Kaç ay</span><input class="in" type="number" min="1" max="120" data-ci="pn" value="' + esc(c.pn || 6) + '"></label><label class="fld"><span>Aylık tutar</span><input class="in amt" inputmode="decimal" data-ci="pa" value="' + esc(c.pa || "") + '" placeholder="0,00"></label></div><button class="btn sm ghost" data-act="ci-padd" style="margin-bottom:14px">+ Dönem ekle</button>';
+}
+const ciFrom = c => c._new ? (c.start || CUR()) : (c.start > CUR() ? c.start : CUR());
 function incomePlanHtml(c) {
   const start = c.start > CUR() ? c.start : CUR(), amts = ciDraftPlan(c);
   return '<section class="income-plan"><div class="sec-h"><h2>Gelecek ayların gelir planı</h2></div><div class="income-range">' +
@@ -1580,11 +1588,10 @@ function renderSettings() {
     h = head(c._new ? (c.k === "inc" ? "Gelir ekle" : "Gider ekle") : "Düzenle") + '<div class="sh-bd">' +
       '<div class="seg" style="display:flex;margin-bottom:14px"><button style="flex:1" data-act="ci-k" data-v="inc" aria-pressed="' + (c.k === "inc") + '">Gelir</button><button style="flex:1" data-act="ci-k" data-v="exp" aria-pressed="' + (c.k !== "inc") + '">Gider</button></div>' +
       '<label class="fld"><span>Ad</span><input class="in" data-ci="name" value="' + esc(c.name) + '" placeholder="Örn. Maaş, Faturalar"></label>' +
-      '<label class="fld"><span>Tutar</span><input class="in amt" inputmode="decimal" data-ci="a" value="' + esc(c.a) + '" placeholder="0,00"></label>' +
+      (mon && c.mode === "var" ? '' : '<label class="fld"><span>Tutar</span><input class="in amt" inputmode="decimal" data-ci="a" value="' + esc(c.a) + '" placeholder="0,00"></label>') +
       '<div class="seg" style="display:flex;margin-bottom:14px"><button style="flex:1" data-act="ci-rep" data-v="m" aria-pressed="' + mon + '">Her ay</button><button style="flex:1" data-act="ci-rep" data-v="once" aria-pressed="' + !mon + '">Tek seferlik</button></div>' +
-      (mon ? '<div class="row2"><label class="fld"><span>Ayın kaçında</span><input class="in" type="number" min="1" max="31" data-ci="day" value="' + (c.day || "") + '"></label><label class="fld"><span>Başlangıç ayı</span><input class="in" type="month" data-ci="start" value="' + (c.start || CUR()) + '"></label></div><label class="fld"><span>Bitiş ayı (isteğe bağlı)</span><input class="in" type="month" data-ci="end" value="' + (c.end || "") + '"></label>' + (c._new ? '' : '<label class="fld"><span>Tutar değiştiyse, yeni tutarın başladığı ay</span><input class="in" type="month" data-ci="eff" value="' + (c.eff || CUR()) + '"></label>')
+      (mon ? '<div class="row2"><label class="fld"><span>Ayın kaçında</span><input class="in" type="number" min="1" max="31" data-ci="day" value="' + (c.day || "") + '"></label><label class="fld"><span>Başlangıç ayı</span><input class="in" type="month" data-ci="start" value="' + (c.start || CUR()) + '"></label></div><div class="fld"><span>Süre</span><div class="seg" style="display:flex"><button style="flex:1" data-act="ci-mode" data-v="until" aria-pressed="' + (c.mode !== "var") + '">İptal edene kadar</button><button style="flex:1" data-act="ci-mode" data-v="var" aria-pressed="' + (c.mode === "var") + '">Değişken</button></div></div>' + (c.mode === "var" ? ciPersHtml(c) : '')
         : '<label class="fld"><span>Tarih</span><input class="in" type="date" data-ci="date" value="' + (c.date || today()) + '"></label>') +
-      (mon && c.k === "inc" ? incomePlanHtml(c) : "") +
       (c.k !== "inc" ? payList() : '') +
       '<div id="s-err"></div></div><div class="sh-ft">' + (c._new ? '' : '<button class="btn danger" data-act="ci-del">Sil</button>') + '<button class="btn" data-act="ci-save">Kaydet</button></div>';
   } else if (v === "imp") {
@@ -1842,19 +1849,22 @@ document.addEventListener("click", e => {
     case "ci-k": D.ci.k = ds.v; renderSettings(); break;
     case "ci-debt": { saveMetaChange(mm => { mm.cash = mm.cash || { items: [] }; const l = mm.cash.exDebts = mm.cash.exDebts || []; const k = l.indexOf(ds.id); if (k >= 0) l.splice(k, 1); else l.push(ds.id); }); renderSettings(); render(); break; }
     case "ci-rep": D.ci.rep = ds.v; renderSettings(); break;
+    case "ci-mode": D.ci.mode = ds.v; if (ds.v === "var" && !(D.ci.pers || []).length && C.parseAmt(D.ci.a) > 0) D.ci.pers = [{ n: 6, a: C.r2(C.parseAmt(D.ci.a)) }]; renderSettings(); break;
+    case "ci-padd": { const c = D.ci, n = parseInt(c.pn), a = C.parseAmt(c.pa); if (!(n >= 1 && n <= 120) || !(a > 0)) { toast("Ay sayısı ve tutarı girin."); break; } (c.pers = c.pers || []).push({ n, a: C.r2(a) }); c.pa = ""; renderSettings(); break; }
+    case "ci-prm": D.ci.pers.splice(+ds.i, 1); renderSettings(); break;
     case "ci-del": { if (ds.ok !== "1") { ask("Silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } const id = D.ci.id; saveMetaChange(m => { m.cash = m.cash || { items: [] }; m.cash.items = m.cash.items.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
     case "ci-range": { const c = D.ci, start = c.start > CUR() ? c.start : CUR(), from = c.rangeFrom || start, n = Number(c.rangeCount || 6), a = C.parseAmt(c.rangeAmount ?? c.a);
       if (from < start || !Number.isInteger(n) || n < 1 || n > 120 || !Number.isFinite(a) || a < 0) { toast("Başlangıç, ay sayısı ve tutarı kontrol edin."); break; }
       c.amts = applyIncomeRange(ciDraftPlan(c), from, n, C.r2(a), C.addM); c._planEdited = true; renderSettings(); break; }
-    case "ci-save": { const c = D.ci, a = C.parseAmt(c.a);
-      if (!c.name || !c.name.trim() || !(a > 0)) { $("#s-err").innerHTML = '<p class="err">Ad ve tutar girin.</p>'; break; }
+    case "ci-save": { const c = D.ci, isVar = c.rep !== "once" && c.mode === "var", a = isVar ? ((c.pers || [])[0] || {}).a : C.parseAmt(c.a);
+      if (!c.name || !c.name.trim() || !(a > 0)) { $("#s-err").innerHTML = '<p class="err">' + (isVar ? 'Ad girin ve en az bir dönem ekleyin.' : 'Ad ve tutar girin.') + '</p>'; break; }
       const it = { id: c.id, k: c.k, name: c.name.trim(), rep: c.rep }; if (c.act) it.act = clone(c.act); if (c.skip) it.skip = c.skip.slice();
       if (c.rep === "once") { it.date = c.date || today(); it.amts = [{ from: it.date.slice(0, 7), a: C.r2(a) }]; }
-      else { it.day = Math.min(31, Math.max(1, parseInt(c.day) || 1)); it.start = c.start || CUR(); it.end = c.end || null;
-        let amts = c._new || !c.amts ? [] : c.amts.slice();
-        if (c._new || !amts.length) amts = [{ from: it.start, a: C.r2(a) }];
-        else if (C.r2(a) !== C.r2(c._orig || 0)) { const eff = c.eff || CUR(); amts = amts.filter(x => x.from !== eff).concat({ from: eff, a: C.r2(a) }); }
-        if (c.k === "inc") amts = ciDraftPlan(c); amts.sort((x, y) => x.from.localeCompare(y.from)); if (amts[0].from > it.start) amts[0].from = it.start; it.amts = amts; }
+      else { it.day = Math.min(31, Math.max(1, parseInt(c.day) || 1)); it.start = c.start || CUR(); it.end = null; it.mode = isVar ? "var" : "until";
+        const from = ciFrom({ ...c, start: it.start }), past = c._new ? [] : (c.amts || []);
+        let amts = isVar ? periodsToAmts(past, from, c.pers, C.addM) : periodsToAmts(past, from, [{ n: 1, a: C.r2(a) }], C.addM);
+        if (isVar) it.pers = clone(c.pers);
+        if (!amts.length) amts = [{ from: it.start, a: C.r2(a) }]; amts.sort((x, y) => x.from.localeCompare(y.from)); if (amts[0].from > it.start) amts[0].from = it.start; it.amts = amts; }
       saveMetaChange(m => { m.cash = m.cash || { items: [] }; const i = m.cash.items.findIndex(x => x.id === it.id); if (i >= 0) m.cash.items[i] = it; else m.cash.items.push(it); }); closeSheet(); render(); toast("Kaydedildi"); break; }
     case "cat-icon": D.cat.icon = ds.v || null; D.cat.img = null; renderSettings(); break;
     case "cat-img-rm": D.cat.img = null; renderSettings(); break;
