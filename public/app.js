@@ -4,7 +4,7 @@ import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
 import { incomeAmount, applyIncomeRange, periodsToAmts } from "./cash-income.js";
 import { changeSelected } from "./transaction-bulk.js";
-const APP_VERSION = "1.3.9.1";
+const APP_VERSION = "1.3.9.2";
 const applyTheme = t => { t = ["dark", "soft", "softdark"].includes(t) ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "softdark" ? "#2a2c30" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1478,9 +1478,9 @@ function ciDraftPlan(c) {
 function ciPersHtml(c) {
   const pers = c.pers || [];
   let m = ciFrom(c);
-  const rows = pers.map((p, i) => { const s = m; m = C.addM(m, p.n); const last = i === pers.length - 1; return '<div class="set-row" style="gap:8px"><span class="grow">' + (last ? mLabel(s) + '’ten itibaren' : mLabel(s) + ' – ' + mLabel(C.addM(s, p.n - 1))) + '<span class="small muted" style="display:block">' + p.n + ' ay' + (last ? ', sonra aynı devam' : '') + '</span></span><b>' + f2(p.a) + '</b><button class="ib" data-act="ci-prm" data-i="' + i + '" aria-label="Kaldır">' + ICON.x + '</button></div>'; }).join("");
+  const rows = pers.map((p, i) => { const s = m; m = C.addM(m, p.n); const last = i === pers.length - 1; return '<div class="set-row" style="gap:8px"><span class="grow">' + mLabel(s) + ' – ' + mLabel(C.addM(s, p.n - 1)) + '<span class="small muted" style="display:block">' + p.n + ' ay' + '</span></span><b>' + f2(p.a) + '</b><button class="ib" data-act="ci-prm" data-i="' + i + '" aria-label="Kaldır">' + ICON.x + '</button></div>'; }).join("");
   return '<div class="card" style="padding:6px 10px;margin-bottom:10px">' + (rows || '<p class="small muted">Henüz dönem yok. Örn. 6 ay 30.000, sonra 6 ay 35.000.</p>') + '</div>' +
-    '<div class="row2" style="align-items:end"><label class="fld"><span>Kaç ay</span><input class="in" type="number" min="1" max="120" data-ci="pn" value="' + esc(c.pn || 6) + '"></label><label class="fld"><span>Aylık tutar</span><input class="in amt" inputmode="decimal" data-ci="pa" value="' + esc(c.pa || "") + '" placeholder="0,00"></label></div><button class="btn sm ghost" data-act="ci-padd" style="margin-bottom:14px">+ Dönem ekle</button>';
+    '<div class="row2" style="align-items:end"><label class="fld"><span>Kaç ay</span><input class="in" type="number" min="1" max="120" data-ci="pn" value="' + esc(c.pn || 6) + '"></label><label class="fld"><span>Aylık tutar</span><input class="in amt" style="font-size:15px;font-weight:400" inputmode="decimal" data-ci="pa" value="' + esc(c.pa || "") + '" placeholder="0,00"></label></div><button class="btn sm ghost" data-act="ci-padd" style="margin-bottom:14px">+ Dönem ekle</button>';
 }
 const ciFrom = c => c._new ? (c.start || CUR()) : (c.start > CUR() ? c.start : CUR());
 function incomePlanHtml(c) {
@@ -1851,7 +1851,7 @@ document.addEventListener("click", e => {
     case "ci-debt": { saveMetaChange(mm => { mm.cash = mm.cash || { items: [] }; const l = mm.cash.exDebts = mm.cash.exDebts || []; const k = l.indexOf(ds.id); if (k >= 0) l.splice(k, 1); else l.push(ds.id); }); renderSettings(); render(); break; }
     case "ci-rep": D.ci.rep = ds.v; renderSettings(); break;
     case "ci-mode": D.ci.mode = ds.v; if (ds.v === "var" && !(D.ci.pers || []).length && C.parseAmt(D.ci.a) > 0) D.ci.pers = [{ n: 6, a: C.r2(C.parseAmt(D.ci.a)) }]; renderSettings(); break;
-    case "ci-padd": { const c = D.ci, n = parseInt(c.pn), a = C.parseAmt(c.pa); if (!(n >= 1 && n <= 120) || !(a > 0)) { toast("Ay sayısı ve tutarı girin."); break; } (c.pers = c.pers || []).push({ n, a: C.r2(a) }); c.pa = ""; renderSettings(); break; }
+    case "ci-padd": { const c = D.ci, n = parseInt(c.pn || 6), a = C.parseAmt(c.pa); if (!(n >= 1 && n <= 120) || !(a > 0)) { toast("Ay sayısı ve tutarı girin."); break; } (c.pers = c.pers || []).push({ n, a: C.r2(a) }); c.pa = ""; renderSettings(); break; }
     case "ci-prm": D.ci.pers.splice(+ds.i, 1); renderSettings(); break;
     case "ci-del": { if (ds.ok !== "1") { ask("Silinsin mi?").then(v => { if (v) { ds.ok = "1"; el.click(); delete ds.ok; } }); break; } const id = D.ci.id; saveMetaChange(m => { m.cash = m.cash || { items: [] }; m.cash.items = m.cash.items.filter(x => x.id !== id); }); closeSheet(); render(); toast("Silindi"); break; }
     case "ci-range": { const c = D.ci, start = c.start > CUR() ? c.start : CUR(), from = c.rangeFrom || start, n = Number(c.rangeCount || 6), a = C.parseAmt(c.rangeAmount ?? c.a);
