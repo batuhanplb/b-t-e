@@ -4,7 +4,7 @@ import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
 import { incomeAmount, applyIncomeRange, periodsToAmts } from "./cash-income.js";
 import { changeSelected } from "./transaction-bulk.js";
-const APP_VERSION = "1.3.9.3";
+const APP_VERSION = "1.3.10.0";
 const applyTheme = t => { t = ["dark", "soft", "softdark"].includes(t) ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "softdark" ? "#2a2c30" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -949,7 +949,7 @@ function vAcc() {
 }
 function vCat() {
   const op = S.catExp || (S.catExp = {}), cats = meta().categories, mode = "", sel = S.catSel || (S.catSel = new Set()), cust = meta().catSort === "custom";
-  const sec = (t, l) => { const rows = catTree().filter(({ c, depth }) => c.type === t && (!depth || op[c.parent])); return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(({ c, depth }) => { const kids = !depth && cats.some(x => x.parent === c.id); const right = mode === "sel" ? '<input type="checkbox" data-act="cat-sel" data-id="' + esc(c.id) + '"' + (sel.has(c.id) ? " checked" : "") + ' style="width:22px;height:22px">' : mode === "ord" ? '<button class="ib" data-act="cat-mv" data-id="' + esc(c.id) + '" data-d="-1" aria-label="Yukarı" style="transform:rotate(90deg)">' + ICON.l + '</button><button class="ib" data-act="cat-mv" data-id="' + esc(c.id) + '" data-d="1" aria-label="Aşağı" style="transform:rotate(90deg)">' + ICON.r + '</button>' : '<button class="ib pen" data-act="cat-edit" data-id="' + esc(c.id) + '" aria-label="Düzenle">' + ICON.pen + '</button>'; return '<li><div class="set-row catrow" style="padding-left:' + (14 + depth * 26) + 'px"><span class="cic" style="--c:' + c.color + ';width:30px;height:30px">' + catIcon(c.id) + '</span><button class="grow" style="text-align:left" data-act="' + (mode === "sel" ? "cat-sel" : "cat-tx") + '" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button>' + (kids ? '<button class="ib" data-act="cat-exp" data-id="' + esc(c.id) + '" aria-label="Alt kategoriler" style="transform:rotate(' + (op[c.id] ? 90 : 0) + 'deg);transition:transform .2s">' + ICON.r + '</button>' : '') + right + '</div></li>'; }).join("") + '</ul></div>'; };
+  const sec = (t, l) => { const rows = catTree().filter(({ c, depth }) => c.type === t && (!depth || op[c.parent])); return '<div class="sec-h" style="margin-top:16px"><h2>' + l + '</h2></div><div class="card"><ul class="list">' + rows.map(({ c, depth }) => { const kids = !depth && cats.some(x => x.parent === c.id); const right = mode === "sel" ? '<input type="checkbox" data-act="cat-sel" data-id="' + esc(c.id) + '"' + (sel.has(c.id) ? " checked" : "") + ' style="width:22px;height:22px">' : mode === "ord" ? '<button class="ib" data-act="cat-mv" data-id="' + esc(c.id) + '" data-d="-1" aria-label="Yukarı" style="transform:rotate(90deg)">' + ICON.l + '</button><button class="ib" data-act="cat-mv" data-id="' + esc(c.id) + '" data-d="1" aria-label="Aşağı" style="transform:rotate(90deg)">' + ICON.r + '</button>' : '<button class="ib pen" data-act="cat-edit" data-id="' + esc(c.id) + '" aria-label="Düzenle">' + ICON.pen + '</button><button class="ib" data-act="cat-chart" data-id="' + esc(c.id) + '" aria-label="Aylık analiz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20h16M7 16v-4M12 16V7M17 16v-7"/></svg></button>'; return '<li><div class="set-row catrow" style="padding-left:' + (14 + depth * 26) + 'px"><span class="cic" style="--c:' + c.color + ';width:30px;height:30px">' + catIcon(c.id) + '</span><button class="grow" style="text-align:left" data-act="' + (mode === "sel" ? "cat-sel" : "cat-tx") + '" data-id="' + esc(c.id) + '">' + esc(c.name) + '</button>' + (kids ? '<button class="ib" data-act="cat-exp" data-id="' + esc(c.id) + '" aria-label="Alt kategoriler" style="transform:rotate(' + (op[c.id] ? 90 : 0) + 'deg);transition:transform .2s">' + ICON.r + '</button>' : '') + right + '</div></li>'; }).join("") + '</ul></div>'; };
   const bar = '';
   const tb = '<span class="small muted" style="flex:1">İşlemleri görmek için kategori adına dokunun.</span><button class="btn sm" data-act="cat-new">Kategori ekle</button>';
   return '<div class="narrow"><div class="toolbar" style="flex-wrap:wrap">' + tb + '</div>' + sec("E", "Gider kategorileri") + sec("I", "Gelir kategorileri") + bar + '</div>';
@@ -986,6 +986,23 @@ function pickCat(msg, ex, onlyTop, none) {
       if ((b && b.dataset.c) || (e.target === o && pd === o)) { o.remove(); res(null); } });
     (typeof dlg !== "undefined" && dlg.open ? dlg : document.body).appendChild(o);
   });
+}
+// Kategori aylık analizi: son 12 ay, alt kategoriler ve bölünmüş işlemler dahil.
+function catChart(id) {
+  const cats = meta().categories, c = cats.find(x => x.id === id); if (!c) return;
+  const ids = new Set([id]); let ch = true; while (ch) { ch = false; cats.forEach(x => { if (x.parent && ids.has(x.parent) && !ids.has(x.id)) { ids.add(x.id); ch = true; } }); }
+  const cur = CUR(), ms = []; for (let i = 11; i >= 0; i--) ms.push(C.addM(cur, -i));
+  const tot = {}; ms.forEach(m => tot[m] = 0);
+  derived().all.forEach(t => { if (t.k === "tr") return; const m = t.d.slice(0, 7); if (!(m in tot)) return; (t.sp && t.sp.length ? t.sp : [{ cat: t.cat, a: t.a }]).forEach(p => { if (ids.has(p.cat)) tot[m] += p.a || 0; }); });
+  const mx = Math.max(1, ...ms.map(m => tot[m]));
+  const bars = '<div class="card cashbars">' + ms.map(m => '<button class="cb' + (m === cur ? ' sel' : '') + '" aria-label="' + mLabel(m) + ': ' + f2(tot[m]) + '"><i style="height:' + Math.max(3, tot[m] / mx * 100).toFixed(1) + '%"></i><span class="cbv">' + f0(tot[m]) + '</span><span>' + C.TR_M[Number(m.slice(5)) - 1].slice(0, 3) + '</span></button>').join("") + '</div>';
+  const rows = ms.slice().reverse().map((m, i, a) => { const pv = a[i + 1] ? tot[a[i + 1]] : null; let d = ""; if (pv != null) { if (pv > 0) { const r = (tot[m] - pv) / pv * 100; d = '<span class="small ' + (r > 0 ? "neg" : r < 0 ? "pos" : "muted") + '">' + (r > 0 ? "+" : "") + "%" + r.toFixed(1).replace(".", ",").replace(/,0$/, "") + '</span>'; } else d = '<span class="small muted">' + (tot[m] > 0 ? "yeni" : "–") + '</span>'; } return '<li><div class="set-row" style="display:flex;justify-content:space-between;gap:8px"><span>' + mLabel(m) + '</span><span style="display:flex;gap:10px;align-items:baseline"><b style="font-weight:600">' + f2(tot[m]) + '</b>' + d + '</span></div></li>'; }).join("");
+  const sum = ms.reduce((q, m) => q + tot[m], 0);
+  const o = document.createElement("div"); o.className = "askov";
+  o.innerHTML = '<div class="askbox" style="max-width:520px;width:94vw;text-align:left"><p><b>' + esc(catLabel(id)) + '</b><span class="small muted" style="display:block">Son 12 ay · toplam ' + f2(sum) + ' · ort. ' + f2(sum / 12) + '</span></p>' + bars + '<ul class="list" style="max-height:40vh;overflow:auto;margin:6px 0">' + rows + '</ul><button class="btn ghost" data-c="1">Kapat</button></div>';
+  let pd = null; o.addEventListener("pointerdown", e => { pd = e.target; });
+  o.addEventListener("click", e => { e.stopPropagation(); const b = e.target.closest("button"); if ((b && b.dataset.c) || (e.target === o && pd === o)) o.remove(); });
+  document.body.appendChild(o);
 }
 function catDelFlow(ids) {
   return ask(ids.length + " kategori silinecek. İşlemleri ne olsun?", [{ l: "İşlemleri Bilinmiyor'a taşı", v: "unk" }, { l: "Başka kategoriyle birleştir", v: "merge" }, { l: "İşlemleriyle birlikte sil", v: "deltx", red: 1 }]).then(md => {
@@ -1818,6 +1835,7 @@ document.addEventListener("click", e => {
     case "acc-save": { const a = D.acc; if (!a.name || !a.name.trim()) { $("#s-err").innerHTML = '<p class="err">Hesap adı girin.</p>'; break; } const isNew = a._new; delete a._new; a.name = a.name.trim(); a.cut = parseInt(a.cut) || null; a.due = parseInt(a.due) || null; a.limit = a.limit == null || a.limit === "" ? null : (C.parseAmt(a.limit) || null);
       saveMetaChange(m => { const i = m.accounts.findIndex(x => x.id === a.id); if (i >= 0) m.accounts[i] = a; else m.accounts.push(a); }); closeSheet(); render(); toast(isNew ? "Hesap eklendi" : "Kaydedildi"); break; }
     case "cat-new": D = { view: "cat" }; D.cat = { _new: true, id: "c-" + C.rid(), name: "", type: "E", parent: null, color: "#6b7f8c" }; renderSettings(); break;
+    case "cat-chart": catChart(ds.id); break;
     case "cat-edit": D = { view: "cat" }; D.cat = clone(meta().categories.find(x => x.id === ds.id)); renderSettings(); break;
     case "cat-save": { const c = D.cat; if (!c.name || !c.name.trim()) { $("#s-err").innerHTML = '<p class="err">Kategori adı girin.</p>'; break; } const isNew = c._new; delete c._new; c.name = c.name.trim(); c.parent = c.parent || null;
       saveMetaChange(m => { const i = m.categories.findIndex(x => x.id === c.id); if (i >= 0) m.categories[i] = c; else m.categories.push(c); }); closeSheet(); render(); toast(isNew ? "Kategori eklendi" : "Kaydedildi"); break; }
