@@ -1,9 +1,9 @@
 # 30 Ekim düzenlemeleri
-- [ ] Düzenli gelir: gelecek ayları ve çok aylık tutar dönemlerini planla; geçmişi koru.
-- [ ] Ayar alt menülerinde geri dönüş; aylık raporları dikey listele.
-- [ ] Abonelik logo/ad/fiyat tek satır; anasayfa hesap baloncuğu; işlem ekle %15 büyüt.
-- [ ] Tarayıcı doldurma önerilerini engelle; işlemlerde varsayılan son 30 gün ve geri dönüşte kaydırma konumu.
-- [ ] Toplu kategori/hesap değişikliği ve test hesabında doğrulama.
+- [x] Düzenli gelir: gelecek ayları ve çok aylık tutar dönemlerini planla; geçmişi koru (6 aylık ve tek aylık plan kaydedildi, yenileyerek okundu).
+- [x] Ayar alt menülerinde geri dönüş; aylık raporları dikey listele (tarayıcı geri ve Kategoriler → Ayarlar doğrulandı).
+- [x] Abonelik logo/ad/fiyat tek satır; anasayfa hesap baloncuğu; işlem ekle %15 büyüt.
+- [x] Tarayıcı doldurma önerilerini engelle; işlemlerde varsayılan son 30 gün ve geri dönüşte kaydırma konumu (500px konum geri geldi; tarayıcı önerileri cihazın tercihiyle zorlanabilir).
+- [x] Toplu kategori/hesap değişikliği ve test hesabında doğrulama (2 işlem değiştirildi, yenileyerek okundu; tüm deneme kayıtları silindi; 61 test geçti).
 
 # Tasarım düzenlemesi
 - [x] İşlem formunu sadeleştir: tek alanda kategori araması, kaydırılabilir liste ve yazarken binlik ayırıcı; gerçek test hesabında doğrula.
