@@ -2,7 +2,7 @@
 export function changeSelected(t, selected, kind, target) {
   if (!selected[t.id]) return t;
   if (kind === "cat") {
-    if (t.k === "tr" || target.type !== (t.k === "i" ? "I" : "E")) return t;
+    if (t.k === "tr") return t;
     const next = { ...t, cat: target.id };
     delete next.sp;
     return next;

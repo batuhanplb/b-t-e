@@ -4,7 +4,7 @@ import { stmtRange, parseStatementLines, reconcile, pdfLines } from "./statement
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "./cash-sim.js";
 import { incomeAmount, applyIncomeRange, periodsToAmts } from "./cash-income.js";
 import { changeSelected } from "./transaction-bulk.js";
-const APP_VERSION = "1.3.9.2";
+const APP_VERSION = "1.3.9.3";
 const applyTheme = t => { t = ["dark", "soft", "softdark"].includes(t) ? t : "light"; document.documentElement.dataset.theme = t; try { localStorage.setItem("butce-theme", t); } catch (e) {} const m = document.querySelectorAll('meta[name="theme-color"]'); m.forEach(x => x.content = t === "dark" ? "#1c1f1f" : t === "softdark" ? "#2a2c30" : t === "soft" ? "#e6e3dc" : "#f5f5f3"); };
 try { applyTheme(localStorage.getItem("butce-theme")); } catch (e) {}
 function ask(msg, opts) {
@@ -1278,7 +1278,7 @@ function gtList(kind, g, q) {
   return m.length ? m.map(x => '<button class="tx-catoption" role="option" data-act="gt-add" data-g="' + g + '" data-v="' + esc(x.v) + '"><i style="background:' + x.col + '"></i><span>' + esc(x.l) + '</span></button>').join("") : '<p class="small muted cat-noresults">Eşleşen yok.</p>';
 }
 function catList(k, q) {
-  const own = k === "i" ? "I" : "E", cats = k === "i" ? meta().categories.slice() : meta().categories.filter(c => c.type === own);
+  const own = k === "i" ? "I" : "E", cats = meta().categories.slice();
   const selected = D.spPick != null ? D.sp[D.spPick].cat : D.cat;
   const row = c => '<button class="tx-catoption" role="option" data-act="tx-cat" data-id="' + esc(c.id) + '" aria-selected="' + (selected === c.id) + '"><i style="background:' + c.color + '"></i><span>' + esc(catLabel(c.id)) + '</span>' + (selected === c.id ? '<span class="cat-check">✓</span>' : '') + '</button>';
   q = (q || "").trim().toLocaleLowerCase("tr");
@@ -1352,7 +1352,7 @@ function applyPayee() {
   if (!D || D.k === "tr") return false;
   const q = (D.t || "").trim().toLocaleLowerCase("tr"); if (!q) return false;
   const p = derived().payees.find(x => x.k === D.k && x.t.toLocaleLowerCase("tr") === q);
-  const cat = p && p.cat ? p.cat : (meta().categories.find(c => c.type === (D.k === "i" ? "I" : "E") && nz(catLabel(c.id)) === nz(q)) || {}).id;
+  const cat = p && p.cat ? p.cat : (meta().categories.slice().sort((a, b) => (a.type !== (D.k === "i" ? "I" : "E")) - (b.type !== (D.k === "i" ? "I" : "E"))).find(c => nz(catLabel(c.id)) === nz(q)) || {}).id;
   let ch = false;
   if (cat && cat !== D.cat && !(D.sp && D.sp.length) && D._new && !D.catTouched && !D.cat) { D.cat = cat; ch = true; }
   if (p && p.acc && !D.accTouched && p.acc !== D.acc) { D.acc = p.acc; ch = true; }

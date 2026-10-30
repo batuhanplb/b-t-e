@@ -82,8 +82,8 @@ describe("Toplu işlem düzenleme", () => {
   it("seçili işlem başka hesaba taşınır", () => {
     expect(changeSelected(tx, { t1: "2026-10" }, "acc", { id: "bank" })).toEqual({ ...tx, acc: "bank" });
   });
-  it("gelir/gider türleri karıştırılmaz", () => {
-    expect(changeSelected(tx, { t1: "2026-10" }, "cat", { id: "salary", type: "I" })).toBe(tx);
+  it("gider işlemine gelir kategorisi verilebilir", () => {
+    expect(changeSelected(tx, { t1: "2026-10" }, "cat", { id: "salary", type: "I" })).toEqual({ ...tx, cat: "salary" });
   });
   it("aynı hesaba transfer oluşturmaz", () => {
     const transfer = { ...tx, k: "tr", to: "bank" };
