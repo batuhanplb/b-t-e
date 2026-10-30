@@ -1845,7 +1845,8 @@ document.addEventListener("click", e => {
     case "sim-done": closeSheet(); render(); break;
     case "ci-new": D = { view: "ci", ci: { _new: true, id: "ci-" + C.rid(), k: ds.k, name: ds.n || "", a: ds.a ? amtIn(Number(ds.a)) : "", rep: "m", day: 15, start: CUR(), end: "", date: today() } }; renderSettings(); break;
     case "ci-edit": { const it = ((meta().cash || {}).items || []).find(x => x.id === ds.id); if (!it) break; const cur = it.rep === "once" ? it.date.slice(0, 7) : (CUR() < it.start ? it.start : CUR());
-      D = { view: "ci", ci: { ...clone(it), a: amtIn(cashAmt(it, cur)), _orig: cashAmt(it, cur), eff: cur, end: it.end || "" } }; renderSettings(); break; }
+      let pers = null; if (it.mode === "var") { const fut = (it.amts || []).filter(x => x.from > cur).sort((x, y) => x.from.localeCompare(y.from)), pts = [{ from: cur, a: cashAmt(it, cur) }, ...fut]; pers = pts.map((x, i) => ({ n: pts[i + 1] ? C.monthsBetween ? C.monthsBetween(x.from, pts[i + 1].from) : (+pts[i + 1].from.slice(0, 4) - +x.from.slice(0, 4)) * 12 + (+pts[i + 1].from.slice(5) - +x.from.slice(5)) : 6, a: x.a })); }
+      D = { view: "ci", ci: { ...clone(it), a: amtIn(cashAmt(it, cur)), _orig: cashAmt(it, cur), eff: cur, end: "", pers } }; renderSettings(); break; }
     case "ci-k": D.ci.k = ds.v; renderSettings(); break;
     case "ci-debt": { saveMetaChange(mm => { mm.cash = mm.cash || { items: [] }; const l = mm.cash.exDebts = mm.cash.exDebts || []; const k = l.indexOf(ds.id); if (k >= 0) l.splice(k, 1); else l.push(ds.id); }); renderSettings(); render(); break; }
     case "ci-rep": D.ci.rep = ds.v; renderSettings(); break;
@@ -1937,7 +1938,7 @@ document.addEventListener("input", e => {
   if (t.dataset.in === "cfrom" || t.dataset.in === "cto") { S[t.dataset.in === "cfrom" ? "cFrom" : "cTo"] = t.value; render(); return; }
   if (t.dataset.in === "q") { S.q = t.value; const pos = t.selectionStart; render(); const n = document.querySelector('[data-in="q"]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } return; }
   if (!D) return;
-  if (t.dataset.d === "aStr" || t.dataset.sa != null || t.dataset.pa != null || t.dataset.si != null || t.dataset.ga != null || t.dataset.ci === "a" || t.dataset.ci === "rangeAmount" || t.dataset.incomeMonth != null || t.id === "p-a" || t.dataset.a === "start" || t.dataset.a === "limit" || (t.dataset.num === "amt" && t.dataset.f !== "rate")) formatAmountField(t);
+  if (t.dataset.d === "aStr" || t.dataset.sa != null || t.dataset.pa != null || t.dataset.si != null || t.dataset.ga != null || t.dataset.ci === "a" || t.dataset.ci === "rangeAmount" || t.dataset.ci === "pa" || t.dataset.incomeMonth != null || t.id === "p-a" || t.dataset.a === "start" || t.dataset.a === "limit" || (t.dataset.num === "amt" && t.dataset.f !== "rate")) formatAmountField(t);
   if (t.id === "p-date") { const g = t.value.replace(/\D/g, "").slice(0, 8); t.value = g.length > 4 ? g.slice(0, 2) + "." + g.slice(2, 4) + "." + g.slice(4) : g.length > 2 ? g.slice(0, 2) + "." + g.slice(2) : g; return; }
   if (t.dataset.d) { D[t.dataset.d] = t.dataset.d === "cnt" ? parseInt(t.value) || 0 : t.value; if (t.dataset.d === "t") renderSugg(); if (["aStr", "cnt"].includes(t.dataset.d)) renderPlanBox(); if (t.dataset.d === "cnt" || (t.dataset.d === "aStr" && D.rep !== "one")) { /* preview updates on next render */ } }
   if (t.dataset.f) { const k = t.dataset.num; let v = t.value; if (k === "amt") { v = v.trim() === "" ? null : C.parseAmt(v); if (v !== null && isNaN(v)) return; } else if (k === "int") v = v === "" ? null : parseInt(v); D[t.dataset.f] = v; }

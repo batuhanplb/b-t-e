@@ -90,3 +90,12 @@ describe("Toplu işlem düzenleme", () => {
     expect(changeSelected(transfer, { t1: "2026-10" }, "acc", { id: "bank" })).toBe(transfer);
   });
 });
+import { periodsToAmts } from "../../public/cash-income.js";
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+d2("variable income periods", () => {
+  const add = (m, n) => { const [y, mo] = m.split("-").map(Number); const t = y * 12 + mo - 1 + n; return Math.floor(t / 12) + "-" + String(t % 12 + 1).padStart(2, "0"); };
+  i2("6 ay 30.000 sonra 35.000 devam, geçmiş korunur", () => {
+    const r = periodsToAmts([{ from: "2026-01", a: 25000 }, { from: "2026-12", a: 1 }], "2026-11", [{ n: 6, a: 30000 }, { n: 6, a: 35000 }], add);
+    e2(r).toEqual([{ from: "2026-01", a: 25000 }, { from: "2026-11", a: 30000 }, { from: "2027-05", a: 35000 }]);
+  });
+});
