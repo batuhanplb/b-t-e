@@ -1,5 +1,9 @@
 # public/ rules
 
+- Recurring income retains the existing effective-month `amts` schedule; `cash-income.js` applies finite ranges with a restoring boundary and preserves past entries and actual/skip overrides. Why: future salary plans must not rewrite history.
+- Selected transaction changes live in `transaction-bulk.js`; category changes preserve income/expense type and account changes skip self-transfers. Why: bulk edits must preserve transaction meaning.
+- Settings subviews use settings hash history; page scroll positions are stored per view. Why: Back must return to the parent context.
+
 - Shared presentation changes go in `butce-theme.css` (loaded after legacy styles) as revertible appended blocks (Dağılım dili, Landing 1.3.5.0, Simülasyon 1.3.6.0, 1.3.7.0); never change budgeting logic for visuals. Why: one revertible block per refresh.
 - `.mod .krow` rows never wrap the amount (`.r` `flex:0 0 auto`, nowrap; name/%pay ellipsis); adapt with `@container` on module width. Under 230px `.dl` month diff shows under the amount, `.dl.muted` hidden. Why: narrow modules broke amounts and hid the diff.
 - Dashboard layout = order + size preset (`SZ`, v3 `{id,on,sz}`); `meta.dashMobile` mobile, `meta.dash` desktop. Why: stable modules.
