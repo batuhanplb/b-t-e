@@ -10,6 +10,8 @@ import { describe, expect, it } from "vitest";
 import * as C from "../../public/core.js";
 import { simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK } from "../../public/cash-sim.js";
 import { formatAmountField } from "../../public/transaction-input.js";
+import { incomeAmount, applyIncomeRange } from "../../public/cash-income.js";
+import { changeSelected } from "../../public/transaction-bulk.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "../../public/statement.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -63,7 +65,7 @@ function boot(sd) {
       value: { getRandomValues: a => { for (let i = 0; i < a.length; i++) a[i] = Math.floor(Math.random() * 256); return a; } },
     });
   }
-  Object.assign(w, { C, formatAmountField, stmtRange, parseStatementLines, reconcile, pdfLines, simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK });
+  Object.assign(w, { C, incomeAmount, applyIncomeRange, changeSelected, formatAmountField, stmtRange, parseStatementLines, reconcile, pdfLines, simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK });
   const dlg = w.document.getElementById("sheet");
   if (dlg && typeof dlg.showModal !== "function") {
     dlg.showModal = () => dlg.setAttribute("open", "");
