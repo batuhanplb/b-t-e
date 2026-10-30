@@ -39,6 +39,8 @@ function boot(seed) {
   );
   const w = dom.window;
   w.__MOCK_SEED__ = JSON.parse(JSON.stringify(seed));
+  w.requestAnimationFrame = cb => w.setTimeout(() => cb(Date.now()), 0);
+  w.cancelAnimationFrame = id => w.clearTimeout(id);
   w.matchMedia = q => ({ matches: false, media: q, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false });
   if (!w.crypto || !w.crypto.getRandomValues) {
     Object.defineProperty(w, "crypto", {
