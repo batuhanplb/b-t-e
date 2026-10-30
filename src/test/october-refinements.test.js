@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { incomeAmount, applyIncomeRange } from "../../public/cash-income.js";
+import { incomeAmount, applyIncomeRange, periodsToAmts } from "../../public/cash-income.js";
 import { changeSelected } from "../../public/transaction-bulk.js";
 import { addM } from "../../public/core.js";
 import * as C from "../../public/core.js";
@@ -21,7 +21,7 @@ async function app() {
   w.cancelAnimationFrame = id => w.clearTimeout(id);
   w.document.getElementById("sheet").showModal = function () { this.setAttribute("open", ""); };
   w.document.getElementById("sheet").close = function () { this.removeAttribute("open"); };
-  Object.assign(w, { C, incomeAmount, applyIncomeRange, changeSelected, formatAmountField, stmtRange, parseStatementLines, reconcile, pdfLines, simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK });
+  Object.assign(w, { C, incomeAmount, applyIncomeRange, periodsToAmts, changeSelected, formatAmountField, stmtRange, parseStatementLines, reconcile, pdfLines, simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK });
   w.eval(readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../public/app.js"), "utf8").replace(/^import[^\n]*\n/gm, "") + '\nwindow.state = S; window.setDraft = c => { D = { view: "ci", ci: c }; renderSettings(); }; window.getRange = perRange; window.remember = rememberScroll; window.restore = restoreScroll;');
   await new Promise(r => setTimeout(r, 30));
   return dom;
@@ -31,7 +31,7 @@ describe("Gelir kaydı ve gezinme kuralları", () => {
   it("kaydetme geçmiş planı, gerçek tutarı ve gerçekleşme işaretlerini korur", async () => {
     const dom = await app(), w = dom.window;
     const cm = C.ymd(new Date()).slice(0, 7), past = addM(cm, -1);
-    w.setDraft({ id: "salary", k: "inc", name: "Maaş", rep: "m", start: past, a: "50.000", _orig: 50000, eff: cm, amts: [{ from: past, a: 45000 }, { from: cm, a: 50000 }, { from: addM(cm, 6), a: 60000 }], act: { [past]: 44000 }, skip: [past] });
+    w.setDraft({ id: "salary", k: "inc", name: "Maaş", rep: "m", mode: "var", pers: [{ n: 6, a: 50000 }, { n: 6, a: 60000 }], start: past, a: "50.000", _orig: 50000, eff: cm, amts: [{ from: past, a: 45000 }, { from: cm, a: 50000 }, { from: addM(cm, 6), a: 60000 }], act: { [past]: 44000 }, skip: [past] });
     w.document.querySelector('[data-act="ci-save"]').click();
     await new Promise(r => setTimeout(r, 30));
     const item = w.__store.meta.cash.items[0];
@@ -90,7 +90,6 @@ describe("Toplu işlem düzenleme", () => {
     expect(changeSelected(transfer, { t1: "2026-10" }, "acc", { id: "bank" })).toBe(transfer);
   });
 });
-import { periodsToAmts } from "../../public/cash-income.js";
 import { describe as d2, it as i2, expect as e2 } from "vitest";
 d2("variable income periods", () => {
   const add = (m, n) => { const [y, mo] = m.split("-").map(Number); const t = y * 12 + mo - 1 + n; return Math.floor(t / 12) + "-" + String(t % 12 + 1).padStart(2, "0"); };
