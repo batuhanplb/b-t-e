@@ -40,7 +40,7 @@ const LS_BASE = (u: string) => "butce.base." + u;
 const LS_USER = "butce.lastUser";
 // Merge a locally edited month with the server copy so a stale device never
 // erases transactions another device added. base = last server copy we saw.
-type Tx = { id?: string };
+type Tx = { id?: string; [k: string]: unknown };
 export function mergeMonth(base: Tx[], local: Tx[], server: Tx[]): Tx[] {
   const key = (t: Tx, i: number) => t.id || "#" + i + JSON.stringify(t);
   const b = new Map(base.map((t, i) => [key(t, i), JSON.stringify(t)]));
