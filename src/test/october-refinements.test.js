@@ -4,6 +4,8 @@ import { changeSelected } from "../../public/transaction-bulk.js";
 import { addM } from "../../public/core.js";
 import * as C from "../../public/core.js";
 import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { formatAmountField } from "../../public/transaction-input.js";
 import { stmtRange, parseStatementLines, reconcile, pdfLines } from "../../public/statement.js";
@@ -20,7 +22,7 @@ async function app() {
   w.document.getElementById("sheet").showModal = function () { this.setAttribute("open", ""); };
   w.document.getElementById("sheet").close = function () { this.removeAttribute("open"); };
   Object.assign(w, { C, incomeAmount, applyIncomeRange, changeSelected, formatAmountField, stmtRange, parseStatementLines, reconcile, pdfLines, simMonths, simEstimate, simRemaining, simMonthlyTotals, SIM_LOOKBACK });
-  w.eval(readFileSync(new URL("../../public/app.js", import.meta.url), "utf8").replace(/^import[^\n]*\n/gm, "") + '\nwindow.state = S; window.setDraft = c => { D = { view: "ci", ci: c }; renderSettings(); }; window.getRange = perRange; window.remember = rememberScroll; window.restore = restoreScroll;');
+  w.eval(readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../public/app.js"), "utf8").replace(/^import[^\n]*\n/gm, "") + '\nwindow.state = S; window.setDraft = c => { D = { view: "ci", ci: c }; renderSettings(); }; window.getRange = perRange; window.remember = rememberScroll; window.restore = restoreScroll;');
   await new Promise(r => setTimeout(r, 30));
   return dom;
 }
